@@ -8,7 +8,7 @@ using System.Text;
 using UnityEditor;
 #endif
 
-namespace sh
+namespace Shell.Protector
 {
 #if UNITY_EDITOR
     public class EncryptTexture : MonoBehaviour

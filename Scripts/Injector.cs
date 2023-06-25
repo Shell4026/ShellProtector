@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
 
-namespace sh
+namespace Shell.Protector
 {
     public class Injector
     {
