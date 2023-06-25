@@ -11,64 +11,9 @@ using UnityEditor;
 namespace Shell.Protector
 {
 #if UNITY_EDITOR
-    public class EncryptTexture : MonoBehaviour
+    public class EncryptTexture
     {
-        [SerializeField]
-        List<Material> material_list = new List<Material>();
-        [SerializeField]
-        List<Texture2D> texture_list = new List<Texture2D>();
 
-        public string dir = "Assets/ShellProtect";
-        public string pwd = "password";
-
-        [SerializeField]
-        int rounds = 32;
-        [SerializeField]
-        int filter = 1;
-
-        public void Test()
-        {
-            byte[] data = new byte[8] { 255, 0, 0, 255, 255, 0, 0, 255 };
-            byte[] key = MakeKeyBytes(pwd);
-
-            uint pwd1 = (uint)(key[0] + (key[1] << 8) + (key[2] << 16) + (key[3] << 24));
-            uint pwd2 = (uint)(key[4] + (key[5] << 8 )+ (key[6] << 16) + (key[7] << 24));
-            uint pwd3 = (uint)(key[8] + (key[9] << 8) + (key[10] << 16) + (key[11] << 24));
-
-            string debug_txt = "";
-            foreach (var i in key)
-                debug_txt += i.ToString() + ' ';
-            Debug.Log("Key bytes: " + debug_txt);
-            Debug.Log(string.Format("key1:{0}, key2:{1}, key3:{2}", pwd1, pwd2, pwd3));
-
-            debug_txt = "";
-            foreach (var i in data)
-                debug_txt += i.ToString() + ' ';
-            Debug.Log("Data: " + debug_txt);
-
-            debug_txt = "";
-            byte[] result = XTEAEncrypt.Encrypt8(data, key);
-            foreach (var i in result)
-                debug_txt += i.ToString() + ' ';
-            Debug.Log("Encrypted data: " + debug_txt);
-
-            debug_txt = "";
-            result = XTEAEncrypt.Decrypt8(result, key);
-            foreach (var i in result)
-                debug_txt += i.ToString() + ' ';
-            Debug.Log("Decrypted data: " + debug_txt);
-        }
-
-        byte[] MakeKeyBytes(string _key)
-        {
-            byte[] key = new byte[16] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-            byte[] key_bytes = Encoding.ASCII.GetBytes(pwd);
-
-            for (int i = 0; i < key_bytes.Length; ++i)
-                key[i] = key_bytes[i];
-
-            return key; 
-        }
         int GetCanMipmapLevel(int w, int h)
         {
             int w_level = 0, h_level = 0;
@@ -84,10 +29,8 @@ namespace Shell.Protector
             }
             return Math.Min(w_level, h_level) + 1;
         }
-        public Texture2D[] TextureEncrypt(Texture2D texture, bool selection = true)
+        public Texture2D[] TextureEncrypt(Texture2D texture, byte[] key, int rounds = 32)
         {
-            byte[] key = MakeKeyBytes(pwd);
-
             Texture2D tex = texture;
 
             if(tex.width % 2 !=0 && tex.height % 2 != 0)
@@ -141,25 +84,10 @@ namespace Shell.Protector
             tmp.anisoLevel = 0;
             mip.anisoLevel = 0;
 
-            if (dir[dir.Length - 1] == '/')
-                dir = dir.Remove(dir.Length - 1);
-
-            if (!AssetDatabase.IsValidFolder(dir + '/' + gameObject.name))
-                AssetDatabase.CreateFolder(dir, gameObject.name);
-
-            AssetDatabase.CreateAsset(tmp, dir + '/' + gameObject.name + '/' + texture.name + "_encrypt.asset");
-            AssetDatabase.CreateAsset(mip, dir + '/' + gameObject.name + '/' + texture.name + "_encrypt_mip.asset");
-            AssetDatabase.SaveAssets();
-
-            if(selection)
-                Selection.activeObject = tmp;
-            AssetDatabase.Refresh();
             return new Texture2D[] { tmp, mip };
         }
-        public Texture2D TextureDecrypt(Texture2D texture)
+        public Texture2D TextureDecrypt(Texture2D texture, byte[] key, int rounds = 32)
         {
-            byte[] key = MakeKeyBytes(pwd);
-
             Texture2D tex = texture;
             Texture2D tmp = new Texture2D(tex.width, tex.height, TextureFormat.RGBA32, tex.mipmapCount > 1);
 
@@ -188,61 +116,8 @@ namespace Shell.Protector
             }
 
             tmp.SetPixels32(pixels);
-
-            if (dir[dir.Length - 1] == '/')
-                dir = dir.Remove(dir.Length - 1);
-
-            System.IO.File.WriteAllBytes(dir + texture.name + "_decrypt.png", tmp.EncodeToPNG());
-            AssetDatabase.Refresh();
             return tmp;
 #endif
-        }
-        public void Encrypt()
-        {
-            string debug_txt = "";
-            foreach (var i in MakeKeyBytes(pwd))
-                debug_txt += i.ToString() + ' ';
-            Debug.Log("Key bytes: " + debug_txt);
-
-            foreach (var mat in material_list)
-            {
-                Injector injector = new Injector(MakeKeyBytes(pwd), rounds, filter);
-                if (injector.IsSupportShader(mat.shader))
-                {
-                    if (!Injector.IsLockPoiyomi(mat.shader))
-                    {
-                        Debug.LogError("First, the shader must be locked!");
-                        continue;
-                    }
-
-                    if (mat.mainTexture.width % 2 != 0 && mat.mainTexture.height % 2 != 0)
-                    {
-                        Debug.LogErrorFormat("{0} : The texture size must be a multiple of 2!", mat.mainTexture.name);
-                        continue;
-                    }
-
-                    if (injector.WasInjected(mat.shader))
-                    {
-                        Debug.LogWarning("The shader is already encrypted.");
-                        continue;
-                    }
-
-                    try
-                    {
-                        Texture2D[] tex_set = TextureEncrypt((Texture2D)mat.mainTexture, false);
-                        if(!injector.Inject(mat.shader, dir + "/Decrypt.cginc", tex_set[0]))
-                            continue;
-
-                        mat.mainTexture = tex_set[0];
-                        mat.SetTexture("_MipTex", tex_set[1]);
-                    }
-                    catch (UnityException e)
-                    {
-                        Debug.LogError(e.Message);
-                        continue;
-                    }
-                }
-            }
         }
     }
 }

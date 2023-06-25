@@ -8,7 +8,7 @@ using VRC.SDKBase.Editor.BuildPipeline;
 
 namespace Shell.Protector
 {
-    [CustomEditor(typeof(EncryptTexture))]
+    [CustomEditor(typeof(ShellProtector))]
     [CanEditMultipleObjects]
     public class TextureProtectEditor : Editor
     {
@@ -50,11 +50,11 @@ namespace Shell.Protector
 
         public override void OnInspectorGUI()
         {
-            EncryptTexture encrypt = target as EncryptTexture;
+            ShellProtector root = target as ShellProtector;
 
             GUILayout.BeginHorizontal();
             GUILayout.Label("Directory", EditorStyles.boldLabel);
-            encrypt.dir = GUILayout.TextField(encrypt.dir, GUILayout.Width(300));
+            root.dir = GUILayout.TextField(root.dir, GUILayout.Width(300));
             GUILayout.EndHorizontal();
             GUILayout.Space(20);
 
@@ -63,8 +63,8 @@ namespace Shell.Protector
             GUILayout.FlexibleSpace();
             GUILayout.Label("Mixing alphabets and special characters makes it more secure.", EditorStyles.wordWrappedLabel);
             GUILayout.EndHorizontal();
-            
-            encrypt.pwd = GUILayout.PasswordField(encrypt.pwd, '*', 12, GUILayout.Width(100));
+
+            root.pwd = GUILayout.PasswordField(root.pwd, '*', 12, GUILayout.Width(100));
 
             serializedObject.Update();
             material_list.DoLayoutList();
@@ -89,7 +89,7 @@ namespace Shell.Protector
             }
 
             if (GUILayout.Button("Encrypt!"))
-                encrypt.Encrypt();
+                root.Encrypt();
 
 
             debug = EditorGUILayout.Foldout(debug, "Debug");
@@ -97,28 +97,53 @@ namespace Shell.Protector
             {
                 GUILayout.Space(10);
                 if (GUILayout.Button("Encrypt/Decrypt test"))
-                    encrypt.Test();
+                    root.Test();
                 GUILayout.Space(10);
 
                 texture_list.DoLayoutList();
                 GUILayout.BeginHorizontal();
                 if (GUILayout.Button("Encrypt"))
                 {
+                    Texture2D last = null;
                     for (int i = 0; i < texture_list.count; i++)
                     {
                         SerializedProperty element = texture_list.serializedProperty.GetArrayElementAtIndex(i);
                         Texture2D texture = element.objectReferenceValue as Texture2D;
-                        encrypt.TextureEncrypt(texture);
+                        var tex_set = root.GetEncryptTexture().TextureEncrypt(texture, root.MakeKeyBytes(root.pwd), rounds.intValue);
+
+                        if (root.dir[root.dir.Length - 1] == '/')
+                            root.dir = root.dir.Remove(root.dir.Length - 1);
+
+                        last = tex_set[0];
+
+                        AssetDatabase.CreateAsset(tex_set[0], root.dir + '/' + root.gameObject.name + '/' + texture.name + "_encrypt.asset");
+                        AssetDatabase.CreateAsset(tex_set[1], root.dir + '/' + root.gameObject.name + '/' + texture.name + "_encrypt_mip.asset");
+                        AssetDatabase.SaveAssets();
+
+                        AssetDatabase.Refresh();
                     }
+                    if(last != null)
+                        Selection.activeObject = last;
                 }
                 if (GUILayout.Button("Decrypt"))
                 {
+                    Texture2D last = null;
                     for (int i = 0; i < texture_list.count; i++)
                     {
                         SerializedProperty textureProperty = texture_list.serializedProperty.GetArrayElementAtIndex(i);
                         Texture2D texture = textureProperty.objectReferenceValue as Texture2D;
-                        encrypt.TextureDecrypt(texture);
+                        var tmp = root.GetEncryptTexture().TextureDecrypt(texture, root.MakeKeyBytes(root.pwd), rounds.intValue);
+
+                        if (root.dir[root.dir.Length - 1] == '/')
+                            root.dir = root.dir.Remove(root.dir.Length - 1);
+
+                        System.IO.File.WriteAllBytes(root.dir + '/' + root.gameObject.name + '/' + texture.name + "_decrypt.png", tmp.EncodeToPNG());
+                        last = (Texture2D)AssetDatabase.LoadAssetAtPath(root.dir + '/' + root.gameObject.name + '/' + texture.name + "_decrypt.png", typeof(Texture2D));
+
+                        AssetDatabase.Refresh();
                     }
+                    if (last != null)
+                        Selection.activeObject = last;
                 }
                 GUILayout.EndHorizontal();
             }

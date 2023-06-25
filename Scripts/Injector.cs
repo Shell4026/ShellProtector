@@ -56,13 +56,12 @@ namespace Shell.Protector
 				float4 mainTexture = bilinear;
         ";
 
-        public Injector(byte[] key, int rounds, int filter)
+        public Injector()
         {
             support_version.Add("Poiyomi 7.3", 7);
             support_version.Add("Poiyomi 8.0", 8);
             support_version.Add("Poiyomi 8.1", 8);
             support_version.Add("Poiyomi 8.2", 8);
-            Init(key, rounds, filter);
         }
 
         public static bool IsPoiyomi(Shader shader)
