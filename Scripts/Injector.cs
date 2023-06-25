@@ -90,40 +90,50 @@ namespace sh
             this.rounds = rounds;
         }
 
+        public string EditDecoder(string data)
+        {
+            if (data.Contains("//ShellProtect"))
+            {
+                Debug.LogWarning("The shader is already encrypted.");
+                return null;
+            }
+            data.Insert(0, "//ShellProtect");
+
+            string ks = "static uint k[8] = { " + keys[0] + ", " + keys[1] + ", " + keys[2] + ", " + keys[3] + ", " + keys[4] + ", " + keys[5] + ", 0, 0 };";
+            data = Regex.Replace(data, "static uint k\\[8\\] = { 0, 0, 0, 0, 0, 0, 0, 0 };", ks);
+
+            ks = "static const uint rounds = " + rounds;
+            data = Regex.Replace(data, "static const uint rounds = 32", ks);
+
+            return data;
+        }
+
         public void Inject(Shader shader, string decode_dir, Texture2D tex, Texture2D mip)
         {
             string shader_path = AssetDatabase.GetAssetPath(shader);
 
             string decode_data = File.ReadAllText(decode_dir);
-            if (decode_data.Contains("//ShellProtect"))
-            {
-                Debug.LogWarning("The shader is already encrypted.");
+            decode_data = EditDecoder(decode_data);
+            if (decode_data == null)
                 return;
-            }
-            decode_data.Insert(0, "//ShellProtect");
-
-            string ks = "static uint k[8] = { " + keys[0] + ", " + keys[1] + ", " + keys[2] + ", " + keys[3] + ", " + keys[4] + ", " + keys[5] + ", 0, 0 };";
-            decode_data = Regex.Replace(decode_data, "static uint k\\[8\\] = { 0, 0, 0, 0, 0, 0, 0, 0 };", ks);
-
-            ks = "static const uint rounds = " + rounds;
-            decode_data = Regex.Replace(decode_data, "static const uint rounds = 32", ks);
-
             File.WriteAllText(Path.GetDirectoryName(shader_path) + "/Decrypt.cginc", decode_data);
 
             string shader_data = File.ReadAllText(shader_path);
-
             Match match = Regex.Match(shader_data, "Properties\\W*{");
             if (match.Success)
             {
                 int suffix_idx = match.Index + match.Length;
                 shader_data = shader_data.Insert(suffix_idx, "\n\t\t[HideInInspector] _MipTex (\"Texture\", 2D) = \"white\" { }");
-
+            }
+            else
+            {
+                Debug.LogWarning("Wrong shader data!");
+                return;
             }
             shader_data = Regex.Replace(shader_data, "float4 frag\\(", "sampler2D _MipTex;\n\t\t\t#include \"Decrypt.cginc\"\n\t\t\tfloat4 frag(");
-
             shader_data = Regex.Replace(shader_data, "float4 mainTexture = .*?;", shader_code);
+           
             File.WriteAllText(shader_path, shader_data);
-
             AssetDatabase.Refresh();
         }
     }
