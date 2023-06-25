@@ -162,7 +162,7 @@ namespace Shell.Protector
                 else
                 {
                     Debug.LogError("Unsupported shader!");
-                    return;
+                    continue;
                 }
             }
             AssetDatabase.Refresh();
