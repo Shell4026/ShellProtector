@@ -1,9 +1,11 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using UnityEditor;
 using UnityEngine;
 
+#if UNITY_EDITOR
 namespace Shell.Protector
 {
     public class ShellProtector : MonoBehaviour
@@ -70,6 +72,10 @@ namespace Shell.Protector
                 debug_txt += i.ToString() + ' ';
             Debug.Log("Decrypted data: " + debug_txt);
         }
+        public void SetRWEnableTexture(Texture2D texture)
+        {
+ 
+        }
         public void Encrypt()
         {
             string debug_txt = "";
@@ -132,3 +138,4 @@ namespace Shell.Protector
         }
     }
 }
+#endif

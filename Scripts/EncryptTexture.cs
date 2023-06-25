@@ -2,18 +2,11 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System;
-using System.Text;
-
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
 
 namespace Shell.Protector
 {
-#if UNITY_EDITOR
     public class EncryptTexture
     {
-
         int GetCanMipmapLevel(int w, int h)
         {
             int w_level = 0, h_level = 0;
@@ -117,7 +110,6 @@ namespace Shell.Protector
 
             tmp.SetPixels32(pixels);
             return tmp;
-#endif
         }
     }
 }

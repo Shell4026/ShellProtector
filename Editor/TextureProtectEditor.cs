@@ -4,7 +4,6 @@ using UnityEngine;
 using UnityEditor;
 using UnityEditorInternal;
 using System.Text;
-using VRC.SDKBase.Editor.BuildPipeline;
 
 namespace Shell.Protector
 {
