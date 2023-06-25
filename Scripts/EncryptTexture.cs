@@ -70,6 +70,22 @@ namespace sh
             return key; 
         }
 
+        int GetCanMipmapLevel(int w, int h)
+        {
+            int w_level = 0, h_level = 0;
+            while(w != 1)
+            {
+                w /= 2;
+                ++w_level;
+            }
+            while (h != 1)
+            {
+                h /= 2;
+                ++h_level;
+            }
+            return Math.Min(w_level, h_level) + 1;
+        }
+
         public Texture2D[] TextureEncrypt(Texture2D texture, bool selection = true)
         {
             byte[] key = MakeKeyBytes(pwd);
@@ -79,8 +95,18 @@ namespace sh
             Debug.Log("Key bytes: " + debug_txt);
 
             Texture2D tex = texture;
-            Texture2D tmp = new Texture2D(tex.width, tex.height, TextureFormat.RGBA32, 8, true);
-            Texture2D mip = new Texture2D(tex.width, tex.height, TextureFormat.Alpha8, 10, true);
+
+            if(tex.width % 2 !=0 && tex.height % 2 != 0)
+            {
+                Debug.LogErrorFormat("{0} : The texture size must be a multiple of 2!", texture.name);
+                return null;
+            }
+
+            int mip_lv = GetCanMipmapLevel(tex.width, tex.height);
+            Debug.Log(mip_lv);
+
+            Texture2D tmp = new Texture2D(tex.width, tex.height, TextureFormat.RGBA32, mip_lv-2, true); //mip_lv-2 is blur trick (look a shader)
+            Texture2D mip = new Texture2D(tex.width, tex.height, TextureFormat.Alpha8, mip_lv, true);
             for (int m = 0; m < tmp.mipmapCount; ++m)
             {
                 Color32[] pixels = tex.GetPixels32(m);
@@ -121,8 +147,10 @@ namespace sh
             
             tmp.anisoLevel = 0;
             mip.anisoLevel = 0;
+
             if(!AssetDatabase.IsValidFolder(dir + '/' + gameObject.name))
                 AssetDatabase.CreateFolder(dir, gameObject.name);
+
             AssetDatabase.CreateAsset(tmp, dir + '/' + gameObject.name + '/' + texture.name + "_encrypt.asset");
             AssetDatabase.CreateAsset(mip, dir + '/' + gameObject.name + '/' + texture.name + "_encrypt_mip.asset");
             AssetDatabase.SaveAssets();
@@ -183,7 +211,13 @@ namespace sh
                 {
                     if (Injector.IsLockPoiyomi(mat.shader))
                     {
+                        if (mat.mainTexture.width % 2 != 0 && mat.mainTexture.height % 2 != 0)
+                        {
+                            Debug.LogErrorFormat("{0} : The texture size must be a multiple of 2!", mat.mainTexture.name);
+                            continue;
+                        }
                         Texture2D[] tex_set = TextureEncrypt((Texture2D)mat.mainTexture, false);
+
                         Texture2D tex = tex_set[0];
                         Texture2D mip = tex_set[1];
 
@@ -191,7 +225,7 @@ namespace sh
                         mat.SetTexture("_MipTex", mip);
 
                         Injector injector = new Injector(MakeKeyBytes(pwd), rounds, filter);
-                        injector.Inject(mat.shader, dir + "/Decrypt.cginc", null, null);
+                        injector.Inject(mat.shader, dir + "/Decrypt.cginc", tex);
                     }
                     else
                     {

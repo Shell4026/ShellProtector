@@ -1,8 +1,8 @@
 #ifndef Decrypt
 #define Decrypt
 
-static uint mw[12] = { 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048 };
-static uint mh[12] = { 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048 };
+static uint mw[12] = { 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1 };
+static uint mh[12] = { 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1 };
 
 static uint k[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
@@ -53,7 +53,7 @@ float4 DecryptTexture(float4 pixel, float2 uv, int m)
 	float x = uv.x;
 	float y = uv.y;
 
-	int mip = 11 - m;
+	int mip = m;
 	int idx = (mw[mip] * floor(y * mh[mip])) + floor(x * mw[mip]);
 	
 	float4 decrypt = XTEADecrypt(pixel, idx);

@@ -18,8 +18,8 @@ namespace sh
         string shader_code_nofilter = @"
 				float4 mip_texture = tex2D(_MipTex, mainUV);
 				
-				int mip = round(mip_texture.a * 255 / 10);
-				int m[12] = {0, 0, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+				int mip = round(mip_texture.a * 255 / 10); //fucking precision problems
+				int m[13] = { 0, 0, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }; // max size 4k
 				
 				float4 c00 =  _MainTex.SampleLevel(sampler_MainTex, mainUV, m[mip]);
 				c00 = DecryptTexture(c00, mainUV, m[mip]);
@@ -33,8 +33,8 @@ namespace sh
 				float2 uv_unit = _MainTex_TexelSize.xy;
 				//bilinear interpolation
 				float2 uv_bilinear = mainUV - 0.5 * uv_unit;
-				int mip = round(mip_texture.a * 255 / 10);
-				int m[12] = {0, 0, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+				int mip = round(mip_texture.a * 255 / 10); //fucking precision problems
+				int m[13] = { 0, 0, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }; // max size 4k
 				
 				float4 c00 =  _MainTex.SampleLevel(sampler_MainTex, uv_bilinear + float2(uv_unit.x * 0, uv_unit.y * 0), m[mip]);
 				float4 c10 =  _MainTex.SampleLevel(sampler_MainTex, uv_bilinear + float2(uv_unit.x * 1, uv_unit.y * 0), m[mip]);
@@ -103,7 +103,7 @@ namespace sh
             this.filter = filter;
         }
 
-        private string EditDecoder(string data)
+        private string GenerateDecoder(string data, Texture2D tex)
         {
             if (data.Contains("//ShellProtect"))
             {
@@ -112,7 +112,31 @@ namespace sh
             }
             data.Insert(0, "//ShellProtect");
 
-            string ks = "static uint k[8] = { " + keys[0] + ", " + keys[1] + ", " + keys[2] + ", " + keys[3] + ", " + keys[4] + ", " + keys[5] + ", 0, 0 };";
+            string ks = "static uint mw[12] = { 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1 };";
+            
+            int mip_lv = tex.mipmapCount;
+            string replace_mw = "static uint mw[" + (mip_lv + 2) + "] = { ";
+            string replace_mh = "static uint mh[" + (mip_lv + 2) + "] = { ";
+            for (int i = 0; i < mip_lv + 2; ++i)
+            {
+                replace_mw += tex.width / Mathf.Pow(2, i);
+                replace_mh += tex.height / Mathf.Pow(2, i);
+                if (i != mip_lv + 2 - 1)
+                {
+                    replace_mw += ", ";
+                    replace_mh += ", ";
+                }
+                else
+                {
+                    replace_mw += " };";
+                    replace_mh += " };";
+                }
+            }
+
+            data = Regex.Replace(data, "static uint mw\\[12\\] = { 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1 };", replace_mw);
+            data = Regex.Replace(data, "static uint mh\\[12\\] = { 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1 };", replace_mh);
+
+            ks = "static uint k[8] = { " + keys[0] + ", " + keys[1] + ", " + keys[2] + ", " + keys[3] + ", " + keys[4] + ", " + keys[5] + ", 0, 0 };";
             data = Regex.Replace(data, "static uint k\\[8\\] = { 0, 0, 0, 0, 0, 0, 0, 0 };", ks);
 
             ks = "static const uint rounds = " + rounds;
@@ -121,12 +145,12 @@ namespace sh
             return data;
         }
 
-        public void Inject(Shader shader, string decode_dir, Texture2D tex, Texture2D mip)
+        public void Inject(Shader shader, string decode_dir, Texture2D tex)
         {
             string shader_path = AssetDatabase.GetAssetPath(shader);
 
             string decode_data = File.ReadAllText(decode_dir);
-            decode_data = EditDecoder(decode_data);
+            decode_data = GenerateDecoder(decode_data, tex);
             if (decode_data == null)
                 return;
             File.WriteAllText(Path.GetDirectoryName(shader_path) + "/Decrypt.cginc", decode_data);
