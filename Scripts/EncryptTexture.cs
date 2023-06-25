@@ -215,24 +215,23 @@ namespace sh
                 Injector injector = new Injector(MakeKeyBytes(pwd), rounds, filter);
                 if (injector.IsSupportShader(mat.shader))
                 {
-                    if (Injector.IsLockPoiyomi(mat.shader))
-                    {
-                        if (mat.mainTexture.width % 2 != 0 && mat.mainTexture.height % 2 != 0)
-                        {
-                            Debug.LogErrorFormat("{0} : The texture size must be a multiple of 2!", mat.mainTexture.name);
-                            continue;
-                        }
-                        Texture2D[] tex_set = TextureEncrypt((Texture2D)mat.mainTexture, false);
-                        
-                        injector.Inject(mat.shader, dir + "/Decrypt.cginc", tex_set[0]);
-
-                        mat.mainTexture = tex_set[0];
-                        mat.SetTexture("_MipTex", tex_set[1]);
-                    }
-                    else
+                    if (!Injector.IsLockPoiyomi(mat.shader))
                     {
                         Debug.LogError("First, the shader must be locked!");
+                        continue;
                     }
+
+                    if (mat.mainTexture.width % 2 != 0 && mat.mainTexture.height % 2 != 0)
+                    {
+                        Debug.LogErrorFormat("{0} : The texture size must be a multiple of 2!", mat.mainTexture.name);
+                        continue;
+                    }
+                    Texture2D[] tex_set = TextureEncrypt((Texture2D)mat.mainTexture, false);
+
+                    injector.Inject(mat.shader, dir + "/Decrypt.cginc", tex_set[0]);
+
+                    mat.mainTexture = tex_set[0];
+                    mat.SetTexture("_MipTex", tex_set[1]);
                 }
             }
         }
