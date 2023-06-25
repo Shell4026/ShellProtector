@@ -47,5 +47,5 @@ Encrypt the texture using a modified XTEA algorithm.
 After encrypting the texture itself, it is uploaded to the VRChat server. The texture is then decrypted in the game via shaders.
 
 ### Supported shaders
-- Poiyomi 8.2
+- Poiyomi 7.3, 8.0, 8.1, 8.2
 - Support for liltoon coming soon
