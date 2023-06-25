@@ -87,7 +87,7 @@ namespace sh
                 GUILayout.Space(30);
             }
 
-            if (GUILayout.Button("Encrypt and lock shader"))
+            if (GUILayout.Button("Encrypt!"))
                 encrypt.Encrypt();
 
 
@@ -107,7 +107,6 @@ namespace sh
                     {
                         SerializedProperty element = texture_list.serializedProperty.GetArrayElementAtIndex(i);
                         Texture2D texture = element.objectReferenceValue as Texture2D;
-                        Debug.Log(texture.name);
                         encrypt.TextureEncrypt(texture);
                     }
                 }

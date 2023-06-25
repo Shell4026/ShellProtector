@@ -103,9 +103,8 @@ namespace sh
             }
 
             int mip_lv = GetCanMipmapLevel(tex.width, tex.height);
-            Debug.Log(mip_lv);
 
-            Texture2D tmp = new Texture2D(tex.width, tex.height, TextureFormat.RGBA32, mip_lv-2, true); //mip_lv-2 is blur trick (look a shader)
+            Texture2D tmp = new Texture2D(tex.width, tex.height, TextureFormat.RGBA32, mip_lv-2, true); //mip_lv-2 is blur trick (like the box filter)
             Texture2D mip = new Texture2D(tex.width, tex.height, TextureFormat.Alpha8, mip_lv, true);
             for (int m = 0; m < tmp.mipmapCount; ++m)
             {
@@ -130,7 +129,7 @@ namespace sh
                     pixels[i].b = data_enc[2];
                     pixels[i].a = data_enc[3];
                 }
-                //Debug.Log(pixels.Length);
+
                 tmp.SetPixels32(pixels, m);
             }
             for (int m = 0; m < mip.mipmapCount; ++m)
@@ -148,7 +147,10 @@ namespace sh
             tmp.anisoLevel = 0;
             mip.anisoLevel = 0;
 
-            if(!AssetDatabase.IsValidFolder(dir + '/' + gameObject.name))
+            if (dir[dir.Length - 1] == '/')
+                dir = dir.Remove(dir.Length - 1);
+
+            if (!AssetDatabase.IsValidFolder(dir + '/' + gameObject.name))
                 AssetDatabase.CreateFolder(dir, gameObject.name);
 
             AssetDatabase.CreateAsset(tmp, dir + '/' + gameObject.name + '/' + texture.name + "_encrypt.asset");
@@ -196,6 +198,9 @@ namespace sh
             }
 
             tmp.SetPixels32(pixels);
+
+            if (dir[dir.Length - 1] == '/')
+                dir = dir.Remove(dir.Length - 1);
 
             System.IO.File.WriteAllBytes(dir + texture.name + "_decrypt.png", tmp.EncodeToPNG());
             AssetDatabase.Refresh();
