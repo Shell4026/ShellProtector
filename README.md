@@ -24,6 +24,9 @@
 - Poiyomi 7.3, 8.0, 8.1, 8.2
 - 릴툰 지원 예정
 
+### 예정
+- 압축
+
 ## English
 
 ### **Texture encryption using shaders available in VRChat**.
@@ -47,3 +50,6 @@ After encrypting the texture itself, it is uploaded to the VRChat server. The te
 ### Supported shaders
 - Poiyomi 7.3, 8.0, 8.1, 8.2
 - Support for liltoon coming soon
+
+### feature
+- Compress
