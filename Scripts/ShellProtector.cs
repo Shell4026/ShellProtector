@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
 
@@ -74,7 +75,15 @@ namespace Shell.Protector
         }
         public void SetRWEnableTexture(Texture2D texture)
         {
- 
+            if (texture.isReadable)
+                return;
+            string path = AssetDatabase.GetAssetPath(texture);
+            string meta = File.ReadAllText(path + ".meta");
+
+            meta = Regex.Replace(meta, "isReadable: 0", "isReadable: 1");
+            File.WriteAllText(path + ".meta", meta);
+
+            AssetDatabase.Refresh();
         }
         public void Encrypt()
         {
@@ -109,7 +118,9 @@ namespace Shell.Protector
 
                     try
                     {
-                        Texture2D[] tex_set = encrypt.TextureEncrypt((Texture2D)mat.mainTexture, key_bytes, rounds);
+                        Texture2D main_texture = (Texture2D)mat.mainTexture;
+                        SetRWEnableTexture(main_texture);
+                        Texture2D[] tex_set = encrypt.TextureEncrypt(main_texture, key_bytes, rounds);
                         if (!injector.Inject(mat.shader, dir + "/Decrypt.cginc", tex_set[0]))
                             continue;
 
