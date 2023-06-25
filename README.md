@@ -11,7 +11,7 @@
 복사를 막고 싶다면 비밀번호 에셋과 함께 쓰십시오.
 
 ### 사용법
-1. 아바타에 'Encrypt Texture' 컴포넌트를 추가합니다.
+1. 아바타에 'Shell Protector' 컴포넌트를 추가합니다.
 2. 비밀번호를 지정해주고 메테리얼 리스트에 암호화 할 텍스쳐가 존재하는 메테리얼을 넣습니다.
 3. 포이요미 쉐이더라면 Lock을 먼저 해주고 Encrypt 버튼을 누르세요.
 
@@ -35,7 +35,7 @@ This does not prevent copying of the avatar, but it does prevent ripping and mod
 If you want to prevent copying, use it in conjunction with the password assets.
 
 ### Usage
-1. Add an 'Encrypt Texture' Component to your avatar.
+1. Add an 'Shell Protector' Component to your avatar.
 2. Enter a password and add the material that contains the texture you want to encrypt to the Material List.
 3. If it is a Poiyomi shader, lock it first and then click the Encrypt button.
 
