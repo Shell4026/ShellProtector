@@ -8,7 +8,7 @@
 
 아바타 복사는 막지 못하지만, 리핑을 통해 아바타의 텍스쳐를 뜯어가서 수정하는 것을 막을 수 있습니다.
 
-복사를 막고 싶다면 비밀번호 기능과 함께 쓰십시오.
+복사를 막고 싶다면 비밀번호 에셋과 함께 쓰십시오.
 
 ### 사용법
 1. 아바타에 'Encrypt Texture' 컴포넌트를 추가합니다.
@@ -33,7 +33,7 @@ After encrypting the texture, the shader is used to decrypt the MainTexure of ma
 
 This does not prevent copying of the avatar, but it does prevent ripping and modifying the avatar's texture.
 
-If you want to prevent copying, use it in conjunction with the password feature.
+If you want to prevent copying, use it in conjunction with the password assets.
 
 ### Usage
 1. Add an 'Encrypt Texture' Component to your avatar.
