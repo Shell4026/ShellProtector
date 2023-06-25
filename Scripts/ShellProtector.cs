@@ -85,6 +85,12 @@ namespace Shell.Protector
 
             AssetDatabase.Refresh();
         }
+        public GameObject DuplicateAvatar(GameObject avatar)
+        {
+            GameObject cpy = Instantiate(avatar);
+            cpy.name = avatar.name + "_encrypted";
+            return cpy;
+        }
         public void Encrypt()
         {
             string debug_txt = "";
@@ -94,10 +100,11 @@ namespace Shell.Protector
 
             foreach (var mat in material_list)
             {
-                byte[] key_bytes = MakeKeyBytes(pwd);
-                injector.Init(key_bytes, rounds, filter);
                 if (injector.IsSupportShader(mat.shader))
                 {
+                    byte[] key_bytes = MakeKeyBytes(pwd);
+                    injector.Init(key_bytes, rounds, filter);
+
                     if (!Injector.IsLockPoiyomi(mat.shader))
                     {
                         Debug.LogError("First, the shader must be locked!");
@@ -116,36 +123,49 @@ namespace Shell.Protector
                         continue;
                     }
 
+                    Material new_mat = new Material(mat.shader);
+                    new_mat.CopyPropertiesFromMaterial(mat);
+
+                    Texture2D main_texture = (Texture2D)mat.mainTexture;
+                    SetRWEnableTexture(main_texture);
+
+                    Texture2D[] tex_set = null;
                     try
                     {
-                        Texture2D main_texture = (Texture2D)mat.mainTexture;
-                        SetRWEnableTexture(main_texture);
-                        Texture2D[] tex_set = encrypt.TextureEncrypt(main_texture, key_bytes, rounds);
+                        tex_set = encrypt.TextureEncrypt(main_texture, key_bytes, rounds);
                         if (!injector.Inject(mat.shader, dir + "/Decrypt.cginc", tex_set[0]))
                             continue;
-
-                        mat.mainTexture = tex_set[0];
-                        mat.SetTexture("_MipTex", tex_set[1]);
-
-                        if (dir[dir.Length - 1] == '/')
-                            dir = dir.Remove(dir.Length - 1);
-
-                        if (!AssetDatabase.IsValidFolder(dir + '/' + gameObject.name))
-                            AssetDatabase.CreateFolder(dir, gameObject.name);
-
-                        AssetDatabase.CreateAsset(tex_set[0], dir + '/' + gameObject.name + '/' + tex_set[0].name + "_encrypt.asset");
-                        AssetDatabase.CreateAsset(tex_set[1], dir + '/' + gameObject.name + '/' + tex_set[1].name + "_encrypt_mip.asset");
-                        AssetDatabase.SaveAssets();
-
-                        AssetDatabase.Refresh();
                     }
                     catch (UnityException e)
                     {
                         Debug.LogError(e.Message);
                         continue;
                     }
+
+                    new_mat.mainTexture = tex_set[0];
+                    new_mat.SetTexture("_MipTex", tex_set[1]);
+
+                    if (dir[dir.Length - 1] == '/')
+                        dir = dir.Remove(dir.Length - 1);
+
+                    if (!AssetDatabase.IsValidFolder(dir + '/' + gameObject.name))
+                        AssetDatabase.CreateFolder(dir, gameObject.name);
+                    if (!AssetDatabase.IsValidFolder(dir + '/' + gameObject.name + "/mat"))
+                        AssetDatabase.CreateFolder(dir + '/' + gameObject.name, "mat");
+
+                    AssetDatabase.CreateAsset(tex_set[0], dir + '/' + gameObject.name + '/' + main_texture.name + "_encrypt.asset");
+                    AssetDatabase.CreateAsset(tex_set[1], dir + '/' + gameObject.name + '/' + main_texture.name + "_encrypt_mip.asset");
+
+                    AssetDatabase.CreateAsset(new_mat, dir + '/' + gameObject.name + "/mat/" + mat.name + "_encrypt.mat");
+                    AssetDatabase.SaveAssets();
+                }
+                else
+                {
+                    Debug.LogError("Unsupported shader!");
+                    return;
                 }
             }
+            AssetDatabase.Refresh();
         }
     }
 }
