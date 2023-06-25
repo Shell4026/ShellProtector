@@ -195,7 +195,7 @@ namespace sh
                     }
                     else
                     {
-                        Debug.LogWarning("First, the shader must be locked!");
+                        Debug.LogError("First, the shader must be locked!");
                     }
                 }
             }

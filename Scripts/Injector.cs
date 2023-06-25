@@ -92,7 +92,7 @@ namespace sh
         {
             if (key.Length != 16)
             {
-                Debug.LogWarning("Key bytes requires 16 byte");
+                Debug.LogError("Key bytes requires 16 byte");
                 return;
             }
             for (int i = 0, j = 0; i < keys.Length; ++i, j += 2)
@@ -140,7 +140,7 @@ namespace sh
             }
             else
             {
-                Debug.LogWarning("Wrong shader data!");
+                Debug.LogError("Wrong shader data!");
                 return;
             }
             shader_data = Regex.Replace(shader_data, "float4 frag\\(", "sampler2D _MipTex;\n\t\t\t#include \"Decrypt.cginc\"\n\t\t\tfloat4 frag(");
