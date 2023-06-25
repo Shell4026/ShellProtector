@@ -193,6 +193,10 @@ namespace sh
                         Injector injector = new Injector(MakeKeyBytes(pwd), rounds);
                         injector.Inject(mat.shader, dir + "/Decrypt.cginc", null, null);
                     }
+                    else
+                    {
+                        Debug.LogWarning("First, the shader must be locked!");
+                    }
                 }
             }
         }
