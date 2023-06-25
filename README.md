@@ -10,8 +10,14 @@
 
 복사를 막고 싶다면 비밀번호 기능과 함께 쓰십시오.
 
+### 사용법
+1. 아바타에 'Encrypt Texture' 컴포넌트를 추가합니다.
+2. 비밀번호를 지정해주고 메테리얼 리스트에 암호화 할 텍스쳐가 존재하는 메테리얼을 넣습니다.
+3. 해당 메테리얼의 메인 텍스쳐를 선택 후 Inspector창에서 Read/Write Enabled를 체크해주시고 Apply를 눌러주세요.
+4. 포이요미 쉐이더라면 Lock을 먼저 해주고 Encrypt 버튼을 누르세요.
+
 ### 세부 원리
-변형된 XTEA 알고리즘을 사용하여 텍스쳐를 암호화합니다.
+변형된 XTEA 알고리즘을 사용하여 메테리얼의 MainTexure를 암호화합니다.
 
 텍스쳐 자체를 암호화 한 후 VRChat 서버에 업로드 됩니다. 이 텍스쳐는 게임에서 쉐이더를 통해 복호화 시킵니다.
 
@@ -23,11 +29,17 @@
 
 ### **Texture encryption using shaders available in VRChat**.
 
-After encrypting the texture, the shader is used to decrypt the texture.
+After encrypting the texture, the shader is used to decrypt the MainTexure of materials.
 
 This does not prevent copying of the avatar, but it does prevent ripping and modifying the avatar's texture.
 
 If you want to prevent copying, use it in conjunction with the password feature.
+
+### Usage
+1. Add an 'Encrypt Texture' Component to your avatar.
+2. Enter a password and add the material that contains the texture you want to encrypt to the Material List.
+3. Select the Main Texture of that material and check Read/Write Enabled in the Inspector and press Apply.
+4. If it is a Poiyomi shader, lock it first and then click the Encrypt button.
 
 ### How it works
 Encrypt the texture using a modified XTEA algorithm.
