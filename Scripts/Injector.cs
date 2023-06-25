@@ -11,11 +11,23 @@ namespace sh
     {
         readonly static string[] support_version = { "Poiyomi 8.2" };
 
-        string decoder = "";
         ushort[] keys = new ushort[8];
         int rounds = 0;
+        int filter = 1;
 
-        string shader_code = @"
+        string shader_code_nofilter = @"
+				float4 mip_texture = tex2D(_MipTex, mainUV);
+				
+				int mip = round(mip_texture.a * 255 / 10);
+				int m[12] = {0, 0, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+				
+				float4 c00 =  _MainTex.SampleLevel(sampler_MainTex, mainUV, m[mip]);
+				c00 = DecryptTexture(c00, mainUV, m[mip]);
+
+				float4 mainTexture = c00;
+        ";
+
+        string shader_code_bilinear = @"
 				float4 mip_texture = tex2D(_MipTex, mainUV);
 				
 				float2 uv_unit = _MainTex_TexelSize.xy;
@@ -44,9 +56,9 @@ namespace sh
 				float4 mainTexture = bilinear;
         ";
 
-        public Injector(byte[] key, int rounds)
+        public Injector(byte[] key, int rounds, int filter)
         {
-            Init(key, rounds);
+            Init(key, rounds, filter);
         }
 
         public static bool IsPoiyomi(Shader shader)
@@ -76,7 +88,7 @@ namespace sh
             return false;
         }
 
-        public void Init(byte[] key, int rounds)
+        public void Init(byte[] key, int rounds, int filter)
         {
             if (key.Length != 16)
             {
@@ -88,9 +100,10 @@ namespace sh
                 keys[i] = (ushort)(key[j] | key[j + 1] << 8);
             }
             this.rounds = rounds;
+            this.filter = filter;
         }
 
-        public string EditDecoder(string data)
+        private string EditDecoder(string data)
         {
             if (data.Contains("//ShellProtect"))
             {
@@ -131,7 +144,10 @@ namespace sh
                 return;
             }
             shader_data = Regex.Replace(shader_data, "float4 frag\\(", "sampler2D _MipTex;\n\t\t\t#include \"Decrypt.cginc\"\n\t\t\tfloat4 frag(");
-            shader_data = Regex.Replace(shader_data, "float4 mainTexture = .*?;", shader_code);
+            if(filter == 0)
+                shader_data = Regex.Replace(shader_data, "float4 mainTexture = .*?;", shader_code_nofilter);
+            else if(filter == 1)
+                shader_data = Regex.Replace(shader_data, "float4 mainTexture = .*?;", shader_code_bilinear);
            
             File.WriteAllText(shader_path, shader_data);
             AssetDatabase.Refresh();

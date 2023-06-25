@@ -190,7 +190,7 @@ namespace sh
                         mat.mainTexture = tex;
                         mat.SetTexture("_MipTex", mip);
 
-                        Injector injector = new Injector(MakeKeyBytes(pwd), rounds);
+                        Injector injector = new Injector(MakeKeyBytes(pwd), rounds, filter);
                         injector.Inject(mat.shader, dir + "/Decrypt.cginc", null, null);
                     }
                     else
