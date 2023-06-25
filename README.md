@@ -22,8 +22,8 @@
 텍스쳐 자체를 암호화 한 후 VRChat 서버에 업로드 됩니다. 이 텍스쳐는 게임에서 쉐이더를 통해 복호화 시킵니다.
 
 ### 지원 쉐이더
-- Poiyomi 8.2
-- 포이요미 다른 버전 지원 예정
+- Poiyomi 7.3, 8.0, 8.1, 8.2
+- 릴툰 지원 예정
 
 ## English
 
@@ -48,4 +48,4 @@ After encrypting the texture itself, it is uploaded to the VRChat server. The te
 
 ### Supported shaders
 - Poiyomi 8.2
-- Support for other Poiyomi versions coming soon
+- Support for liltoon coming soon
