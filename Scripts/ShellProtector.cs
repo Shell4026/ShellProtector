@@ -98,8 +98,12 @@ namespace Shell.Protector
                 debug_txt += i.ToString() + ' ';
             Debug.Log("Key bytes: " + debug_txt);
 
+            GameObject avatar = DuplicateAvatar(gameObject);
+
+            int progress = 0;
             foreach (var mat in material_list)
             {
+                EditorUtility.DisplayProgressBar("Encrypt...", "Encrypt...Progress " + ++progress + " of " + material_list.Count, (float)progress / (float)material_list.Count);
                 if (injector.IsSupportShader(mat.shader))
                 {
                     byte[] key_bytes = MakeKeyBytes(pwd);
@@ -122,14 +126,9 @@ namespace Shell.Protector
                         Debug.LogWarning(mat.name + ": The shader is already encrypted.");
                         continue;
                     }
+                    Texture2D main_texture = (Texture2D)mat.mainTexture; SetRWEnableTexture(main_texture);
 
-                    Material new_mat = new Material(mat.shader);
-                    new_mat.CopyPropertiesFromMaterial(mat);
-
-                    Texture2D main_texture = (Texture2D)mat.mainTexture;
-                    SetRWEnableTexture(main_texture);
-
-                    Texture2D[] tex_set = null;
+                    Texture2D[] tex_set;
                     try
                     {
                         tex_set = encrypt.TextureEncrypt(main_texture, key_bytes, rounds);
@@ -142,9 +141,6 @@ namespace Shell.Protector
                         continue;
                     }
 
-                    new_mat.mainTexture = tex_set[0];
-                    new_mat.SetTexture("_MipTex", tex_set[1]);
-
                     if (dir[dir.Length - 1] == '/')
                         dir = dir.Remove(dir.Length - 1);
 
@@ -155,9 +151,36 @@ namespace Shell.Protector
 
                     AssetDatabase.CreateAsset(tex_set[0], dir + '/' + gameObject.name + '/' + main_texture.name + "_encrypt.asset");
                     AssetDatabase.CreateAsset(tex_set[1], dir + '/' + gameObject.name + '/' + main_texture.name + "_encrypt_mip.asset");
+                    /////////////////Materials///////////////////////
+                    Material new_mat = new Material(mat.shader);
+                    new_mat.CopyPropertiesFromMaterial(mat);
+                    new_mat.mainTexture = tex_set[0];
+                    new_mat.SetTexture("_MipTex", tex_set[1]);
 
                     AssetDatabase.CreateAsset(new_mat, dir + '/' + gameObject.name + "/mat/" + mat.name + "_encrypt.mat");
-                    AssetDatabase.SaveAssets();
+                    var renderers = avatar.GetComponentsInChildren<MeshRenderer>();
+                    for (int i = 0; i < renderers.Length; ++i)
+                    {
+                        var mats = renderers[i].sharedMaterials;
+                        for (int j = 0; j < mats.Length; ++j)
+                        {
+                            if (mats[j].name == mat.name)
+                                mats[j] = new_mat;
+                        }
+                        renderers[i].sharedMaterials = mats;
+                    }
+                    var skinned_renderers = avatar.GetComponentsInChildren<SkinnedMeshRenderer>();
+                    for (int i = 0; i < skinned_renderers.Length; ++i)
+                    {
+                        var mats = skinned_renderers[i].sharedMaterials;
+                        for (int j = 0; j < mats.Length; ++j)
+                        {
+                            if (mats[j].name == mat.name)
+                                mats[j] = new_mat;
+                        }
+                        skinned_renderers[i].sharedMaterials = mats;
+                    }
+                    //////////////////////////////////////////////////
                 }
                 else
                 {
@@ -165,7 +188,13 @@ namespace Shell.Protector
                     continue;
                 }
             }
+            EditorUtility.ClearProgressBar();
+
+            gameObject.SetActive(false);
+            AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
+
+            DestroyImmediate(avatar.GetComponent<ShellProtector>());
         }
     }
 }
