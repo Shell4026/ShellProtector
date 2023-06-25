@@ -212,7 +212,8 @@ namespace sh
         {
             foreach (var mat in material_list)
             {
-                if(Injector.IsSupportShader(mat.shader))
+                Injector injector = new Injector(MakeKeyBytes(pwd), rounds, filter);
+                if (injector.IsSupportShader(mat.shader))
                 {
                     if (Injector.IsLockPoiyomi(mat.shader))
                     {
@@ -222,15 +223,11 @@ namespace sh
                             continue;
                         }
                         Texture2D[] tex_set = TextureEncrypt((Texture2D)mat.mainTexture, false);
+                        
+                        injector.Inject(mat.shader, dir + "/Decrypt.cginc", tex_set[0]);
 
-                        Texture2D tex = tex_set[0];
-                        Texture2D mip = tex_set[1];
-
-                        mat.mainTexture = tex;
-                        mat.SetTexture("_MipTex", mip);
-
-                        Injector injector = new Injector(MakeKeyBytes(pwd), rounds, filter);
-                        injector.Inject(mat.shader, dir + "/Decrypt.cginc", tex);
+                        mat.mainTexture = tex_set[0];
+                        mat.SetTexture("_MipTex", tex_set[1]);
                     }
                     else
                     {

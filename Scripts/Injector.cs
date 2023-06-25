@@ -9,30 +9,30 @@ namespace sh
 {
     public class Injector
     {
-        readonly static string[] support_version = { "Poiyomi 8.2" };
+        readonly Dictionary<string, int> support_version = new Dictionary<string, int>();
 
         ushort[] keys = new ushort[8];
         int rounds = 0;
         int filter = 1;
 
         string shader_code_nofilter = @"
-				float4 mip_texture = tex2D(_MipTex, mainUV);
+				float4 mip_texture = tex2D(_MipTex, poiMesh.uv[0]);
 				
 				int mip = round(mip_texture.a * 255 / 10); //fucking precision problems
 				int m[13] = { 0, 0, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }; // max size 4k
 				
-				float4 c00 =  _MainTex.SampleLevel(sampler_MainTex, mainUV, m[mip]);
+				float4 c00 =  _MainTex.SampleLevel(sampler_MainTex, poiMesh.uv[0], m[mip]);
 				c00 = DecryptTexture(c00, mainUV, m[mip]);
 
 				float4 mainTexture = c00;
         ";
 
         string shader_code_bilinear = @"
-				float4 mip_texture = tex2D(_MipTex, mainUV);
+				float4 mip_texture = tex2D(_MipTex, poiMesh.uv[0]);
 				
 				float2 uv_unit = _MainTex_TexelSize.xy;
 				//bilinear interpolation
-				float2 uv_bilinear = mainUV - 0.5 * uv_unit;
+				float2 uv_bilinear = poiMesh.uv[0] - 0.5 * uv_unit;
 				int mip = round(mip_texture.a * 255 / 10); //fucking precision problems
 				int m[13] = { 0, 0, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }; // max size 4k
 				
@@ -58,6 +58,10 @@ namespace sh
 
         public Injector(byte[] key, int rounds, int filter)
         {
+            support_version.Add("Poiyomi 7.3", 7);
+            support_version.Add("Poiyomi 8.0", 8);
+            support_version.Add("Poiyomi 8.1", 8);
+            support_version.Add("Poiyomi 8.2", 8);
             Init(key, rounds, filter);
         }
 
@@ -67,11 +71,22 @@ namespace sh
                 return true;
             return false;
         }
-        public static bool IsSupportShader(Shader shader)
+
+        private int GetSupportShaderType(Shader shader)
         {
             foreach (var version in support_version)
             {
-                if (shader.name.Contains(version))
+                if (shader.name.Contains(version.Key))
+                    return support_version[version.Key];
+            }
+            return -1;
+        }
+
+        public bool IsSupportShader(Shader shader)
+        {
+            foreach (var version in support_version)
+            {
+                if (shader.name.Contains(version.Key))
                     return true;
             }
             return false;
@@ -149,11 +164,17 @@ namespace sh
         {
             string shader_path = AssetDatabase.GetAssetPath(shader);
 
+            if (!File.Exists(decode_dir))
+            {
+                Debug.LogError(decode_dir + " is not exits.");
+                return;
+            }
             string decode_data = File.ReadAllText(decode_dir);
             decode_data = GenerateDecoder(decode_data, tex);
             if (decode_data == null)
                 return;
             File.WriteAllText(Path.GetDirectoryName(shader_path) + "/Decrypt.cginc", decode_data);
+
 
             string shader_data = File.ReadAllText(shader_path);
             Match match = Regex.Match(shader_data, "Properties\\W*{");
@@ -167,12 +188,35 @@ namespace sh
                 Debug.LogError("Wrong shader data!");
                 return;
             }
-            shader_data = Regex.Replace(shader_data, "float4 frag\\(", "sampler2D _MipTex;\n\t\t\t#include \"Decrypt.cginc\"\n\t\t\tfloat4 frag(");
-            if(filter == 0)
-                shader_data = Regex.Replace(shader_data, "float4 mainTexture = .*?;", shader_code_nofilter);
-            else if(filter == 1)
-                shader_data = Regex.Replace(shader_data, "float4 mainTexture = .*?;", shader_code_bilinear);
-           
+
+            switch (GetSupportShaderType(shader))
+            {
+                case -1:
+                    {
+                        break;
+                    }
+                case 7:
+                    {
+                        string frag_path = Path.GetDirectoryName(shader_path) + "/CGI_PoiFrag.cginc";
+                        string frag = File.ReadAllText(frag_path);
+                        frag = Regex.Replace(frag, "float4 frag\\(", "sampler2D _MipTex;\n#include \"Decrypt.cginc\"\nfloat4 frag(");
+                        if (filter == 0)
+                            frag = Regex.Replace(frag, "float4 mainTexture = .*?;", shader_code_nofilter);
+                        else if (filter == 1)
+                            frag = Regex.Replace(frag, "float4 mainTexture = .*?;", shader_code_bilinear);
+                        File.WriteAllText(frag_path, frag);
+                        break;
+                    }
+                case 8:
+                    {
+                        shader_data = Regex.Replace(shader_data, "float4 frag\\(", "sampler2D _MipTex;\n\t\t\t#include \"Decrypt.cginc\"\n\t\t\tfloat4 frag(");
+                        if (filter == 0)
+                            shader_data = Regex.Replace(shader_data, "float4 mainTexture = .*?;", shader_code_nofilter);
+                        else if (filter == 1)
+                            shader_data = Regex.Replace(shader_data, "float4 mainTexture = .*?;", shader_code_bilinear);
+                        break;
+                    }
+            }
             File.WriteAllText(shader_path, shader_data);
             AssetDatabase.Refresh();
         }
