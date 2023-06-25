@@ -120,15 +120,6 @@ namespace Shell.Protector
 
         private string GenerateDecoder(string data, Texture2D tex)
         {
-            if (data.Contains("//ShellProtect"))
-            {
-                Debug.LogWarning("The shader is already encrypted.");
-                return null;
-            }
-            data.Insert(0, "//ShellProtect");
-
-            string ks = "static uint mw[12] = { 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1 };";
-            
             int mip_lv = tex.mipmapCount;
             string replace_mw = "static uint mw[" + (mip_lv + 2) + "] = { ";
             string replace_mh = "static uint mh[" + (mip_lv + 2) + "] = { ";
@@ -147,6 +138,7 @@ namespace Shell.Protector
                     replace_mh += " };";
                 }
             }
+            string ks = "";
 
             data = Regex.Replace(data, "static uint mw\\[12\\] = { 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1 };", replace_mw);
             data = Regex.Replace(data, "static uint mh\\[12\\] = { 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1 };", replace_mh);
@@ -160,23 +152,29 @@ namespace Shell.Protector
             return data;
         }
 
-        public void Inject(Shader shader, string decode_dir, Texture2D tex)
+        public bool WasInjected(Shader shader)
         {
             string shader_path = AssetDatabase.GetAssetPath(shader);
 
+            string shader_data = File.ReadAllText(shader_path);
+            if (shader_data.Contains("//ShellProtect"))
+                return true;
+            return false;
+        }
+
+        public bool Inject(Shader shader, string decode_dir, Texture2D tex)
+        {
             if (!File.Exists(decode_dir))
             {
                 Debug.LogError(decode_dir + " is not exits.");
-                return;
+                return false;
             }
-            string decode_data = File.ReadAllText(decode_dir);
-            decode_data = GenerateDecoder(decode_data, tex);
-            if (decode_data == null)
-                return;
-            File.WriteAllText(Path.GetDirectoryName(shader_path) + "/Decrypt.cginc", decode_data);
 
+            string shader_path = AssetDatabase.GetAssetPath(shader);
 
             string shader_data = File.ReadAllText(shader_path);
+            shader_data = shader_data.Insert(0, "//ShellProtect\n");
+
             Match match = Regex.Match(shader_data, "Properties\\W*{");
             if (match.Success)
             {
@@ -186,7 +184,7 @@ namespace Shell.Protector
             else
             {
                 Debug.LogError("Wrong shader data!");
-                return;
+                return false;
             }
 
             switch (GetSupportShaderType(shader))
@@ -218,7 +216,15 @@ namespace Shell.Protector
                     }
             }
             File.WriteAllText(shader_path, shader_data);
+
+            string decode_data = File.ReadAllText(decode_dir);
+            decode_data = GenerateDecoder(decode_data, tex);
+            if (decode_data == null)
+                return false;
+
+            File.WriteAllText(Path.GetDirectoryName(shader_path) + "/Decrypt.cginc", decode_data);
             AssetDatabase.Refresh();
+            return true;
         }
     }
 }

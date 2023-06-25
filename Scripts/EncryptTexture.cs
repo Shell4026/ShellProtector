@@ -69,7 +69,6 @@ namespace Shell.Protector
 
             return key; 
         }
-
         int GetCanMipmapLevel(int w, int h)
         {
             int w_level = 0, h_level = 0;
@@ -85,14 +84,9 @@ namespace Shell.Protector
             }
             return Math.Min(w_level, h_level) + 1;
         }
-
         public Texture2D[] TextureEncrypt(Texture2D texture, bool selection = true)
         {
             byte[] key = MakeKeyBytes(pwd);
-            string debug_txt = "";
-            foreach (var i in key)
-                debug_txt += i.ToString() + ' ';
-            Debug.Log("Key bytes: " + debug_txt);
 
             Texture2D tex = texture;
 
@@ -109,7 +103,7 @@ namespace Shell.Protector
             for (int m = 0; m < tmp.mipmapCount; ++m)
             {
                 Color32[] pixels = tex.GetPixels32(m);
-                
+
                 for (int i = 0; i < pixels.Length; ++i)
                 {
                     byte[] data = new byte[4] 
@@ -165,10 +159,6 @@ namespace Shell.Protector
         public Texture2D TextureDecrypt(Texture2D texture)
         {
             byte[] key = MakeKeyBytes(pwd);
-            string debug_txt = "";
-            foreach (var i in key)
-                debug_txt += i.ToString() + ' ';
-            Debug.Log("Key bytes: " + debug_txt);
 
             Texture2D tex = texture;
             Texture2D tmp = new Texture2D(tex.width, tex.height, TextureFormat.RGBA32, tex.mipmapCount > 1);
@@ -207,9 +197,13 @@ namespace Shell.Protector
             return tmp;
 #endif
         }
-
         public void Encrypt()
         {
+            string debug_txt = "";
+            foreach (var i in MakeKeyBytes(pwd))
+                debug_txt += i.ToString() + ' ';
+            Debug.Log("Key bytes: " + debug_txt);
+
             foreach (var mat in material_list)
             {
                 Injector injector = new Injector(MakeKeyBytes(pwd), rounds, filter);
@@ -226,16 +220,29 @@ namespace Shell.Protector
                         Debug.LogErrorFormat("{0} : The texture size must be a multiple of 2!", mat.mainTexture.name);
                         continue;
                     }
-                    Texture2D[] tex_set = TextureEncrypt((Texture2D)mat.mainTexture, false);
 
-                    injector.Inject(mat.shader, dir + "/Decrypt.cginc", tex_set[0]);
+                    if (injector.WasInjected(mat.shader))
+                    {
+                        Debug.LogWarning("The shader is already encrypted.");
+                        continue;
+                    }
 
-                    mat.mainTexture = tex_set[0];
-                    mat.SetTexture("_MipTex", tex_set[1]);
+                    try
+                    {
+                        Texture2D[] tex_set = TextureEncrypt((Texture2D)mat.mainTexture, false);
+                        if(!injector.Inject(mat.shader, dir + "/Decrypt.cginc", tex_set[0]))
+                            continue;
+
+                        mat.mainTexture = tex_set[0];
+                        mat.SetTexture("_MipTex", tex_set[1]);
+                    }
+                    catch (UnityException e)
+                    {
+                        Debug.LogError(e.Message);
+                        continue;
+                    }
                 }
             }
         }
-
-
     }
 }
