@@ -108,6 +108,8 @@ namespace Shell.Protector
                     {
                         SerializedProperty element = texture_list.serializedProperty.GetArrayElementAtIndex(i);
                         Texture2D texture = element.objectReferenceValue as Texture2D;
+
+                        root.SetRWEnableTexture(texture);
                         var tex_set = root.GetEncryptTexture().TextureEncrypt(texture, root.MakeKeyBytes(root.pwd), rounds.intValue);
 
                         if (root.dir[root.dir.Length - 1] == '/')
@@ -136,6 +138,8 @@ namespace Shell.Protector
                     {
                         SerializedProperty textureProperty = texture_list.serializedProperty.GetArrayElementAtIndex(i);
                         Texture2D texture = textureProperty.objectReferenceValue as Texture2D;
+
+                        root.SetRWEnableTexture(texture);
                         var tmp = root.GetEncryptTexture().TextureDecrypt(texture, root.MakeKeyBytes(root.pwd), rounds.intValue);
 
                         if (root.dir[root.dir.Length - 1] == '/')

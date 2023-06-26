@@ -126,7 +126,8 @@ namespace Shell.Protector
                         Debug.LogWarning(mat.name + ": The shader is already encrypted.");
                         continue;
                     }
-                    Texture2D main_texture = (Texture2D)mat.mainTexture; SetRWEnableTexture(main_texture);
+                    Texture2D main_texture = (Texture2D)mat.mainTexture; 
+                    SetRWEnableTexture(main_texture);
 
                     Texture2D[] tex_set;
                     try
