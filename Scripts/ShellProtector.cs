@@ -43,7 +43,7 @@ namespace Shell.Protector
         }
         public void Test()
         {
-            byte[] data = new byte[3] { 255, 250, 245 };
+            byte[] data = new byte[4] { 255, 250, 245, 240 };
             byte[] key = MakeKeyBytes(pwd);
 
             uint pwd1 = (uint)(key[0] + (key[1] << 8) + (key[2] << 16) + (key[3] << 24));
