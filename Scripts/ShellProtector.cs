@@ -63,19 +63,21 @@ namespace Shell.Protector
         public void Test2()
         {
             byte[] data_byte = new byte[12] { 255, 250, 245, 240, 235, 230, 225, 220, 215, 210, 205, 200 };
-            byte[] key = MakeKeyBytes(pwd);
+            byte[] key_byte = MakeKeyBytes(pwd);
 
             uint[] data = new uint[3];
             data[0] = (uint)(data_byte[0] + (data_byte[1] << 8) + (data_byte[2] << 16) + (data_byte[3] << 24));
             data[1] = (uint)(data_byte[4] + (data_byte[5] << 8) + (data_byte[6] << 16) + (data_byte[7] << 24));
             data[2] = (uint)(data_byte[8] + (data_byte[9] << 8) + (data_byte[10] << 16) + (data_byte[11] << 24));
 
-            uint pwd1 = (uint)(key[0] + (key[1] << 8) + (key[2] << 16) + (key[3] << 24));
-            uint pwd2 = (uint)(key[4] + (key[5] << 8) + (key[6] << 16) + (key[7] << 24));
-            uint pwd3 = (uint)(key[8] + (key[9] << 8) + (key[10] << 16) + (key[11] << 24));
+            uint[] key = new uint[4];
+            key[0] = (uint)(key_byte[0] + (key_byte[1] << 8) + (key_byte[2] << 16) + (key_byte[3] << 24));
+            key[1] = (uint)(key_byte[4] + (key_byte[5] << 8) + (key_byte[6] << 16) + (key_byte[7] << 24));
+            key[2] = (uint)(key_byte[8] + (key_byte[9] << 8) + (key_byte[10] << 16) + (key_byte[11] << 24));
+            key[3] = 0;
 
-            Debug.Log("Key bytes: " + string.Join(", ", key));
-            Debug.Log(string.Format("key1:{0}, key2:{1}, key3:{2}", pwd1, pwd2, pwd3));
+            Debug.Log("Key bytes: " + string.Join(", ", key_byte));
+            Debug.Log(string.Format("key1:{0}, key2:{1}, key3:{2}", key[0], key[1], key[2]));
             Debug.Log("Data: " + string.Join(", ", data));
 
             uint[] result = XXTEA.Encrypt(data, key);

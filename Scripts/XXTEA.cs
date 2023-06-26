@@ -4,7 +4,7 @@ using UnityEngine;
 public class XXTEA
 {
     const uint Delta = 0x9e3779b9;
-    public static uint[] Encrypt(uint[] data, byte[] key) {
+    public static uint[] Encrypt(uint[] data, uint[] key) {
         uint n = (uint)data.Length;
 
         uint[] result = new uint[n];
@@ -12,6 +12,11 @@ public class XXTEA
         if (n < 2)
         {
             Debug.LogError("Data must be minimum 8 bytes!");
+            return null;
+        }
+        if (key.Length != 4)
+        {
+            Debug.LogError("Key must be 16 bytes!");
             return null;
         }
         uint y, z, sum;
@@ -34,7 +39,7 @@ public class XXTEA
         } while (--rounds > 0);
         return result;
     }
-    public static uint[] Decrypt(uint[] data, byte[] key)
+    public static uint[] Decrypt(uint[] data, uint[] key)
     {
         uint n = (uint)data.Length;
 
