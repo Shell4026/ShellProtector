@@ -43,35 +43,22 @@ namespace Shell.Protector
         }
         public void Test()
         {
-            byte[] data = new byte[8] { 255, 0, 0, 255, 255, 0, 0, 255 };
+            byte[] data = new byte[3] { 255, 250, 245 };
             byte[] key = MakeKeyBytes(pwd);
 
             uint pwd1 = (uint)(key[0] + (key[1] << 8) + (key[2] << 16) + (key[3] << 24));
             uint pwd2 = (uint)(key[4] + (key[5] << 8) + (key[6] << 16) + (key[7] << 24));
             uint pwd3 = (uint)(key[8] + (key[9] << 8) + (key[10] << 16) + (key[11] << 24));
 
-            string debug_txt = "";
-            foreach (var i in key)
-                debug_txt += i.ToString() + ' ';
-            Debug.Log("Key bytes: " + debug_txt);
+            Debug.Log("Key bytes: " + string.Join(", ", key));
             Debug.Log(string.Format("key1:{0}, key2:{1}, key3:{2}", pwd1, pwd2, pwd3));
+            Debug.Log("Data: " + string.Join(", ", data));
 
-            debug_txt = "";
-            foreach (var i in data)
-                debug_txt += i.ToString() + ' ';
-            Debug.Log("Data: " + debug_txt);
+            byte[] result = XTEAEncrypt.Encrypt3(data, key);
+            Debug.Log("Encrypted data: " + string.Join(", ", result));
 
-            debug_txt = "";
-            byte[] result = XTEAEncrypt.Encrypt8(data, key);
-            foreach (var i in result)
-                debug_txt += i.ToString() + ' ';
-            Debug.Log("Encrypted data: " + debug_txt);
-
-            debug_txt = "";
-            result = XTEAEncrypt.Decrypt8(result, key);
-            foreach (var i in result)
-                debug_txt += i.ToString() + ' ';
-            Debug.Log("Decrypted data: " + debug_txt);
+            result = XTEAEncrypt.Decrypt3(result, key);
+            Debug.Log("Decrypted data: " + string.Join(", ", result));
         }
         public void SetRWEnableTexture(Texture2D texture)
         {
@@ -93,10 +80,7 @@ namespace Shell.Protector
         }
         public void Encrypt()
         {
-            string debug_txt = "";
-            foreach (var i in MakeKeyBytes(pwd))
-                debug_txt += i.ToString() + ' ';
-            Debug.Log("Key bytes: " + debug_txt);
+            Debug.Log("Key bytes: " + string.Join(", ", pwd));
 
             GameObject avatar = DuplicateAvatar(gameObject);
 
