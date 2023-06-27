@@ -260,20 +260,22 @@ namespace Shell.Protector
                 case 8:
                     {
                         shader_data = Regex.Replace(shader_data, "float4 frag\\(", "sampler2D _MipTex;\n\t\t\t#include \"Decrypt.cginc\"\n\t\t\tfloat4 frag(");
+                        string shader_code = shader_code_nofilter;
                         if (filter == 0)
                         {
                             if (!xxtea)
-                                shader_data = Regex.Replace(shader_data, "float4 mainTexture = .*?;", shader_code_nofilter);
+                                shader_code = shader_code_nofilter;
                             else
-                                shader_data = Regex.Replace(shader_data, "float4 mainTexture = .*?;", shader_code_nofilter_XXTEA);
+                                shader_code = shader_code_nofilter_XXTEA;
                         }
                         else if (filter == 1)
                         {
-                            if(!xxtea)
-                                shader_data = Regex.Replace(shader_data, "float4 mainTexture = .*?;", shader_code_bilinear);
+                            if (!xxtea)
+                                shader_code = shader_code_bilinear;
                             else
-                                shader_data = Regex.Replace(shader_data, "float4 mainTexture = .*?;", shader_code_bilinear_XXTEA);
+                                shader_code = shader_code_bilinear_XXTEA;
                         }
+                        shader_data = Regex.Replace(shader_data, "float4 mainTexture = .*?;", shader_code);
                         break;
                     }
             }
