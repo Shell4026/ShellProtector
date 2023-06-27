@@ -143,7 +143,8 @@ namespace Shell.Protector
                     try
                     {
                         tex_set = encrypt.TextureEncrypt(main_texture, key_bytes, rounds);
-                        if (!injector.Inject(mat.shader, dir + "/Decrypt.cginc", tex_set[0]))
+                        bool xxtea = !encrypt.HasAlpha(tex_set[0]);
+                        if (!injector.Inject(mat.shader, dir + "/Decrypt.cginc", tex_set[0], xxtea))
                             continue;
                     }
                     catch (UnityException e)

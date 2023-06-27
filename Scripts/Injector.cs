@@ -15,7 +15,6 @@ namespace Shell.Protector
         ushort[] keys = new ushort[8]; //16byte
         int rounds = 0;
         int filter = 1;
-        bool xxtea = true;
 
         string shader_code_nofilter = @"
 				float4 mip_texture = tex2D(_MipTex, poiMesh.uv[0]);
@@ -58,6 +57,30 @@ namespace Shell.Protector
 				c10 = DecryptTexture(c10, uv_bilinear + float2(uv_unit.x * 1, uv_unit.y * 0), m[mip]);
 				c01 = DecryptTexture(c01, uv_bilinear + float2(uv_unit.x * 0, uv_unit.y * 1), m[mip]);
 				c11 = DecryptTexture(c11, uv_bilinear + float2(uv_unit.x * 1, uv_unit.y * 1), m[mip]);
+				
+				float2 f = frac(uv_bilinear * _MainTex_TexelSize.zw);
+				
+				float4 c0 = lerp(c00, c10, f.x);
+				float4 c1 = lerp(c01, c11, f.x);
+
+				float4 bilinear = lerp(c0, c1, f.y);
+				
+				float4 mainTexture = bilinear;
+        ";
+
+        string shader_code_bilinear_XXTEA = @"
+				float4 mip_texture = tex2D(_MipTex, poiMesh.uv[0]);
+				
+				float2 uv_unit = _MainTex_TexelSize.xy;
+				//bilinear interpolation
+				float2 uv_bilinear = poiMesh.uv[0] - 0.5 * uv_unit;
+				int mip = round(mip_texture.a * 255 / 10); //fucking precision problems
+				int m[13] = { 0, 0, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }; // max size 4k
+				
+                float4 c00 = float4(DecryptTextureXXTEA(uv_bilinear + float2(uv_unit.x * 0, uv_unit.y * 0), m[mip]), 1.0);
+                float4 c10 = float4(DecryptTextureXXTEA(uv_bilinear + float2(uv_unit.x * 1, uv_unit.y * 0), m[mip]), 1.0);
+                float4 c01 = float4(DecryptTextureXXTEA(uv_bilinear + float2(uv_unit.x * 0, uv_unit.y * 1), m[mip]), 1.0);
+                float4 c11 = float4(DecryptTextureXXTEA(uv_bilinear + float2(uv_unit.x * 1, uv_unit.y * 1), m[mip]), 1.0);
 				
 				float2 f = frac(uv_bilinear * _MainTex_TexelSize.zw);
 				
@@ -130,7 +153,7 @@ namespace Shell.Protector
             this.filter = filter;
         }
 
-        private string GenerateDecoder(string data, Texture2D tex)
+        private string GenerateDecoder(string data, Texture2D tex, bool xxtea)
         {
             int mip_lv = tex.mipmapCount;
             string replace_mw = "static uint mw[" + (mip_lv + 2) + "] = { ";
@@ -181,7 +204,7 @@ namespace Shell.Protector
             return false;
         }
 
-        public bool Inject(Shader shader, string decode_dir, Texture2D tex)
+        public bool Inject(Shader shader, string decode_dir, Texture2D tex, bool xxtea)
         {
             if (!File.Exists(decode_dir))
             {
@@ -218,9 +241,19 @@ namespace Shell.Protector
                         string frag = File.ReadAllText(frag_path);
                         frag = Regex.Replace(frag, "float4 frag\\(", "sampler2D _MipTex;\n#include \"Decrypt.cginc\"\nfloat4 frag(");
                         if (filter == 0)
-                            frag = Regex.Replace(frag, "float4 mainTexture = .*?;", shader_code_nofilter);
+                        {
+                            if (!xxtea)
+                                frag = Regex.Replace(frag, "float4 mainTexture = .*?;", shader_code_nofilter);
+                            else
+                                frag = Regex.Replace(frag, "float4 mainTexture = .*?;", shader_code_nofilter_XXTEA);
+                        }
                         else if (filter == 1)
-                            frag = Regex.Replace(frag, "float4 mainTexture = .*?;", shader_code_bilinear);
+                        {
+                            if(!xxtea)
+                                frag = Regex.Replace(frag, "float4 mainTexture = .*?;", shader_code_bilinear);
+                            else
+                                frag = Regex.Replace(frag, "float4 mainTexture = .*?;", shader_code_bilinear_XXTEA);
+                        }
                         File.WriteAllText(frag_path, frag);
                         break;
                     }
@@ -229,20 +262,25 @@ namespace Shell.Protector
                         shader_data = Regex.Replace(shader_data, "float4 frag\\(", "sampler2D _MipTex;\n\t\t\t#include \"Decrypt.cginc\"\n\t\t\tfloat4 frag(");
                         if (filter == 0)
                         {
-                            if(!xxtea)
+                            if (!xxtea)
                                 shader_data = Regex.Replace(shader_data, "float4 mainTexture = .*?;", shader_code_nofilter);
                             else
                                 shader_data = Regex.Replace(shader_data, "float4 mainTexture = .*?;", shader_code_nofilter_XXTEA);
                         }
                         else if (filter == 1)
-                            shader_data = Regex.Replace(shader_data, "float4 mainTexture = .*?;", shader_code_bilinear);
+                        {
+                            if(!xxtea)
+                                shader_data = Regex.Replace(shader_data, "float4 mainTexture = .*?;", shader_code_bilinear);
+                            else
+                                shader_data = Regex.Replace(shader_data, "float4 mainTexture = .*?;", shader_code_bilinear_XXTEA);
+                        }
                         break;
                     }
             }
             File.WriteAllText(shader_path, shader_data);
 
             string decode_data = File.ReadAllText(decode_dir);
-            decode_data = GenerateDecoder(decode_data, tex);
+            decode_data = GenerateDecoder(decode_data, tex, xxtea);
             if (decode_data == null)
                 return false;
 

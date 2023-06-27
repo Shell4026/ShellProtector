@@ -50,7 +50,7 @@ float4 XTEADecrypt(float4 pixel, int n)
 	return float4(r, g, b, a);
 }
 
-float4 Decrv0ptTexture(float4 pixel, float2 uv, int m)
+float4 DecryptTexture(float4 pixel, float2 uv, int m)
 {
 	float x = uv.x;
 	float y = uv.y;

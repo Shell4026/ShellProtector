@@ -8,7 +8,7 @@ namespace Shell.Protector
 {
     public class EncryptTexture
     {
-        int GetCanMipmapLevel(int w, int h)
+        public int GetCanMipmapLevel(int w, int h)
         {
             int w_level = 0, h_level = 0;
             while(w != 1)
@@ -23,7 +23,7 @@ namespace Shell.Protector
             }
             return Math.Min(w_level, h_level) + 1;
         }
-        bool HasAlpha(Texture2D texture)
+        public bool HasAlpha(Texture2D texture)
         {
             Color32[] pixels = texture.GetPixels32();
             for (int i = 0; i < pixels.Length; i++)
