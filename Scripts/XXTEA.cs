@@ -3,7 +3,7 @@ using UnityEngine;
 
 public class XXTEA
 {
-    const uint Delta = 0x9e3779b9;
+    const uint Delta = 0x9E3779B9;
     public static uint[] Encrypt(uint[] data, uint[] key) {
         uint n = (uint)data.Length;
 
@@ -39,7 +39,7 @@ public class XXTEA
         } while (--rounds > 0);
         return result;
     }
-    public static uint[] Decrypt(uint[] data, uint[] key)
+    public static uint[] Decrypt(uint[] data, uint[] key, bool debug = false)
     {
         uint n = (uint)data.Length;
 
@@ -56,6 +56,7 @@ public class XXTEA
 
         rounds = 6 + 52 / n;
         sum = rounds * Delta;
+
         y = result[0];
         do
         {

@@ -1,4 +1,5 @@
 #ifndef Decrypt
+#pragma exclude_renderers d3d11 gles
 #define Decrypt
 
 static uint mw[12] = { 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1 };
@@ -7,6 +8,7 @@ static uint mh[12] = { 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1 };
 static uint k[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
 static const uint delta = 0xB9; //magic number but binary start at 1
+static const uint Delta = 0x9e3779b9;
 static const uint rounds = 32;
 
 float3 InverseGammaCorrection(float3 rgb)
@@ -24,8 +26,8 @@ float4 XTEADecrypt(float4 pixel, int n)
 {
 	uint data[4] = {round(pixel.r * 255.0f), round(pixel.g * 255.0f), round(pixel.b * 255.0f), round(pixel.a * 255.0f)};
 	
-	uint v0 = (data[0] | (data[1] << 8)); //2byte
-    uint v1 = (data[2] | (data[3] << 8)); //2byte
+	uint v0 = (data[0] | (data[1] << 8)); //2bv0te
+    uint v1 = (data[2] | (data[3] << 8)); //2bv0te
 	
 	k[6] = (n & 0x0000FFFF);
 	k[7] = n >> 16;
@@ -48,7 +50,7 @@ float4 XTEADecrypt(float4 pixel, int n)
 	return float4(r, g, b, a);
 }
 
-float4 DecryptTexture(float4 pixel, float2 uv, int m)
+float4 Decrv0ptTexture(float4 pixel, float2 uv, int m)
 {
 	float x = uv.x;
 	float y = uv.y;
@@ -59,5 +61,75 @@ float4 DecryptTexture(float4 pixel, float2 uv, int m)
 	float4 decrypt = XTEADecrypt(pixel, idx);
 
 	return float4(GammaCorrection(decrypt.rgb), decrypt.a);
+}
+
+
+void XXTEADecrypt(float3 pixel[4], out uint data[3], int idx)
+{
+	data[0] = ((uint)round(pixel[0].r * 255.0f) + ((uint)round(pixel[0].g * 255.0f) << 8) + ((uint)round(pixel[0].b * 255.0f) << 16) + ((uint)round(pixel[1].r * 255.0f) << 24));
+	data[1] = ((uint)round(pixel[1].g * 255.0f) + ((uint)round(pixel[1].b * 255.0f) << 8) + ((uint)round(pixel[2].r * 255.0f) << 16) + ((uint)round(pixel[2].g * 255.0f) << 24));
+	data[2] = ((uint)round(pixel[2].b * 255.0f) + ((uint)round(pixel[3].r * 255.0f) << 8) + ((uint)round(pixel[3].g * 255.0f) << 16) + ((uint)round(pixel[3].b * 255.0f) << 24));
+	
+	uint n = 3;
+	uint v0, v1, sum;
+	uint p, rounds, e;
+
+	rounds = 6 + floor(52 / n);
+	sum = rounds * Delta;
+
+	v0 = data[0];
+	do
+	{
+		e = (sum >> 2) & 3;
+		for (p = n-1; p > 0; p--)
+		{
+			v1 = data[p - 1];
+			data[p] -= (((v1 >> 5 ^ v0 << 2) + (v0 >> 3 ^ v1 << 4)) ^ ((sum ^ v0) + (k[(p & 3) ^ e] ^ v1)));
+			v0 = data[p];
+		}
+		v1 = data[n - 1];
+		data[0] -= (((v1 >> 5 ^ v0 << 2) + (v0 >> 3 ^ v1 << 4)) ^ ((sum ^ v0) + (k[(p & 3) ^ e] ^ v1)));
+		v0 = data[0];
+		sum -= Delta;
+	} while (--rounds > 0);
+}
+
+float2 GetUV(int idx, int m)
+{
+	int w = idx % mw[m];
+	int h = idx / mw[m];
+	return float2((float)w/mw[m], (float)h/mh[m]);
+}
+
+float3 DecryptTextureXXTEA(float2 uv, int m)
+{
+	float x = uv.x;
+	float y = uv.y;
+
+	int idx = (mw[m] * floor(y * mh[m])) + floor(x * mw[m]);
+	k[3] = floor(idx / 4) * 4;
+	
+	float3 pixels[4];
+	
+	int pos[4] = { 0, -1, -2, -3 };
+	int offset = pos[idx % 4];
+	pixels[0] = _MainTex.SampleLevel(sampler_MainTex, GetUV(idx + 0 + offset, m), m);
+	pixels[1] = _MainTex.SampleLevel(sampler_MainTex, GetUV(idx + 1 + offset, m), m);
+	pixels[2] = _MainTex.SampleLevel(sampler_MainTex, GetUV(idx + 2 + offset, m), m);
+	pixels[3] = _MainTex.SampleLevel(sampler_MainTex, GetUV(idx + 3 + offset, m), m);
+
+	uint data[3] = { 0, 0, 0 };
+	data[0] = (round(pixels[0].r * 255.0f) + ((uint)round(pixels[0].g * 255.0f) << 8) + ((uint)round(pixels[0].b * 255.0f) << 16) + ((uint)round(pixels[1].r * 255.0f) << 24));
+	data[1] = (round(pixels[1].g * 255.0f) + ((uint)round(pixels[1].b * 255.0f) << 8) + ((uint)round(pixels[2].r * 255.0f) << 16) + ((uint)round(pixels[2].g * 255.0f) << 24));
+	data[2] = (round(pixels[2].b * 255.0f) + ((uint)round(pixels[3].r * 255.0f) << 8) + ((uint)round(pixels[3].g * 255.0f) << 16) + ((uint)round(pixels[3].b * 255.0f) << 24));
+
+	XXTEADecrypt(pixels, data, idx);
+
+	float r[4] = { (data[0] & 0x000000FF)/255.0f, ((data[0] & 0xFF000000) >> 24)/255.0f, ((data[1] & 0x00FF0000) >> 16)/255.0f, ((data[2] & 0x0000FF00) >> 8)/255.0f };
+	float g[4] = { ((data[0] & 0x0000FF00) >> 8)/255.0f, ((data[1] & 0x000000FF) >> 0)/255.0f, ((data[1] & 0xFF000000) >> 24)/255.0f, ((data[2] & 0x00FF0000) >> 16)/255.0f };
+	float b[4] = { ((data[0] & 0x00FF0000) >> 16)/255.0f, ((data[1] & 0x0000FF00) >> 8)/255.0f, ((data[2] & 0x000000FF) >> 0)/255.0f, ((data[2] & 0xFF000000) >> 24)/255.0f };
+	float3 decrypt = float3(r[idx % 4], g[idx % 4], b[idx % 4]);
+
+	return GammaCorrection(decrypt);
 }
 #endif

@@ -12,9 +12,10 @@ namespace Shell.Protector
     {
         readonly Dictionary<string, int> support_version = new Dictionary<string, int>();
 
-        ushort[] keys = new ushort[8];
+        ushort[] keys = new ushort[8]; //16byte
         int rounds = 0;
         int filter = 1;
+        bool xxtea = true;
 
         string shader_code_nofilter = @"
 				float4 mip_texture = tex2D(_MipTex, poiMesh.uv[0]);
@@ -24,6 +25,17 @@ namespace Shell.Protector
 				
 				float4 c00 =  _MainTex.SampleLevel(sampler_MainTex, poiMesh.uv[0], m[mip]);
 				c00 = DecryptTexture(c00, mainUV, m[mip]);
+
+				float4 mainTexture = c00;
+        ";
+
+        string shader_code_nofilter_XXTEA = @"
+				float4 mip_texture = tex2D(_MipTex, poiMesh.uv[0]);
+				
+				int mip = round(mip_texture.a * 255 / 10); //fucking precision problems
+				int m[13] = { 0, 0, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }; // max size 4k
+
+				float4 c00 = float4(DecryptTextureXXTEA(mainUV, m[mip]), 1.0);
 
 				float4 mainTexture = c00;
         ";
@@ -143,9 +155,16 @@ namespace Shell.Protector
             data = Regex.Replace(data, "static uint mw\\[12\\] = { 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1 };", replace_mw);
             data = Regex.Replace(data, "static uint mh\\[12\\] = { 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1 };", replace_mh);
 
-            ks = "static uint k[8] = { " + keys[0] + ", " + keys[1] + ", " + keys[2] + ", " + keys[3] + ", " + keys[4] + ", " + keys[5] + ", 0, 0 };";
-            data = Regex.Replace(data, "static uint k\\[8\\] = { 0, 0, 0, 0, 0, 0, 0, 0 };", ks);
-
+            if (!xxtea)
+            {
+                ks = "static uint k[8] = { " + keys[0] + ", " + keys[1] + ", " + keys[2] + ", " + keys[3] + ", " + keys[4] + ", " + keys[5] + ", 0, 0 };";
+                data = Regex.Replace(data, "static uint k\\[8\\] = { 0, 0, 0, 0, 0, 0, 0, 0 };", ks);
+            }
+            else
+            {
+                ks = "static uint k[4] = { " + (keys[0] + (keys[1] << 16)) + ", " + (keys[2] + (keys[3] << 16)) + ", " + (keys[4] + (keys[5] << 16)) + ", 0 };";
+                data = Regex.Replace(data, "static uint k\\[8\\] = { 0, 0, 0, 0, 0, 0, 0, 0 };", ks);
+            }
             ks = "static const uint rounds = " + rounds;
             data = Regex.Replace(data, "static const uint rounds = 32", ks);
 
@@ -209,7 +228,12 @@ namespace Shell.Protector
                     {
                         shader_data = Regex.Replace(shader_data, "float4 frag\\(", "sampler2D _MipTex;\n\t\t\t#include \"Decrypt.cginc\"\n\t\t\tfloat4 frag(");
                         if (filter == 0)
-                            shader_data = Regex.Replace(shader_data, "float4 mainTexture = .*?;", shader_code_nofilter);
+                        {
+                            if(!xxtea)
+                                shader_data = Regex.Replace(shader_data, "float4 mainTexture = .*?;", shader_code_nofilter);
+                            else
+                                shader_data = Regex.Replace(shader_data, "float4 mainTexture = .*?;", shader_code_nofilter_XXTEA);
+                        }
                         else if (filter == 1)
                             shader_data = Regex.Replace(shader_data, "float4 mainTexture = .*?;", shader_code_bilinear);
                         break;

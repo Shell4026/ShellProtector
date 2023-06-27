@@ -95,7 +95,12 @@ namespace Shell.Protector
             else
             {
                 tmp = new Texture2D(tex.width, tex.height, TextureFormat.RGB24, mip_lv - 2, true); //mip_lv-2 is blur trick (like the box filter)
-
+                
+                uint[] key_uint = new uint[4];
+                key_uint[0] = (uint)(key[0] + (key[1] << 8) + (key[2] << 16) + (key[3] << 24));
+                key_uint[1] = (uint)(key[4] + (key[5] << 8) + (key[6] << 16) + (key[7] << 24));
+                key_uint[2] = (uint)(key[8] + (key[9] << 8) + (key[10] << 16) + (key[11] << 24));
+                
                 for (int m = 0; m < tmp.mipmapCount; ++m)
                 {
                     Color32[] pixels = tex.GetPixels32(m);
@@ -113,11 +118,7 @@ namespace Shell.Protector
                         key[14] = idx[2];
                         key[15] = idx[3];
 
-                        uint[] key_uint = new uint[4];
-                        key_uint[0] = (uint)(key[0] + (key[1] << 8) + (key[2] << 16) + (key[3] << 24));
-                        key_uint[1] = (uint)(key[4] + (key[5] << 8) + (key[6] << 16) + (key[7] << 24));
-                        key_uint[2] = (uint)(key[8] + (key[9] << 8) + (key[10] << 16) + (key[11] << 24));
-                        key_uint[3] = (uint)(key[12] + (key[13] << 8) + (key[14] << 16) + (key[15] << 24));
+                        key_uint[3] = (uint)i;
 
                         uint[] data_enc = XXTEA.Encrypt(data, key_uint);
 
@@ -188,27 +189,25 @@ namespace Shell.Protector
             {
                 tmp = new Texture2D(tex.width, tex.height, TextureFormat.RGB24, tex.mipmapCount > 1);
 
+                uint[] key_uint = new uint[4];
+                key_uint[0] = (uint)(key[0] + (key[1] << 8) + (key[2] << 16) + (key[3] << 24));
+                key_uint[1] = (uint)(key[4] + (key[5] << 8) + (key[6] << 16) + (key[7] << 24));
+                key_uint[2] = (uint)(key[8] + (key[9] << 8) + (key[10] << 16) + (key[11] << 24));
+
                 for (int i = 0; i < pixels.Length; i += 4)
                 {
                     uint[] data = new uint[3];
                     data[0] = (uint)(pixels[i + 0].r + (pixels[i + 0].g << 8) + (pixels[i + 0].b << 16) + (pixels[i + 1].r << 24));
                     data[1] = (uint)(pixels[i + 1].g + (pixels[i + 1].b << 8) + (pixels[i + 2].r << 16) + (pixels[i + 2].g << 24));
                     data[2] = (uint)(pixels[i + 2].b + (pixels[i + 3].r << 8) + (pixels[i + 3].g << 16) + (pixels[i + 3].b << 24));
-                    
-                    byte[] idx = BitConverter.GetBytes(i);
-                    key[12] = idx[0];
-                    key[13] = idx[1];
-                    key[14] = idx[2];
-                    key[15] = idx[3];
 
-                    uint[] key_uint = new uint[4];
-                    key_uint[0] = (uint)(key[0] + (key[1] << 8) + (key[2] << 16) + (key[3] << 24));
-                    key_uint[1] = (uint)(key[4] + (key[5] << 8) + (key[6] << 16) + (key[7] << 24));
-                    key_uint[2] = (uint)(key[8] + (key[9] << 8) + (key[10] << 16) + (key[11] << 24));
-                    key_uint[3] = (uint)(key[12] + (key[13] << 8) + (key[14] << 16) + (key[15] << 24));
+                    key_uint[3] = (uint)i;
 
-                    uint[] data_dec = XXTEA.Decrypt(data, key_uint);
-
+                    uint[] data_dec = null;
+                    if (i == 0)
+                        data_dec = XXTEA.Decrypt(data, key_uint, true);
+                    else
+                        data_dec = XXTEA.Decrypt(data, key_uint, false);
                     pixels[i + 0].r = (byte)((data_dec[0] & 0x000000FF) >> 0 );
                     pixels[i + 0].g = (byte)((data_dec[0] & 0x0000FF00) >> 8 );
                     pixels[i + 0].b = (byte)((data_dec[0] & 0x00FF0000) >> 16);

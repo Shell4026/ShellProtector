@@ -95,8 +95,10 @@ namespace Shell.Protector
             if(debug)
             {
                 GUILayout.Space(10);
-                if (GUILayout.Button("Encrypt/Decrypt test"))
+                if (GUILayout.Button("XTEA test"))
                     root.Test();
+                if (GUILayout.Button("XXTEA test"))
+                    root.Test2();
                 GUILayout.Space(10);
 
                 texture_list.DoLayoutList();
