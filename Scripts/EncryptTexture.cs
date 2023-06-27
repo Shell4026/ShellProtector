@@ -35,7 +35,7 @@ namespace Shell.Protector
             }
             return false;
         }
-        public Texture2D[] TextureEncrypt(Texture2D texture, byte[] key, int rounds = 32)
+        public Texture2D TextureEncrypt(Texture2D texture, byte[] key, int rounds = 32)
         {
             Texture2D tex = texture;
 
@@ -48,20 +48,6 @@ namespace Shell.Protector
             int mip_lv = GetCanMipmapLevel(tex.width, tex.height);
 
             Texture2D tmp;
-            Texture2D mip = new Texture2D(tex.width, tex.height, TextureFormat.Alpha8, mip_lv, true);
-            for (int m = 0; m < mip.mipmapCount; ++m)
-            {
-                Color32[] pixels_mip = mip.GetPixels32(m);
-                for (int i = 0; i < pixels_mip.Length; ++i)
-                {
-                    pixels_mip[i].r = (byte)(m * 10);
-                    pixels_mip[i].g = (byte)(m * 10);
-                    pixels_mip[i].b = (byte)(m * 10);
-                    pixels_mip[i].a = (byte)(m * 10);
-                }
-                mip.SetPixels32(pixels_mip, m);
-            }
-
             if (HasAlpha(tex))
             {
                 tmp = new Texture2D(tex.width, tex.height, TextureFormat.RGBA32, mip_lv - 2, true); //mip_lv-2 is blur trick (like the box filter)
@@ -137,24 +123,11 @@ namespace Shell.Protector
                     }
                     tmp.SetPixels32(pixels, m);
                 }
-                for (int m = 0; m < mip.mipmapCount; ++m)
-                {
-                    Color32[] pixels_mip = mip.GetPixels32(m);
-                    for (int i = 0; i < pixels_mip.Length; ++i)
-                    {
-                        pixels_mip[i].r = (byte)(m * 10);
-                        pixels_mip[i].g = (byte)(m * 10);
-                        pixels_mip[i].b = (byte)(m * 10);
-                    }
-                    mip.SetPixels32(pixels_mip, m);
-                }
             }
-            mip.filterMode = FilterMode.Point;
-            mip.anisoLevel = 0;
 
             tmp.filterMode = FilterMode.Point;
             tmp.anisoLevel = 0;
-            return new Texture2D[] { tmp, mip };
+            return tmp;
         }
         public Texture2D TextureDecrypt(Texture2D texture, byte[] key, int rounds = 32)
         {
@@ -224,6 +197,25 @@ namespace Shell.Protector
             }
             tmp.SetPixels32(pixels);
             return tmp;
+        }
+        public Texture2D GenerateRefMipmap(int width, int height)
+        {
+            int mip_lv = GetCanMipmapLevel(width, height);
+
+            Texture2D mip = new Texture2D(width, height, TextureFormat.Alpha8, mip_lv, true);
+            mip.filterMode = FilterMode.Point;
+            mip.anisoLevel = 0;
+
+            for (int m = 0; m < mip.mipmapCount; ++m)
+            {
+                Color32[] pixels_mip = mip.GetPixels32(m);
+                for (int i = 0; i < pixels_mip.Length; ++i)
+                {
+                    pixels_mip[i].a = (byte)(m * 10);
+                }
+                mip.SetPixels32(pixels_mip, m);
+            }
+            return mip;
         }
     }
 }

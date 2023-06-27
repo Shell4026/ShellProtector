@@ -112,20 +112,19 @@ namespace Shell.Protector
                         Texture2D texture = element.objectReferenceValue as Texture2D;
 
                         root.SetRWEnableTexture(texture);
-                        var tex_set = root.GetEncryptTexture().TextureEncrypt(texture, root.MakeKeyBytes(root.pwd), rounds.intValue);
+                        var encrypted_texture = root.GetEncryptTexture().TextureEncrypt(texture, root.MakeKeyBytes(root.pwd), rounds.intValue);
 
                         if (root.dir[root.dir.Length - 1] == '/')
                             root.dir = root.dir.Remove(root.dir.Length - 1);
 
-                        last = tex_set[0];
+                        last = encrypted_texture;
 
                         if (!AssetDatabase.IsValidFolder(root.dir + '/' + root.gameObject.name))
                             AssetDatabase.CreateFolder(root.dir, root.gameObject.name);
                         if (!AssetDatabase.IsValidFolder(root.dir + '/' + root.gameObject.name + "/mat"))
                             AssetDatabase.CreateFolder(root.dir + '/' + root.gameObject.name, "mat");
 
-                        AssetDatabase.CreateAsset(tex_set[0], root.dir + '/' + root.gameObject.name + '/' + texture.name + "_encrypt.asset");
-                        AssetDatabase.CreateAsset(tex_set[1], root.dir + '/' + root.gameObject.name + '/' + texture.name + "_encrypt_mip.asset");
+                        AssetDatabase.CreateAsset(encrypted_texture, root.dir + '/' + root.gameObject.name + '/' + texture.name + "_encrypt.asset");
                         AssetDatabase.SaveAssets();
 
                         AssetDatabase.Refresh();

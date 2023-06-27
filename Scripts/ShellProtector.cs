@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -111,95 +112,105 @@ namespace Shell.Protector
             GameObject avatar = DuplicateAvatar(gameObject);
 
             int progress = 0;
+
+            var mips = new Dictionary<int, Texture2D>();
+
+            byte[] key_bytes = MakeKeyBytes(pwd);
+            injector.Init(key_bytes, rounds, filter);
+
             foreach (var mat in material_list)
             {
                 EditorUtility.DisplayProgressBar("Encrypt...", "Encrypt Progress " + ++progress + " of " + material_list.Count, (float)progress / (float)material_list.Count);
-                if (injector.IsSupportShader(mat.shader))
+                //////////////Condition check///////////////////
+                if (!injector.IsSupportShader(mat.shader))
                 {
-                    byte[] key_bytes = MakeKeyBytes(pwd);
-                    injector.Init(key_bytes, rounds, filter);
-
-                    if (!Injector.IsLockPoiyomi(mat.shader))
-                    {
-                        Debug.LogError("First, the shader must be locked!");
-                        continue;
-                    }
-
-                    if (mat.mainTexture.width % 2 != 0 && mat.mainTexture.height % 2 != 0)
-                    {
-                        Debug.LogErrorFormat("{0} : The texture size must be a multiple of 2!", mat.mainTexture.name);
-                        continue;
-                    }
-
-                    if (injector.WasInjected(mat.shader))
-                    {
-                        Debug.LogWarning(mat.name + ": The shader is already encrypted.");
-                        continue;
-                    }
-                    Texture2D main_texture = (Texture2D)mat.mainTexture; 
-                    SetRWEnableTexture(main_texture);
-
-                    Texture2D[] tex_set;
-                    try
-                    {
-                        tex_set = encrypt.TextureEncrypt(main_texture, key_bytes, rounds);
-                        bool xxtea = !encrypt.HasAlpha(tex_set[0]);
-                        if (!injector.Inject(mat.shader, dir + "/Decrypt.cginc", tex_set[0], xxtea))
-                            continue;
-                    }
-                    catch (UnityException e)
-                    {
-                        Debug.LogError(e.Message);
-                        continue;
-                    }
-
-                    if (dir[dir.Length - 1] == '/')
-                        dir = dir.Remove(dir.Length - 1);
-
-                    if (!AssetDatabase.IsValidFolder(dir + '/' + gameObject.name))
-                        AssetDatabase.CreateFolder(dir, gameObject.name);
-                    if (!AssetDatabase.IsValidFolder(dir + '/' + gameObject.name + "/mat"))
-                        AssetDatabase.CreateFolder(dir + '/' + gameObject.name, "mat");
-
-                    AssetDatabase.CreateAsset(tex_set[0], dir + '/' + gameObject.name + '/' + main_texture.name + "_encrypt.asset");
-                    AssetDatabase.CreateAsset(tex_set[1], dir + '/' + gameObject.name + '/' + main_texture.name + "_encrypt_mip.asset");
-                    /////////////////Materials///////////////////////
-                    Material new_mat = new Material(mat.shader);
-                    new_mat.CopyPropertiesFromMaterial(mat);
-                    new_mat.mainTexture = tex_set[0];
-                    new_mat.SetTexture("_MipTex", tex_set[1]);
-
-                    AssetDatabase.CreateAsset(new_mat, dir + '/' + gameObject.name + "/mat/" + mat.name + "_encrypt.mat");
-                    var renderers = avatar.GetComponentsInChildren<MeshRenderer>();
-                    for (int i = 0; i < renderers.Length; ++i)
-                    {
-                        var mats = renderers[i].sharedMaterials;
-                        for (int j = 0; j < mats.Length; ++j)
-                        {
-                            if (mats[j].name == mat.name)
-                                mats[j] = new_mat;
-                        }
-                        renderers[i].sharedMaterials = mats;
-                    }
-                    var skinned_renderers = avatar.GetComponentsInChildren<SkinnedMeshRenderer>();
-                    for (int i = 0; i < skinned_renderers.Length; ++i)
-                    {
-                        var mats = skinned_renderers[i].sharedMaterials;
-                        for (int j = 0; j < mats.Length; ++j)
-                        {
-                            if (mats[j].name == mat.name)
-                                mats[j] = new_mat;
-                        }
-                        skinned_renderers[i].sharedMaterials = mats;
-                    }
-                    //////////////////////////////////////////////////
-                }
-                else
-                {
-                    Debug.LogError("Unsupported shader!");
+                    Debug.LogError(mat.name + "is unsupported shader!");
                     continue;
                 }
+                if (!Injector.IsLockPoiyomi(mat.shader))
+                {
+                    Debug.LogError("First, the shader must be locked!");
+                    continue;
+                }
+                if (mat.mainTexture.width % 2 != 0 && mat.mainTexture.height % 2 != 0)
+                {
+                    Debug.LogErrorFormat("{0} : The texture size must be a multiple of 2!", mat.mainTexture.name);
+                    continue;
+                }
+                if (injector.WasInjected(mat.shader))
+                {
+                    Debug.LogWarning(mat.name + ": The shader is already encrypted.");
+                    continue;
+                }
+                //////////////////////////////////////////////
+                int size = Math.Max(mat.mainTexture.width, mat.mainTexture.height);
+                if (!mips.ContainsKey(size))
+                {
+                    var mip = encrypt.GenerateRefMipmap(size, size);
+                    mips.Add(size, mip);
+                }
+
+                Texture2D main_texture = (Texture2D)mat.mainTexture; 
+                SetRWEnableTexture(main_texture);
+
+                Texture2D encrypted_tex;
+                try
+                {
+                    encrypted_tex = encrypt.TextureEncrypt(main_texture, key_bytes, rounds);
+                    bool xxtea = !encrypt.HasAlpha(encrypted_tex);
+                    if (!injector.Inject(mat.shader, dir + "/Decrypt.cginc", encrypted_tex, xxtea))
+                        continue;
+                }
+                catch (UnityException e)
+                {
+                    Debug.LogError(e.Message);
+                    continue;
+                }
+
+                if (dir[dir.Length - 1] == '/')
+                    dir = dir.Remove(dir.Length - 1);
+
+                if (!AssetDatabase.IsValidFolder(dir + '/' + gameObject.name))
+                    AssetDatabase.CreateFolder(dir, gameObject.name);
+                if (!AssetDatabase.IsValidFolder(dir + '/' + gameObject.name + "/mat"))
+                    AssetDatabase.CreateFolder(dir + '/' + gameObject.name, "mat");
+
+                AssetDatabase.CreateAsset(encrypted_tex, dir + '/' + gameObject.name + '/' + main_texture.name + "_encrypt.asset");
+                    
+                /////////////////Materials///////////////////////
+                Material new_mat = new Material(mat.shader);
+                new_mat.CopyPropertiesFromMaterial(mat);
+                new_mat.mainTexture = encrypted_tex;
+                new_mat.SetTexture("_MipTex", mips[Math.Max(encrypted_tex.width, encrypted_tex.height)]);
+
+                AssetDatabase.CreateAsset(new_mat, dir + '/' + gameObject.name + "/mat/" + mat.name + "_encrypt.mat");
+                var renderers = avatar.GetComponentsInChildren<MeshRenderer>();
+                for (int i = 0; i < renderers.Length; ++i)
+                {
+                    var mats = renderers[i].sharedMaterials;
+                    for (int j = 0; j < mats.Length; ++j)
+                    {
+                        if (mats[j].name == mat.name)
+                            mats[j] = new_mat;
+                    }
+                    renderers[i].sharedMaterials = mats;
+                }
+                var skinned_renderers = avatar.GetComponentsInChildren<SkinnedMeshRenderer>();
+                for (int i = 0; i < skinned_renderers.Length; ++i)
+                {
+                    var mats = skinned_renderers[i].sharedMaterials;
+                    for (int j = 0; j < mats.Length; ++j)
+                    {
+                        if (mats[j].name == mat.name)
+                            mats[j] = new_mat;
+                    }
+                    skinned_renderers[i].sharedMaterials = mats;
+                }
+                //////////////////////////////////////////////////
             }
+            foreach (var mip in mips)
+                AssetDatabase.CreateAsset(mip.Value, dir + '/' + gameObject.name + "/mip_" + mip.Key + ".asset");
+
             EditorUtility.ClearProgressBar();
 
             gameObject.SetActive(false);
