@@ -156,7 +156,7 @@ namespace Shell.Protector
                 {
                     Color32[] pixels = tex.GetPixels32(m);
 
-                    for (int i = 0; i < pixels.Length; i += 4)
+                    for (int i = 0; i < pixels.Length; i += 2)
                     {
                         key_uint[3] = (uint)i;
 
