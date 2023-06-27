@@ -44,7 +44,6 @@ If you want to prevent copying, use it in conjunction with the password assets.
 
 ### How it works
 Encrypt the texture using a XXTEA algorithm.
-x
 After encrypting the texture itself, it is uploaded to the VRChat server. The texture is then decrypted in the game via shaders.
 
 ### Supported shaders
