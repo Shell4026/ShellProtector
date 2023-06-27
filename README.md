@@ -16,7 +16,7 @@
 3. 포이요미 쉐이더라면 Lock을 먼저 해주고 Encrypt 버튼을 누르세요.
 
 ### 세부 원리
-변형된 XTEA 알고리즘을 사용하여 메테리얼의 MainTexure를 암호화합니다.
+XXTEA 알고리즘을 사용하여 메테리얼의 MainTexure를 암호화합니다.
 
 텍스쳐 자체를 암호화 한 후 VRChat 서버에 업로드 됩니다. 이 텍스쳐는 게임에서 쉐이더를 통해 복호화 시킵니다.
 
@@ -43,8 +43,8 @@ If you want to prevent copying, use it in conjunction with the password assets.
 3. If it is a Poiyomi shader, lock it first and then click the Encrypt button.
 
 ### How it works
-Encrypt the texture using a modified XTEA algorithm.
-
+Encrypt the texture using a XXTEA algorithm.
+x
 After encrypting the texture itself, it is uploaded to the VRChat server. The texture is then decrypted in the game via shaders.
 
 ### Supported shaders
