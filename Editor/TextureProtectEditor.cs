@@ -16,11 +16,13 @@ namespace Shell.Protector
 
         SerializedProperty rounds;
         SerializedProperty filter;
+        SerializedProperty algorithm;
 
         bool debug = false;
         bool option = false;
 
         readonly string[] filters = new string[2];
+        readonly string[] enc_funcs = new string[2];
         // Start is called before the first frame update
         void OnEnable()
         {
@@ -42,9 +44,13 @@ namespace Shell.Protector
 
             rounds = serializedObject.FindProperty("rounds");
             filter = serializedObject.FindProperty("filter");
+            algorithm = serializedObject.FindProperty("algorithm");
 
             filters[0] = "Point";
             filters[1] = "Bilinear";
+
+            enc_funcs[0] = "XXTEA algorithm";
+            enc_funcs[1] = "XTEA algorithm(Not recommended)";
         }
 
         public override void OnInspectorGUI()
@@ -71,19 +77,26 @@ namespace Shell.Protector
             option = EditorGUILayout.Foldout(option, "Options");
             if(option)
             {
-                GUILayout.BeginHorizontal();
-                GUILayout.Label("Rounds", EditorStyles.boldLabel);
-                GUILayout.FlexibleSpace();
-                GUILayout.Label("As the number goes up, security increases, but performance decreases.", EditorStyles.wordWrappedLabel);
-                GUILayout.EndHorizontal();
-                GUILayout.BeginHorizontal();
-                rounds.intValue = (int)GUILayout.HorizontalSlider(rounds.intValue, 30, 48, GUILayout.Width(100));
-                rounds.intValue = EditorGUILayout.IntField(rounds.intValue, GUILayout.Width(50));
-                rounds.intValue = (rounds.intValue > 48) ? 48 : (rounds.intValue < 30) ? 30 : rounds.intValue;
-                GUILayout.EndHorizontal();
+                GUILayout.Label("RGBA encrytion algorithm", EditorStyles.boldLabel);
+                algorithm.intValue = EditorGUILayout.Popup(algorithm.intValue, enc_funcs, GUILayout.Width(120));
 
+                if (algorithm.intValue == 1)
+                {
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label("Rounds", EditorStyles.boldLabel);
+                    GUILayout.FlexibleSpace();
+                    GUILayout.Label("As the number goes up, security increases, but performance decreases.", EditorStyles.wordWrappedLabel);
+                    GUILayout.EndHorizontal();
+
+                    GUILayout.BeginHorizontal();
+                    rounds.intValue = (int)GUILayout.HorizontalSlider(rounds.intValue, 30, 48, GUILayout.Width(100));
+                    rounds.intValue = EditorGUILayout.IntField(rounds.intValue, GUILayout.Width(50));
+                    rounds.intValue = (rounds.intValue > 48) ? 48 : (rounds.intValue < 30) ? 30 : rounds.intValue;
+                    GUILayout.EndHorizontal();
+                }
                 GUILayout.Label("Texture filter", EditorStyles.boldLabel);
                 filter.intValue = EditorGUILayout.Popup(filter.intValue, filters, GUILayout.Width(100));
+
                 GUILayout.Space(30);
             }
 
@@ -112,7 +125,13 @@ namespace Shell.Protector
                         Texture2D texture = element.objectReferenceValue as Texture2D;
 
                         root.SetRWEnableTexture(texture);
-                        var encrypted_texture = root.GetEncryptTexture().TextureEncrypt(texture, root.MakeKeyBytes(root.pwd), rounds.intValue);
+
+                        Texture2D encrypted_texture;
+
+                        if (algorithm.intValue == 0)
+                            encrypted_texture = root.GetEncryptTexture().TextureEncryptXXTEA(texture, root.MakeKeyBytes(root.pwd));
+                        else
+                            encrypted_texture = root.GetEncryptTexture().TextureEncryptXTEA(texture, root.MakeKeyBytes(root.pwd), rounds.intValue);
 
                         if (root.dir[root.dir.Length - 1] == '/')
                             root.dir = root.dir.Remove(root.dir.Length - 1);
@@ -141,7 +160,12 @@ namespace Shell.Protector
                         Texture2D texture = textureProperty.objectReferenceValue as Texture2D;
 
                         root.SetRWEnableTexture(texture);
-                        var tmp = root.GetEncryptTexture().TextureDecrypt(texture, root.MakeKeyBytes(root.pwd), rounds.intValue);
+
+                        Texture2D tmp;
+                        if (algorithm.intValue == 0)
+                            tmp = root.GetEncryptTexture().TextureDecryptXXTEA(texture, root.MakeKeyBytes(root.pwd));
+                        else
+                            tmp = root.GetEncryptTexture().TextureDecryptXTEA(texture, root.MakeKeyBytes(root.pwd), rounds.intValue);
 
                         if (root.dir[root.dir.Length - 1] == '/')
                             root.dir = root.dir.Remove(root.dir.Length - 1);

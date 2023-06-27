@@ -27,6 +27,8 @@ namespace Shell.Protector
         int rounds = 32;
         [SerializeField]
         int filter = 1;
+        [SerializeField]
+        int algorithm = 0;
 
         public byte[] MakeKeyBytes(string _key)
         {
@@ -105,6 +107,32 @@ namespace Shell.Protector
             cpy.name = avatar.name + "_encrypted";
             return cpy;
         }
+
+        bool ConditionCheck(Material mat)
+        {
+            if (!injector.IsSupportShader(mat.shader))
+            {
+                Debug.LogError(mat.name + "is a unsupported shader!");
+                return false;
+            }
+            if (!Injector.IsLockPoiyomi(mat.shader))
+            {
+                Debug.LogError("First, the shader must be locked!");
+                return false;
+            }
+            if (mat.mainTexture.width % 2 != 0 && mat.mainTexture.height % 2 != 0)
+            {
+                Debug.LogErrorFormat("{0} : The texture size must be a multiple of 2!", mat.mainTexture.name);
+                return false;
+            }
+            if (injector.WasInjected(mat.shader))
+            {
+                Debug.LogWarning(mat.name + ": The shader is already encrypted.");
+                return false;
+            }
+            return true;
+        }
+
         public void Encrypt()
         {
             Debug.Log("Key bytes: " + string.Join(", ", MakeKeyBytes(pwd)));
@@ -121,28 +149,10 @@ namespace Shell.Protector
             foreach (var mat in material_list)
             {
                 EditorUtility.DisplayProgressBar("Encrypt...", "Encrypt Progress " + ++progress + " of " + material_list.Count, (float)progress / (float)material_list.Count);
-                //////////////Condition check///////////////////
-                if (!injector.IsSupportShader(mat.shader))
-                {
-                    Debug.LogError(mat.name + "is unsupported shader!");
+                
+                if (!ConditionCheck(mat))
                     continue;
-                }
-                if (!Injector.IsLockPoiyomi(mat.shader))
-                {
-                    Debug.LogError("First, the shader must be locked!");
-                    continue;
-                }
-                if (mat.mainTexture.width % 2 != 0 && mat.mainTexture.height % 2 != 0)
-                {
-                    Debug.LogErrorFormat("{0} : The texture size must be a multiple of 2!", mat.mainTexture.name);
-                    continue;
-                }
-                if (injector.WasInjected(mat.shader))
-                {
-                    Debug.LogWarning(mat.name + ": The shader is already encrypted.");
-                    continue;
-                }
-                //////////////////////////////////////////////
+
                 int size = Math.Max(mat.mainTexture.width, mat.mainTexture.height);
                 if (!mips.ContainsKey(size))
                 {
@@ -156,8 +166,11 @@ namespace Shell.Protector
                 Texture2D encrypted_tex;
                 try
                 {
-                    encrypted_tex = encrypt.TextureEncrypt(main_texture, key_bytes, rounds);
-                    bool xxtea = !encrypt.HasAlpha(encrypted_tex);
+                    if (algorithm == 0)
+                        encrypted_tex = encrypt.TextureEncryptXXTEA(main_texture, key_bytes);
+                    else
+                        encrypted_tex = encrypt.TextureEncryptXTEA(main_texture, key_bytes, rounds);
+                    bool xxtea = algorithm == 0;
                     if (!injector.Inject(mat.shader, dir + "/Decrypt.cginc", encrypted_tex, xxtea))
                         continue;
                 }

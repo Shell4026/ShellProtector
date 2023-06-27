@@ -67,7 +67,6 @@ namespace Shell.Protector
 				
 				float4 mainTexture = bilinear;
         ";
-
         string shader_code_bilinear_XXTEA = @"
 				float4 mip_texture = tex2D(_MipTex, poiMesh.uv[0]);
 				
@@ -276,6 +275,8 @@ namespace Shell.Protector
                                 shader_code = shader_code_bilinear_XXTEA;
                         }
                         shader_data = Regex.Replace(shader_data, "float4 mainTexture = .*?;", shader_code);
+                        if(EncryptTexture.HasAlpha(tex) && xxtea)
+                            shader_data = Regex.Replace(shader_data, "DecryptTextureXXTEA", "DecryptTextureXXTEARGBA");
                         break;
                     }
             }
