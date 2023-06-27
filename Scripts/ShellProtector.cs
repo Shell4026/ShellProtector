@@ -30,7 +30,7 @@ namespace Shell.Protector
         public byte[] MakeKeyBytes(string _key)
         {
             byte[] key = new byte[16] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-            byte[] key_bytes = Encoding.ASCII.GetBytes(pwd);
+            byte[] key_bytes = Encoding.ASCII.GetBytes(_key);
 
             for (int i = 0; i < key_bytes.Length; ++i)
                 key[i] = key_bytes[i];
@@ -106,14 +106,14 @@ namespace Shell.Protector
         }
         public void Encrypt()
         {
-            Debug.Log("Key bytes: " + string.Join(", ", pwd));
+            Debug.Log("Key bytes: " + string.Join(", ", MakeKeyBytes(pwd)));
 
             GameObject avatar = DuplicateAvatar(gameObject);
 
             int progress = 0;
             foreach (var mat in material_list)
             {
-                EditorUtility.DisplayProgressBar("Encrypt...", "Encrypt...Progress " + ++progress + " of " + material_list.Count, (float)progress / (float)material_list.Count);
+                EditorUtility.DisplayProgressBar("Encrypt...", "Encrypt Progress " + ++progress + " of " + material_list.Count, (float)progress / (float)material_list.Count);
                 if (injector.IsSupportShader(mat.shader))
                 {
                     byte[] key_bytes = MakeKeyBytes(pwd);
