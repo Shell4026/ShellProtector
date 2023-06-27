@@ -77,7 +77,7 @@ namespace Shell.Protector
             option = EditorGUILayout.Foldout(option, "Options");
             if(option)
             {
-                GUILayout.Label("RGBA encrytion algorithm", EditorStyles.boldLabel);
+                GUILayout.Label("Encrytion algorithm", EditorStyles.boldLabel);
                 algorithm.intValue = EditorGUILayout.Popup(algorithm.intValue, enc_funcs, GUILayout.Width(120));
 
                 if (algorithm.intValue == 1)

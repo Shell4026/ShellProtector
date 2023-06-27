@@ -151,7 +151,7 @@ namespace Shell.Protector
             key_uint[2] = (uint)(key[8] + (key[9] << 8) + (key[10] << 16) + (key[11] << 24));
             if (HasAlpha(tex))
             {
-                tmp = new Texture2D(tex.width, tex.height, TextureFormat.RGB24, mip_lv - 2, true); //mip_lv-2 is blur trick (like the box filter)
+                tmp = new Texture2D(tex.width, tex.height, TextureFormat.RGBA32, mip_lv - 2, true); //mip_lv-2 is blur trick (like the box filter)
                 for (int m = 0; m < tmp.mipmapCount; ++m)
                 {
                     Color32[] pixels = tex.GetPixels32(m);
