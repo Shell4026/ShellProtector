@@ -158,17 +158,11 @@ namespace Shell.Protector
 
                     for (int i = 0; i < pixels.Length; i += 4)
                     {
+                        key_uint[3] = (uint)i;
+
                         uint[] data = new uint[2];
                         data[0] = (uint)(pixels[i + 0].r + (pixels[i + 0].g << 8) + (pixels[i + 0].b << 16) + (pixels[i + 0].a << 24));
                         data[1] = (uint)(pixels[i + 1].r + (pixels[i + 1].g << 8) + (pixels[i + 1].b << 16) + (pixels[i + 1].a << 24));
-
-                        byte[] idx = BitConverter.GetBytes(i);
-                        key[12] = idx[0];
-                        key[13] = idx[1];
-                        key[14] = idx[2];
-                        key[15] = idx[3];
-
-                        key_uint[3] = (uint)i;
 
                         uint[] data_enc = XXTEA.Encrypt(data, key_uint);
 
@@ -193,18 +187,12 @@ namespace Shell.Protector
 
                     for (int i = 0; i < pixels.Length; i += 4)
                     {
+                        key_uint[3] = (uint)i;
+
                         uint[] data = new uint[3];
                         data[0] = (uint)(pixels[i + 0].r + (pixels[i + 0].g << 8) + (pixels[i + 0].b << 16) + (pixels[i + 1].r << 24));
                         data[1] = (uint)(pixels[i + 1].g + (pixels[i + 1].b << 8) + (pixels[i + 2].r << 16) + (pixels[i + 2].g << 24));
                         data[2] = (uint)(pixels[i + 2].b + (pixels[i + 3].r << 8) + (pixels[i + 3].g << 16) + (pixels[i + 3].b << 24));
-
-                        byte[] idx = BitConverter.GetBytes(i);
-                        key[12] = idx[0];
-                        key[13] = idx[1];
-                        key[14] = idx[2];
-                        key[15] = idx[3];
-
-                        key_uint[3] = (uint)i;
 
                         uint[] data_enc = XXTEA.Encrypt(data, key_uint);
 
@@ -256,17 +244,10 @@ namespace Shell.Protector
 
                     for (int i = 0; i < pixels.Length; i += 4)
                     {
+                        key_uint[3] = (uint)i;
                         uint[] data = new uint[2];
                         data[0] = (uint)(pixels[i + 0].r + (pixels[i + 0].g << 8) + (pixels[i + 0].b << 16) + (pixels[i + 0].a << 24));
                         data[1] = (uint)(pixels[i + 1].r + (pixels[i + 1].g << 8) + (pixels[i + 1].b << 16) + (pixels[i + 1].a << 24));
-
-                        byte[] idx = BitConverter.GetBytes(i);
-                        key[12] = idx[0];
-                        key[13] = idx[1];
-                        key[14] = idx[2];
-                        key[15] = idx[3];
-
-                        key_uint[3] = (uint)i;
 
                         uint[] data_enc = XXTEA.Decrypt(data, key_uint);
 
@@ -291,18 +272,12 @@ namespace Shell.Protector
 
                     for (int i = 0; i < pixels.Length; i += 4)
                     {
+                        key_uint[3] = (uint)i;
+
                         uint[] data = new uint[3];
                         data[0] = (uint)(pixels[i + 0].r + (pixels[i + 0].g << 8) + (pixels[i + 0].b << 16) + (pixels[i + 1].r << 24));
                         data[1] = (uint)(pixels[i + 1].g + (pixels[i + 1].b << 8) + (pixels[i + 2].r << 16) + (pixels[i + 2].g << 24));
                         data[2] = (uint)(pixels[i + 2].b + (pixels[i + 3].r << 8) + (pixels[i + 3].g << 16) + (pixels[i + 3].b << 24));
-
-                        byte[] idx = BitConverter.GetBytes(i);
-                        key[12] = idx[0];
-                        key[13] = idx[1];
-                        key[14] = idx[2];
-                        key[15] = idx[3];
-
-                        key_uint[3] = (uint)i;
 
                         uint[] data_enc = XXTEA.Decrypt(data, key_uint);
 
