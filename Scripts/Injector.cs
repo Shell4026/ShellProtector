@@ -10,8 +10,6 @@ namespace Shell.Protector
 {
     public class Injector
     {
-        readonly Dictionary<string, int> support_version = new Dictionary<string, int>();
-
         ushort[] keys = new ushort[8]; //16byte
         int rounds = 0;
         int filter = 1;
@@ -91,52 +89,6 @@ namespace Shell.Protector
 				float4 mainTexture = bilinear;
         ";
 
-        public Injector()
-        {
-            support_version.Add("Poiyomi 7.3", 7);
-            support_version.Add("Poiyomi 8.0", 8);
-            support_version.Add("Poiyomi 8.1", 8);
-            support_version.Add("Poiyomi 8.2", 8);
-        }
-
-        public static bool IsPoiyomi(Shader shader)
-        {
-            if (shader.name.Contains("Poiyomi"))
-                return true;
-            return false;
-        }
-
-        private int GetSupportShaderType(Shader shader)
-        {
-            foreach (var version in support_version)
-            {
-                if (shader.name.Contains(version.Key))
-                    return support_version[version.Key];
-            }
-            return -1;
-        }
-
-        public bool IsSupportShader(Shader shader)
-        {
-            foreach (var version in support_version)
-            {
-                if (shader.name.Contains(version.Key))
-                    return true;
-            }
-            return false;
-        }
-
-        public static bool IsLockPoiyomi(Shader shader)
-        {
-            if (IsPoiyomi(shader))
-            {
-                if (shader.name.Contains("Locked"))
-                    return true;
-                return false;
-            }
-            return false;
-        }
-
         public void Init(byte[] key, int rounds, int filter)
         {
             if (key.Length != 16)
@@ -172,7 +124,7 @@ namespace Shell.Protector
                     replace_mh += " };";
                 }
             }
-            string ks = "";
+            string ks;
 
             data = Regex.Replace(data, "static uint mw\\[12\\] = { 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1 };", replace_mw);
             data = Regex.Replace(data, "static uint mh\\[12\\] = { 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1 };", replace_mh);
@@ -212,8 +164,7 @@ namespace Shell.Protector
             }
 
             string shader_path = AssetDatabase.GetAssetPath(shader);
-
-            string shader_data = File.ReadAllText(shader_path);
+            string shader_data = File.ReadAllText(shader_path); ;
             shader_data = shader_data.Insert(0, "//ShellProtect\n");
 
             Match match = Regex.Match(shader_data, "Properties\\W*{");
@@ -228,10 +179,15 @@ namespace Shell.Protector
                 return false;
             }
 
-            switch (GetSupportShaderType(shader))
+            switch (ShaderManager.GetInstance().GetSupportShaderType(shader))
             {
                 case -1:
                     {
+                        break;
+                    }
+                case 0: //liltoon
+                    {
+
                         break;
                     }
                 case 7:
