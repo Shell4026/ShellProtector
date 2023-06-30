@@ -21,31 +21,28 @@ namespace Shell.Protector
             support_version.Add("Poiyomi 8.0", 8);
             support_version.Add("Poiyomi 8.1", 8);
             support_version.Add("Poiyomi 8.2", 8);
-            support_version.Add("liltoon", 0);
+            support_version.Add("lilToon", 0);
         }
-        public static bool IsPoiyomi(Shader shader)
+        public bool IsPoiyomi(Shader shader)
         {
+            
             if (shader.name.Contains("Poiyomi"))
                 return true;
             return false;
         }
-        public static bool Isliltoon(Shader shader)
+        public bool IslilToon(Shader shader)
         {
-            if (shader.name.Contains("liltoon"))
+            if (shader.name.Contains("lilToon"))
                 return true;
             return false;
         }
-        public static bool IsLockPoiyomi(Shader shader)
+        public bool IsLockPoiyomi(Shader shader)
         {
-            if (IsPoiyomi(shader))
-            {
-                if (shader.name.Contains("Locked"))
-                    return true;
-                return false;
-            }
+            if (shader.name.Contains("Locked"))
+                return true;
             return false;
         }
-        public int GetSupportShaderType(Shader shader)
+        public int GetShaderType(Shader shader)
         {
             foreach (var version in support_version)
             {
