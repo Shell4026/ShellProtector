@@ -8,13 +8,15 @@ using UnityEngine;
 #if UNITY_EDITOR
 namespace Shell.Protector
 {
-    public class Injector
+    abstract public class Injector
     {
-        ushort[] keys = new ushort[8]; //16byte
-        int rounds = 0;
-        int filter = 1;
+        protected ushort[] keys = new ushort[8]; //16byte
+        protected ShaderManager shader_manager = ShaderManager.GetInstance();
+        protected int rounds = 0;
+        protected int filter = 1;
+        protected string asset_dir;
 
-        string shader_code_nofilter = @"
+        protected string shader_code_nofilter = @"
 				float4 mip_texture = tex2D(_MipTex, poiMesh.uv[0]);
 				
 				int mip = round(mip_texture.a * 255 / 10); //fucking precision problems
@@ -25,8 +27,7 @@ namespace Shell.Protector
 
 				float4 mainTexture = c00;
         ";
-
-        string shader_code_nofilter_XXTEA = @"
+        protected string shader_code_nofilter_XXTEA = @"
 				float4 mip_texture = tex2D(_MipTex, poiMesh.uv[0]);
 				
 				int mip = round(mip_texture.a * 255 / 10); //fucking precision problems
@@ -36,8 +37,7 @@ namespace Shell.Protector
 
 				float4 mainTexture = c00;
         ";
-
-        string shader_code_bilinear = @"
+        protected string shader_code_bilinear = @"
 				float4 mip_texture = tex2D(_MipTex, poiMesh.uv[0]);
 				
 				float2 uv_unit = _MainTex_TexelSize.xy;
@@ -65,7 +65,7 @@ namespace Shell.Protector
 				
 				float4 mainTexture = bilinear;
         ";
-        string shader_code_bilinear_XXTEA = @"
+        protected string shader_code_bilinear_XXTEA = @"
 				float4 mip_texture = tex2D(_MipTex, poiMesh.uv[0]);
 				
 				float2 uv_unit = _MainTex_TexelSize.xy;
@@ -89,7 +89,7 @@ namespace Shell.Protector
 				float4 mainTexture = bilinear;
         ";
 
-        public void Init(byte[] key, int rounds, int filter)
+        public void Init(byte[] key, int filter, string asset_dir, int rounds = 32)
         {
             if (key.Length != 16)
             {
@@ -102,9 +102,10 @@ namespace Shell.Protector
             }
             this.rounds = rounds;
             this.filter = filter;
+            this.asset_dir = asset_dir;
         }
 
-        private string GenerateDecoder(string data, Texture2D tex, bool xxtea)
+        protected string GenerateDecoder(string data, Texture2D tex, bool xxtea)
         {
             int mip_lv = tex.mipmapCount;
             string replace_mw = "static uint mw[" + (mip_lv + 2) + "] = { ";
@@ -155,98 +156,16 @@ namespace Shell.Protector
             return false;
         }
 
-        public bool Inject(Shader shader, string decode_dir, Texture2D tex, bool xxtea)
-        {
-            if (!File.Exists(decode_dir))
-            {
-                Debug.LogError(decode_dir + " is not exits.");
-                return false;
-            }
-
-            string shader_path = AssetDatabase.GetAssetPath(shader);
-            string shader_data = File.ReadAllText(shader_path); ;
-            shader_data = shader_data.Insert(0, "//ShellProtect\n");
-
-            Match match = Regex.Match(shader_data, "Properties\\W*{");
-            if (match.Success)
-            {
-                int suffix_idx = match.Index + match.Length;
-                shader_data = shader_data.Insert(suffix_idx, "\n\t\t[HideInInspector] _MipTex (\"Texture\", 2D) = \"white\" { }");
-            }
-            else
-            {
-                Debug.LogError("Wrong shader data!");
-                return false;
-            }
-
-            switch (ShaderManager.GetInstance().GetSupportShaderType(shader))
-            {
-                case -1:
-                    {
-                        break;
-                    }
-                case 0: //liltoon
-                    {
-
-                        break;
-                    }
-                case 7:
-                    {
-                        string frag_path = Path.GetDirectoryName(shader_path) + "/CGI_PoiFrag.cginc";
-                        string frag = File.ReadAllText(frag_path);
-                        frag = Regex.Replace(frag, "float4 frag\\(", "sampler2D _MipTex;\n#include \"Decrypt.cginc\"\nfloat4 frag(");
-                        if (filter == 0)
-                        {
-                            if (!xxtea)
-                                frag = Regex.Replace(frag, "float4 mainTexture = .*?;", shader_code_nofilter);
-                            else
-                                frag = Regex.Replace(frag, "float4 mainTexture = .*?;", shader_code_nofilter_XXTEA);
-                        }
-                        else if (filter == 1)
-                        {
-                            if(!xxtea)
-                                frag = Regex.Replace(frag, "float4 mainTexture = .*?;", shader_code_bilinear);
-                            else
-                                frag = Regex.Replace(frag, "float4 mainTexture = .*?;", shader_code_bilinear_XXTEA);
-                        }
-                        File.WriteAllText(frag_path, frag);
-                        break;
-                    }
-                case 8:
-                    {
-                        shader_data = Regex.Replace(shader_data, "float4 frag\\(", "sampler2D _MipTex;\n\t\t\t#include \"Decrypt.cginc\"\n\t\t\tfloat4 frag(");
-                        string shader_code = shader_code_nofilter;
-                        if (filter == 0)
-                        {
-                            if (!xxtea)
-                                shader_code = shader_code_nofilter;
-                            else
-                                shader_code = shader_code_nofilter_XXTEA;
-                        }
-                        else if (filter == 1)
-                        {
-                            if (!xxtea)
-                                shader_code = shader_code_bilinear;
-                            else
-                                shader_code = shader_code_bilinear_XXTEA;
-                        }
-                        shader_data = Regex.Replace(shader_data, "float4 mainTexture = .*?;", shader_code);
-                        if(EncryptTexture.HasAlpha(tex) && xxtea)
-                            shader_data = Regex.Replace(shader_data, "DecryptTextureXXTEA", "DecryptTextureXXTEARGBA");
-                        break;
-                    }
-            }
-            File.WriteAllText(shader_path, shader_data);
-
-            string decode_data = File.ReadAllText(decode_dir);
-            decode_data = GenerateDecoder(decode_data, tex, xxtea);
-            if (decode_data == null)
-                return false;
-
-            File.WriteAllText(Path.GetDirectoryName(shader_path) + "/Decrypt.cginc", decode_data);
-            AssetDatabase.Refresh();
-            return true;
-        }
-    }
+        abstract public Shader Inject(Shader shader, string decode_dir, Texture2D tex, bool xxtea);
+    /*else if(shader_manager.IslilToon(shader))
+{
+    string name = AssetDatabase.GetAssetPath(shader);
+    string[] path_segment = name.Split('/');
+    name = path_segment[path_segment.Length - 1];
+    path_segment = name.Split('.');
+    name = path_segment[path_segment.Length - 2];
+    return_shader = AssetDatabase.LoadAssetAtPath(asset_dir + "/liltoon/Shaders/" + name + ".lilcontainer", typeof(Shader)) as Shader;
+}*/
+}
 }
 #endif
