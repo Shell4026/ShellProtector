@@ -59,7 +59,7 @@ namespace Shell.Protector
 
             GUILayout.BeginHorizontal();
             GUILayout.Label("Directory", EditorStyles.boldLabel);
-            root.dir = GUILayout.TextField(root.dir, GUILayout.Width(300));
+            root.asset_dir = GUILayout.TextField(root.asset_dir, GUILayout.Width(300));
             GUILayout.EndHorizontal();
             GUILayout.Space(20);
 
@@ -133,17 +133,17 @@ namespace Shell.Protector
                         else
                             encrypted_texture = root.GetEncryptTexture().TextureEncryptXTEA(texture, root.MakeKeyBytes(root.pwd), rounds.intValue);
 
-                        if (root.dir[root.dir.Length - 1] == '/')
-                            root.dir = root.dir.Remove(root.dir.Length - 1);
+                        if (root.asset_dir[root.asset_dir.Length - 1] == '/')
+                            root.asset_dir = root.asset_dir.Remove(root.asset_dir.Length - 1);
 
                         last = encrypted_texture;
 
-                        if (!AssetDatabase.IsValidFolder(root.dir + '/' + root.gameObject.name))
-                            AssetDatabase.CreateFolder(root.dir, root.gameObject.name);
-                        if (!AssetDatabase.IsValidFolder(root.dir + '/' + root.gameObject.name + "/mat"))
-                            AssetDatabase.CreateFolder(root.dir + '/' + root.gameObject.name, "mat");
+                        if (!AssetDatabase.IsValidFolder(root.asset_dir + '/' + root.gameObject.name))
+                            AssetDatabase.CreateFolder(root.asset_dir, root.gameObject.name);
+                        if (!AssetDatabase.IsValidFolder(root.asset_dir + '/' + root.gameObject.name + "/mat"))
+                            AssetDatabase.CreateFolder(root.asset_dir + '/' + root.gameObject.name, "mat");
 
-                        AssetDatabase.CreateAsset(encrypted_texture, root.dir + '/' + root.gameObject.name + '/' + texture.name + "_encrypt.asset");
+                        AssetDatabase.CreateAsset(encrypted_texture, root.asset_dir + '/' + root.gameObject.name + '/' + texture.name + "_encrypt.asset");
                         AssetDatabase.SaveAssets();
 
                         AssetDatabase.Refresh();
@@ -167,16 +167,16 @@ namespace Shell.Protector
                         else
                             tmp = root.GetEncryptTexture().TextureDecryptXTEA(texture, root.MakeKeyBytes(root.pwd), rounds.intValue);
 
-                        if (root.dir[root.dir.Length - 1] == '/')
-                            root.dir = root.dir.Remove(root.dir.Length - 1);
+                        if (root.asset_dir[root.asset_dir.Length - 1] == '/')
+                            root.asset_dir = root.asset_dir.Remove(root.asset_dir.Length - 1);
 
-                        if (!AssetDatabase.IsValidFolder(root.dir + '/' + root.gameObject.name))
-                            AssetDatabase.CreateFolder(root.dir, root.gameObject.name);
-                        if (!AssetDatabase.IsValidFolder(root.dir + '/' + root.gameObject.name + "/mat"))
-                            AssetDatabase.CreateFolder(root.dir + '/' + root.gameObject.name, "mat");
+                        if (!AssetDatabase.IsValidFolder(root.asset_dir + '/' + root.gameObject.name))
+                            AssetDatabase.CreateFolder(root.asset_dir, root.gameObject.name);
+                        if (!AssetDatabase.IsValidFolder(root.asset_dir + '/' + root.gameObject.name + "/mat"))
+                            AssetDatabase.CreateFolder(root.asset_dir + '/' + root.gameObject.name, "mat");
 
-                        System.IO.File.WriteAllBytes(root.dir + '/' + root.gameObject.name + '/' + texture.name + "_decrypt.png", tmp.EncodeToPNG());
-                        last = (Texture2D)AssetDatabase.LoadAssetAtPath(root.dir + '/' + root.gameObject.name + '/' + texture.name + "_decrypt.png", typeof(Texture2D));
+                        System.IO.File.WriteAllBytes(root.asset_dir + '/' + root.gameObject.name + '/' + texture.name + "_decrypt.png", tmp.EncodeToPNG());
+                        last = (Texture2D)AssetDatabase.LoadAssetAtPath(root.asset_dir + '/' + root.gameObject.name + '/' + texture.name + "_decrypt.png", typeof(Texture2D));
 
                         AssetDatabase.Refresh();
                     }
