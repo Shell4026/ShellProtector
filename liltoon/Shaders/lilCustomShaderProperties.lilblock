@@ -1,1 +1,1 @@
-		[HideInInspector] _MipTex ("Texture", 2D) = "white" {}
+		_MipTex ("Texture", 2D) = "white" { }

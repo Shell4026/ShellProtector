@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace lilToon
 {
-    public class TemplateFullInspector : lilToonInspector
+    public class ShellProtectorInspector : lilToonInspector
     {
         // Custom properties
         //MaterialProperty customVariable;

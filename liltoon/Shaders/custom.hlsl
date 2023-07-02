@@ -4,11 +4,12 @@
 // Custom variables
 //#define LIL_CUSTOM_PROPERTIES \
 //    float _CustomVariable;
-#define LIL_CUSTOM_PROPERTIES
+#define LIL_CUSTOM_PROPERTIES \
+	float4 _MainTex_TexelSize;
 
 // Custom textures
-#define LIL_CUSTOM_TEXTURES
-
+#define LIL_CUSTOM_TEXTURES \
+	SAMPLER(_MipTex);
 // Add vertex shader input
 //#define LIL_REQUIRE_APP_POSITION
 //#define LIL_REQUIRE_APP_TEXCOORD0
@@ -44,7 +45,32 @@
 
 // Inserting a process into pixel shader
 //#define BEFORE_xx
-//#define OVERRIDE_xx
+#define OVERRIDE_MAIN\
+	LIL_GET_MAIN_TEX\
+	float4 mip_texture = tex2D(_MipTex, fd.uvMain);\
+	\
+	float2 uv_unit = _MainTex_TexelSize.xy;\
+	\
+	float2 uv_bilinear = fd.uvMain - 0.5 * uv_unit;\
+	int mip = round(mip_texture.a * 255 / 10);\
+	int m[13] = { 0, 0, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };\
+	\
+	float4 c00 = DecryptTextureXXTEA(uv_bilinear + float2(uv_unit.x * 0, uv_unit.y * 0), m[mip]);\
+	float4 c10 = DecryptTextureXXTEA(uv_bilinear + float2(uv_unit.x * 1, uv_unit.y * 0), m[mip]);\
+	float4 c01 = DecryptTextureXXTEA(uv_bilinear + float2(uv_unit.x * 0, uv_unit.y * 1), m[mip]);\
+	float4 c11 = DecryptTextureXXTEA(uv_bilinear + float2(uv_unit.x * 1, uv_unit.y * 1), m[mip]);\
+	\
+	float2 f = frac(uv_bilinear * _MainTex_TexelSize.zw);\
+	\
+	float4 c0 = lerp(c00, c10, f.x);\
+	float4 c1 = lerp(c01, c11, f.x);\
+	\
+	float4 bilinear = lerp(c0, c1, f.y);\
+	\
+	fd.col = bilinear;\
+	\
+	LIL_APPLY_MAIN_TONECORRECTION\
+	fd.col *= _Color;
 
 //----------------------------------------------------------------------------------------------------------------------
 // Information about variables
