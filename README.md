@@ -22,7 +22,7 @@ XXTEA 알고리즘을 사용하여 메테리얼의 MainTexure를 암호화합니
 
 ### 지원 쉐이더
 - Poiyomi 7.3, 8.0, 8.1, 8.2
-- 릴툰 지원 예정
+- 릴툰
 
 ### 예정
 - 압축
@@ -48,7 +48,7 @@ After encrypting the texture itself, it is uploaded to the VRChat server. The te
 
 ### Supported shaders
 - Poiyomi 7.3, 8.0, 8.1, 8.2
-- Support for liltoon coming soon
+- lilToon
 
 ### feature
 - Compress
