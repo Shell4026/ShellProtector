@@ -58,10 +58,10 @@ namespace Shell.Protector
             Debug.Log(string.Format("key1:{0}, key2:{1}, key3:{2}", pwd1, pwd2, pwd3));
             Debug.Log("Data: " + string.Join(", ", data));
 
-            byte[] result = XTEAEncrypt.Encrypt(data, key);
+            byte[] result = XTEA.Encrypt(data, key);
             Debug.Log("Encrypted data: " + string.Join(", ", result));
 
-            result = XTEAEncrypt.Decrypt(result, key);
+            result = XTEA.Decrypt(result, key);
             Debug.Log("Decrypted data: " + string.Join(", ", result));
         }
         public void Test2()
@@ -111,11 +111,6 @@ namespace Shell.Protector
 
         bool ConditionCheck(Material mat)
         {
-            if (!shader_manager.IsSupportShader(mat.shader))
-            {
-                Debug.LogError(mat.name + " is a unsupported shader!");
-                return false;
-            }
             if (shader_manager.IsPoiyomi(mat.shader))
             {
                 if (!shader_manager.IsLockPoiyomi(mat.shader))
@@ -154,20 +149,22 @@ namespace Shell.Protector
                 AssetDatabase.CreateFolder(asset_dir, gameObject.name);
             if (!AssetDatabase.IsValidFolder(asset_dir + '/' + gameObject.name + "/mat"))
                 AssetDatabase.CreateFolder(asset_dir + '/' + gameObject.name, "mat");
-
+            if (!AssetDatabase.IsValidFolder(asset_dir + '/' + gameObject.name + "/shader"))
+                AssetDatabase.CreateFolder(asset_dir + '/' + gameObject.name, "shader");
             int progress = 0;
             foreach (var mat in material_list)
             {
                 EditorUtility.DisplayProgressBar("Encrypt...", "Encrypt Progress " + ++progress + " of " + material_list.Count, (float)progress / (float)material_list.Count);
-                if (shader_manager.IsPoiyomi(mat.shader))
-                    injector = new PoiyomiInjector();
-                else
+                injector = InjectorFactory.GetInjector(mat.shader);
+                if (injector == null)
+                {
+                    Debug.LogWarning(mat.shader + " is a unsupported shader!");
                     continue;
-
+                }
                 if (!ConditionCheck(mat))
                     continue;
 
-                injector.Init(key_bytes, filter, asset_dir, rounds);
+                injector.Init(gameObject, key_bytes, filter, asset_dir, rounds);
 
                 int size = Math.Max(mat.mainTexture.width, mat.mainTexture.height);
                 if (!mips.ContainsKey(size))
@@ -187,12 +184,11 @@ namespace Shell.Protector
                         encrypted_tex = encrypt.TextureEncryptXXTEA(main_texture, key_bytes);
                     else
                         encrypted_tex = encrypt.TextureEncryptXTEA(main_texture, key_bytes, rounds);
-                    bool xxtea = algorithm == 0;
 
-                    encrypted_shader = injector.Inject(mat.shader, asset_dir + "/Decrypt.cginc", encrypted_tex, xxtea);
+                    encrypted_shader = injector.Inject(mat.shader, asset_dir + "/Decrypt.cginc", encrypted_tex, algorithm == 0);
                     if (encrypted_shader == null)
                     {
-                        Debug.Log("null");
+                        Debug.LogWarning("Injection failed");
                         continue;
                     }
                 }
@@ -204,10 +200,12 @@ namespace Shell.Protector
 
                 AssetDatabase.CreateAsset(encrypted_tex, asset_dir + '/' + gameObject.name + '/' + main_texture.name + "_encrypt.asset");
                 /////////////////Materials///////////////////////
-                Material new_mat = new Material(encrypted_shader);
+                Material new_mat = new Material(mat.shader);
                 new_mat.CopyPropertiesFromMaterial(mat);
+                new_mat.shader = encrypted_shader;
                 new_mat.mainTexture = encrypted_tex;
                 new_mat.SetTexture("_MipTex", mips[Math.Max(encrypted_tex.width, encrypted_tex.height)]);
+                
                 AssetDatabase.CreateAsset(new_mat, asset_dir + '/' + gameObject.name + "/mat/" + mat.name + "_encrypt.mat");
                 
                 var renderers = avatar.GetComponentsInChildren<MeshRenderer>();

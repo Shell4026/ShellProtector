@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Shell.Protector
 {
-    public static class XTEAEncrypt
+    public static class XTEA
     {
         const uint delta4 = 0xB9; //magic number but binary start at 1
         const uint delta8 = 0x9E3779B9;

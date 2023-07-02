@@ -87,7 +87,7 @@ namespace Shell.Protector
                     key[14] = idx[2];
                     key[15] = idx[3];
 
-                    byte[] data_enc = XTEAEncrypt.Encrypt4(data, key, rounds);
+                    byte[] data_enc = XTEA.Encrypt4(data, key, rounds);
                     pixels[i].r = data_enc[0];
                     pixels[i].g = data_enc[1];
                     pixels[i].b = data_enc[2];
@@ -121,7 +121,7 @@ namespace Shell.Protector
                 key[14] = idx[2];
                 key[15] = idx[3];
 
-                byte[] data_dec = XTEAEncrypt.Decrypt4(data, key, rounds);
+                byte[] data_dec = XTEA.Decrypt4(data, key, rounds);
                 pixels[i].r = data_dec[0];
                 pixels[i].g = data_dec[1];
                 pixels[i].b = data_dec[2];
