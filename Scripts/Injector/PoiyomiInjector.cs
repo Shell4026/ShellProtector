@@ -85,15 +85,12 @@ namespace Shell.Protector
             }
             File.WriteAllText(shader_path, shader_data);
 
-            string decode_data = File.ReadAllText(decode_dir);
-            decode_data = GenerateDecoder(decode_data, tex, xxtea);
+            string decode_data = GenerateDecoder(decode_dir, tex, xxtea);
             if (decode_data == null)
-            {
-                Debug.LogError("Can't generate decode.cginc");
                 return null;
-            }
 
             File.WriteAllText(Path.GetDirectoryName(shader_path) + "/Decrypt.cginc", decode_data);
+
             AssetDatabase.Refresh();
             return shader;
         }
