@@ -52,7 +52,7 @@
 	float2 uv_unit = _MainTex_TexelSize.xy;\
 	\
 	float2 uv_bilinear = fd.uvMain - 0.5 * uv_unit;\
-	int mip = round(mip_texture.a * 255 / 10);\
+	int mip = round(mip_texture.r * 255 / 10);\
 	int m[13] = { 0, 0, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };\
 	\
 	float4 c00 = DecryptTextureXXTEA(uv_bilinear + float2(uv_unit.x * 0, uv_unit.y * 0), m[mip]);\
