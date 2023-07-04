@@ -7,6 +7,10 @@ using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
 
+#if POIYOMI
+using Thry;
+#endif
+
 #if UNITY_EDITOR
 namespace Shell.Protector
 {
@@ -47,29 +51,10 @@ namespace Shell.Protector
         }
         public void Test()
         {
-            byte[] data = new byte[4] { 255, 250, 245, 240 };
-            byte[] key = MakeKeyBytes(pwd);
-
-            uint pwd1 = (uint)(key[0] + (key[1] << 8) + (key[2] << 16) + (key[3] << 24));
-            uint pwd2 = (uint)(key[4] + (key[5] << 8) + (key[6] << 16) + (key[7] << 24));
-            uint pwd3 = (uint)(key[8] + (key[9] << 8) + (key[10] << 16) + (key[11] << 24));
-
-            Debug.Log("Key bytes: " + string.Join(", ", key));
-            Debug.Log(string.Format("key1:{0}, key2:{1}, key3:{2}", pwd1, pwd2, pwd3));
-            Debug.Log("Data: " + string.Join(", ", data));
-
-            byte[] result = XTEA.Encrypt(data, key);
-            Debug.Log("Encrypted data: " + string.Join(", ", result));
-
-            result = XTEA.Decrypt(result, key);
-            Debug.Log("Decrypted data: " + string.Join(", ", result));
+            Debug.Log("Test");
         }
         public void Test2()
         {
-            var mip = encrypt.GenerateRefMipmap(2048, 2048);
-            
-            AssetDatabase.CreateAsset(mip, asset_dir + "/test.asset");
-            return;
             byte[] data_byte = new byte[12] { 255, 250, 245, 240, 235, 230, 225, 220, 215, 210, 205, 200 };
             byte[] key_byte = MakeKeyBytes(pwd);
 
@@ -119,8 +104,9 @@ namespace Shell.Protector
             {
                 if (!shader_manager.IsLockPoiyomi(mat.shader))
                 {
-                    Debug.LogError("First, the shader must be locked!");
-                    return false;
+#if POIYOMI
+                    ShaderOptimizer.SetLockedForAllMaterials(new[] { mat }, 1, true);
+#endif
                 }
             }
             if (mat.mainTexture.width % 2 != 0 && mat.mainTexture.height % 2 != 0)
@@ -180,16 +166,11 @@ namespace Shell.Protector
                 Texture2D main_texture = (Texture2D)mat.mainTexture; 
                 SetRWEnableTexture(main_texture);
 
-                Texture2D encrypted_tex;
+                Texture2D encrypted_tex = encrypt.TextureEncryptXXTEA(main_texture, key_bytes);
                 Shader encrypted_shader;
                 try
                 {
-                    if (algorithm == 0)
-                        encrypted_tex = encrypt.TextureEncryptXXTEA(main_texture, key_bytes);
-                    else
-                        encrypted_tex = encrypt.TextureEncryptXTEA(main_texture, key_bytes, rounds);
-
-                    encrypted_shader = injector.Inject(mat, asset_dir + "/Decrypt.cginc", encrypted_tex, algorithm == 0);
+                    encrypted_shader = injector.Inject(mat, asset_dir + "/Decrypt.cginc", encrypted_tex);
                     if (encrypted_shader == null)
                     {
                         Debug.LogWarning("Injection failed");

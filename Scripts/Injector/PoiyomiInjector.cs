@@ -10,7 +10,7 @@ namespace Shell.Protector
 {
     public class PoiyomiInjector : Injector
     {
-        public override Shader Inject(Material mat, string decode_dir, Texture2D tex, bool xxtea)
+        public override Shader Inject(Material mat, string decode_dir, Texture2D tex)
         {
             if (!File.Exists(decode_dir))
             {
@@ -65,17 +65,11 @@ namespace Shell.Protector
                         frag = Regex.Replace(frag, "float4 frag\\(", "sampler2D _MipTex;\n#include \"Decrypt.cginc\"\nfloat4 frag(");
                         if (filter == 0)
                         {
-                            if (!xxtea)
-                                frag = Regex.Replace(frag, "float4 mainTexture = .*?;", shader_code_nofilter);
-                            else
-                                frag = Regex.Replace(frag, "float4 mainTexture = .*?;", shader_code_nofilter_XXTEA);
+                            frag = Regex.Replace(frag, "float4 mainTexture = .*?;", shader_code_nofilter_XXTEA);
                         }
                         else if (filter == 1)
                         {
-                            if (!xxtea)
-                                frag = Regex.Replace(frag, "float4 mainTexture = .*?;", shader_code_bilinear);
-                            else
-                                frag = Regex.Replace(frag, "float4 mainTexture = .*?;", shader_code_bilinear_XXTEA);
+                            frag = Regex.Replace(frag, "float4 mainTexture = .*?;", shader_code_bilinear_XXTEA);
                         }
                         File.WriteAllText(frag_path, frag);
                         break;
@@ -83,30 +77,24 @@ namespace Shell.Protector
                 case 8:
                     {
                         shader_data = Regex.Replace(shader_data, "float4 frag\\(", "sampler2D _MipTex;\n\t\t\t#include \"Decrypt.cginc\"\n\t\t\tfloat4 frag(");
-                        string shader_code = shader_code_nofilter;
+                        string shader_code = shader_code_nofilter_XXTEA;
                         if (filter == 0)
                         {
-                            if (!xxtea)
-                                shader_code = shader_code_nofilter;
-                            else
-                                shader_code = shader_code_nofilter_XXTEA;
+                            shader_code = shader_code_nofilter_XXTEA;
                         }
                         else if (filter == 1)
                         {
-                            if (!xxtea)
-                                shader_code = shader_code_bilinear;
-                            else
-                                shader_code = shader_code_bilinear_XXTEA;
+                            shader_code = shader_code_bilinear_XXTEA;
                         }
                         shader_data = Regex.Replace(shader_data, "float4 mainTexture = .*?;", shader_code);
-                        if (EncryptTexture.HasAlpha(tex) && xxtea)
+                        if (EncryptTexture.HasAlpha(tex))
                             shader_data = Regex.Replace(shader_data, "DecryptTextureXXTEA", "DecryptTextureXXTEARGBA");
                         break;
                     }
             }
             File.WriteAllText(output_path + '/' + shader_name, shader_data);
 
-            string decode_data = GenerateDecoder(decode_dir, tex, xxtea);
+            string decode_data = GenerateDecoder(decode_dir, tex);
             if (decode_data == null)
                 return null;
 
