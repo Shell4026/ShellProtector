@@ -10,13 +10,15 @@ namespace Shell.Protector
 {
     public class LilToonInjector : Injector
     {
-        public override Shader Inject(Shader shader, string decode_dir, Texture2D tex, bool xxtea)
+        public override Shader Inject(Material mat, string decode_dir, Texture2D tex, bool xxtea)
         {
             if (!File.Exists(decode_dir))
             {
                 Debug.LogError(decode_dir + " is not exits.");
                 return null;
             }
+            Shader shader = mat.shader;
+
             string shader_dir = AssetDatabase.GetAssetPath(shader);
             string shader_name = Path.GetFileNameWithoutExtension(shader_dir);
             string shader_folder = Path.GetDirectoryName(shader_dir);

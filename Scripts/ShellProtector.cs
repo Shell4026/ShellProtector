@@ -30,7 +30,7 @@ namespace Shell.Protector
         int filter = 1;
         [SerializeField]
         int algorithm = 0;
-
+        
         public byte[] MakeKeyBytes(string _key)
         {
             byte[] key = new byte[16] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
@@ -66,6 +66,10 @@ namespace Shell.Protector
         }
         public void Test2()
         {
+            var mip = encrypt.GenerateRefMipmap(2048, 2048);
+            
+            AssetDatabase.CreateAsset(mip, asset_dir + "/test.asset");
+            return;
             byte[] data_byte = new byte[12] { 255, 250, 245, 240, 235, 230, 225, 220, 215, 210, 205, 200 };
             byte[] key_byte = MakeKeyBytes(pwd);
 
@@ -185,7 +189,7 @@ namespace Shell.Protector
                     else
                         encrypted_tex = encrypt.TextureEncryptXTEA(main_texture, key_bytes, rounds);
 
-                    encrypted_shader = injector.Inject(mat.shader, asset_dir + "/Decrypt.cginc", encrypted_tex, algorithm == 0);
+                    encrypted_shader = injector.Inject(mat, asset_dir + "/Decrypt.cginc", encrypted_tex, algorithm == 0);
                     if (encrypted_shader == null)
                     {
                         Debug.LogWarning("Injection failed");
@@ -204,6 +208,8 @@ namespace Shell.Protector
                 new_mat.CopyPropertiesFromMaterial(mat);
                 new_mat.shader = encrypted_shader;
                 new_mat.mainTexture = encrypted_tex;
+                //Debug.Log(string.Join(", ", new_mat.GetTexturePropertyNames()));
+                //Debug.Log(mips[Math.Max(encrypted_tex.width, encrypted_tex.height)]);
                 new_mat.SetTexture("_MipTex", mips[Math.Max(encrypted_tex.width, encrypted_tex.height)]);
                 
                 AssetDatabase.CreateAsset(new_mat, asset_dir + '/' + gameObject.name + "/mat/" + mat.name + "_encrypt.mat");
