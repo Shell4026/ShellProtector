@@ -2,6 +2,7 @@
 using UnityEditor;
 using UnityEngine;
 
+#if LILTOON
 namespace lilToon
 {
     public class ShellProtectorInspector : lilToonInspector
@@ -134,4 +135,5 @@ namespace lilToon
         */
     }
 }
+#endif
 #endif
