@@ -16,7 +16,7 @@ namespace Shell.Protector
         protected string asset_dir;
 
         protected string shader_code_nofilter_XXTEA = @"
-				float4 mip_texture = tex2D(_MipTex, poiMesh.uv[0]);
+				float4 mip_texture = _MipTex.Sample(sampler_MipTex, mainUV);
 				
 				int mip = round(mip_texture.r * 255 / 10); //fucking precision problems
 				int m[13] = { 0, 0, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }; // max size 4k
@@ -26,7 +26,7 @@ namespace Shell.Protector
 				float4 mainTexture = c00;
         ";
         protected string shader_code_bilinear_XXTEA = @"
-				float4 mip_texture = tex2D(_MipTex, poiMesh.uv[0]);
+				float4 mip_texture = _MipTex.Sample(sampler_MipTex, mainUV);
 				
 				float2 uv_unit = _MainTex_TexelSize.xy;
 				//bilinear interpolation

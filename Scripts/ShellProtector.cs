@@ -229,6 +229,12 @@ namespace Shell.Protector
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
+            foreach(var mat in material_list)
+            {
+                Texture encrypted_tex = mat.mainTexture;
+                mat.SetTexture("_MipTex", mips[Math.Max(encrypted_tex.width, encrypted_tex.height)]);
+            }
+
             DestroyImmediate(avatar.GetComponent<ShellProtector>());
         }
     }
