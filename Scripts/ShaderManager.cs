@@ -1,5 +1,11 @@
-﻿using System.Collections;
+﻿#if UNITY_EDITOR
+using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.IO;
+using System.Text.RegularExpressions;
+using UnityEditor;
+using UnityEditor.Build.Player;
 using UnityEngine;
 
 namespace Shell.Protector
@@ -62,6 +68,32 @@ namespace Shell.Protector
             return false;
         }
 
+        public List<string> CheckShader()
+        {
+            string[] guids = AssetDatabase.FindAssets("lilConstants");
+            string symbols = PlayerSettings.GetScriptingDefineSymbolsForGroup(EditorUserBuildSettings.selectedBuildTargetGroup);
+            string symbols_original = string.Copy(symbols);
 
+            symbols = symbols.Replace(";LILTOON", ";");
+            symbols = symbols.Replace(";POIYOMI", ";");
+            List<string> return_shader = new List<string>();
+            if(guids.Length > 0)
+            {
+                return_shader.Add("lilToon");
+                symbols += ";LILTOON";
+            }
+            guids = AssetDatabase.FindAssets("ThryEditor");
+            if (guids.Length > 0)
+            {
+                return_shader.Add("Poiyomi");
+                symbols += ";POIYOMI";
+            }
+
+            if(symbols_original != symbols)
+                PlayerSettings.SetScriptingDefineSymbolsForGroup(EditorUserBuildSettings.selectedBuildTargetGroup, symbols);
+
+            return return_shader;
+        }
     }
 }
+#endif

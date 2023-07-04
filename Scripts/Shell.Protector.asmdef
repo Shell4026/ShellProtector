@@ -1,6 +1,6 @@
 {
     "name": "Shell.Protector",
-    "references": [],
+    "references": ["ThryAssemblyDefinition"],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
