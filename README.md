@@ -13,7 +13,7 @@
 ### 사용법
 1. 아바타에 'Shell Protector' 컴포넌트를 추가합니다.
 2. 비밀번호를 지정해주고 메테리얼 리스트에 암호화 할 텍스쳐가 존재하는 메테리얼을 넣습니다.
-3. 포이요미 쉐이더라면 Lock을 먼저 해주고 Encrypt 버튼을 누르세요.
+3. Encrypt 버튼을 누르세요.
 
 ### 세부 원리
 XXTEA 알고리즘을 사용하여 메테리얼의 MainTexure를 암호화합니다.
@@ -22,7 +22,7 @@ XXTEA 알고리즘을 사용하여 메테리얼의 MainTexure를 암호화합니
 
 ### 지원 쉐이더
 - Poiyomi 7.3, 8.0, 8.1, 8.2
-- 릴툰
+- lilToon
 
 ### 예정
 - 압축
@@ -40,7 +40,7 @@ If you want to prevent copying, use it in conjunction with the password assets.
 ### Usage
 1. Add an 'Shell Protector' Component to your avatar.
 2. Enter a password and add the material that contains the texture you want to encrypt to the Material List.
-3. If it is a Poiyomi shader, lock it first and then click the Encrypt button.
+3. Click the Encrypt button.
 
 ### How it works
 Encrypt the texture using a XXTEA algorithm.
