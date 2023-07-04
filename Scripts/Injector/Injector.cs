@@ -19,7 +19,7 @@ namespace Shell.Protector
         protected string shader_code_nofilter = @"
 				float4 mip_texture = tex2D(_MipTex, poiMesh.uv[0]);
 				
-				int mip = round(mip_texture.a * 255 / 10); //fucking precision problems
+				int mip = round(mip_texture.r * 255 / 10); //fucking precision problems
 				int m[13] = { 0, 0, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }; // max size 4k
 				
 				float4 c00 =  _MainTex.SampleLevel(sampler_MainTex, poiMesh.uv[0], m[mip]);
@@ -30,7 +30,7 @@ namespace Shell.Protector
         protected string shader_code_nofilter_XXTEA = @"
 				float4 mip_texture = tex2D(_MipTex, poiMesh.uv[0]);
 				
-				int mip = round(mip_texture.a * 255 / 10); //fucking precision problems
+				int mip = round(mip_texture.r * 255 / 10); //fucking precision problems
 				int m[13] = { 0, 0, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }; // max size 4k
 
 				float4 c00 = DecryptTextureXXTEA(mainUV, m[mip]);
@@ -43,7 +43,7 @@ namespace Shell.Protector
 				float2 uv_unit = _MainTex_TexelSize.xy;
 				//bilinear interpolation
 				float2 uv_bilinear = poiMesh.uv[0] - 0.5 * uv_unit;
-				int mip = round(mip_texture.a * 255 / 10); //fucking precision problems
+				int mip = round(mip_texture.r * 255 / 10); //fucking precision problems
 				int m[13] = { 0, 0, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }; // max size 4k
 				
 				float4 c00 =  _MainTex.SampleLevel(sampler_MainTex, uv_bilinear + float2(uv_unit.x * 0, uv_unit.y * 0), m[mip]);
@@ -71,7 +71,7 @@ namespace Shell.Protector
 				float2 uv_unit = _MainTex_TexelSize.xy;
 				//bilinear interpolation
 				float2 uv_bilinear = poiMesh.uv[0] - 0.5 * uv_unit;
-				int mip = round(mip_texture.a * 255 / 10); //fucking precision problems
+				int mip = round(mip_texture.r * 255 / 10); //fucking precision problems
 				int m[13] = { 0, 0, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }; // max size 4k
 				
                 float4 c00 = DecryptTextureXXTEA(uv_bilinear + float2(uv_unit.x * 0, uv_unit.y * 0), m[mip]);
@@ -144,7 +144,7 @@ namespace Shell.Protector
             return false;
         }
 
-        abstract public Shader Inject(Shader shader, string decode_dir, Texture2D tex, bool xxtea);
+        abstract public Shader Inject(Material mat, string decode_dir, Texture2D tex, bool xxtea);
     }
 }
 #endif

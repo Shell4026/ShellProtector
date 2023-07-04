@@ -39,7 +39,7 @@ namespace Shell.Protector
         {
             int mip_lv = GetCanMipmapLevel(width, height);
 
-            Texture2D mip = new Texture2D(width, height, TextureFormat.Alpha8, mip_lv, true);
+            Texture2D mip = new Texture2D(width, height, TextureFormat.RGB24, mip_lv, true);
             mip.filterMode = FilterMode.Point;
             mip.anisoLevel = 0;
 
@@ -48,10 +48,13 @@ namespace Shell.Protector
                 Color32[] pixels_mip = mip.GetPixels32(m);
                 for (int i = 0; i < pixels_mip.Length; ++i)
                 {
-                    pixels_mip[i].a = (byte)(m * 10);
+                    pixels_mip[i].r = (byte)(m * 10);
+                    pixels_mip[i].g = 0;
+                    pixels_mip[i].b = 0;
                 }
                 mip.SetPixels32(pixels_mip, m);
             }
+            mip.Compress(false);
             return mip;
         }
         public Texture2D TextureEncryptXTEA(Texture2D texture, byte[] key, int rounds = 32)
