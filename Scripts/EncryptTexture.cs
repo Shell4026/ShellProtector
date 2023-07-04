@@ -40,8 +40,8 @@ namespace Shell.Protector
             int mip_lv = GetCanMipmapLevel(width, height);
 
             Texture2D mip = new Texture2D(width, height, TextureFormat.RGB24, mip_lv, true);
-            mip.filterMode = FilterMode.Point;
-            mip.anisoLevel = 0;
+            mip.filterMode = FilterMode.Bilinear;
+            mip.anisoLevel = 1;
 
             for (int m = 0; m < mip.mipmapCount; ++m)
             {
