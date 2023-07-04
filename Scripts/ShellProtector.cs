@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if UNITY_EDITOR
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -11,7 +12,6 @@ using UnityEngine;
 using Thry;
 #endif
 
-#if UNITY_EDITOR
 namespace Shell.Protector
 {
     public class ShellProtector : MonoBehaviour
@@ -32,8 +32,6 @@ namespace Shell.Protector
         int rounds = 32;
         [SerializeField]
         int filter = 1;
-        [SerializeField]
-        int algorithm = 0;
         
         public byte[] MakeKeyBytes(string _key)
         {
