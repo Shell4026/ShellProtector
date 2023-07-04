@@ -30,7 +30,16 @@ namespace Shell.Protector
             string shader_name = Path.GetFileName(shader_path);
             string output_path = asset_dir + '/' + target.name + "/shader/" + mat.name;
 
-            string shader_data = File.ReadAllText(shader_path);
+            string[] files = Directory.GetFiles(Path.GetDirectoryName(shader_path));
+            foreach (string file in files)
+            {
+                string filename = Path.GetFileName(file);
+                if (filename.Contains(".meta"))
+                    continue;
+                File.Copy(file, Path.Combine(output_path, filename), true);
+            }
+
+            string shader_data = File.ReadAllText(output_path + "/" + shader_name);
             shader_data = shader_data.Insert(0, "//ShellProtect\n");
 
             shader_data = Regex.Replace(shader_data, "Shader \"(.*?)\"", "Shader \"$1_encrypted\"");
@@ -51,15 +60,6 @@ namespace Shell.Protector
             {
                 case 7:
                     {
-                        string[] files = Directory.GetFiles(Path.GetDirectoryName(shader_path));
-                        foreach (string file in files)
-                        {
-                            string filename = Path.GetFileName(file);
-                            if (filename.Contains(".meta"))
-                                continue;
-                            File.Copy(file, Path.Combine(output_path, filename), true);
-                        }
-
                         string frag_path = output_path + "/CGI_PoiFrag.cginc";
                         string frag = File.ReadAllText(frag_path);
                         frag = Regex.Replace(frag, "float4 frag\\(", "sampler2D _MipTex;\n#include \"Decrypt.cginc\"\nfloat4 frag(");
