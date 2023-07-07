@@ -206,10 +206,13 @@ float4 DecryptTextureXXTEADXT(float2 uv, int m)
 	float3 col2 = float3(color2_r / 255.0f, color2_g / 255.0f, color2_b / 255.0f);
 	
 	float3 result;
-	if(color1 > color2)
-		result = lerp(col2, col1, col);
-	else
-		result = lerp(col2, col1, 0.5);
+	result = lerp(col2, col1, col);
+	if(color1 <= color2)
+	{
+		if(col.r > 0.1 && col.r < 0.9)
+			result = lerp(col2, col1, 0.5);
+	}
+		
 	return float4(GammaCorrection(result), col.a);
 }
 #endif
