@@ -123,6 +123,7 @@ namespace Shell.Protector
 
         public void Encrypt()
         {
+            gameObject.SetActive(true);
             Debug.Log("Key bytes: " + string.Join(", ", MakeKeyBytes(pwd)));
 
             GameObject avatar = DuplicateAvatar(gameObject);
@@ -166,6 +167,8 @@ namespace Shell.Protector
                 SetRWEnableTexture(main_texture);
 
                 Texture2D[] encrypted_tex = encrypt.TextureEncryptXXTEA(main_texture, key_bytes);
+                if (encrypted_tex[0] == null)
+                    continue;
                 Shader encrypted_shader;
                 try
                 {
@@ -224,20 +227,24 @@ namespace Shell.Protector
 
             EditorUtility.ClearProgressBar();
 
-            gameObject.SetActive(false);
-
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
-            foreach(var mat in material_list)
+            StartCoroutine(Wait());
+
+            DestroyImmediate(avatar.GetComponent<ShellProtector>());
+        }
+        IEnumerator Wait()
+        {
+            yield return new WaitForSeconds(1f);
+            foreach (var mat in material_list)
             {
                 Texture encrypted_tex = mat.mainTexture;
                 int max = Math.Max(encrypted_tex.width, encrypted_tex.height);
-                Texture2D mip = AssetDatabase.LoadAssetAtPath(asset_dir + '/' + gameObject.name + "/mip_" + max + ".asset" , typeof(Texture2D)) as Texture2D;
+                Texture2D mip = AssetDatabase.LoadAssetAtPath(asset_dir + '/' + gameObject.name + "/mip_" + max + ".asset", typeof(Texture2D)) as Texture2D;
                 mat.SetTexture("_MipTex", mip);
             }
-
-            DestroyImmediate(avatar.GetComponent<ShellProtector>());
+            gameObject.SetActive(false);
         }
     }
 }
