@@ -45,16 +45,32 @@ namespace Shell.Protector
             File.WriteAllText(output_dir + "/lilCustomShaderDatas.lilblock", shader_data);
 
             shader_data = File.ReadAllText(output_dir + "/custom.hlsl");
+            int code = 0;
+
             if (filter == 0)
             {
-                shader_data = Regex.Replace(shader_data, "float4 mainTexture = .*?;", shader_code_nofilter_XXTEA);
+                if (tex.format == TextureFormat.DXT1)
+                    code = 5;
+                else
+                {
+                    code = 2;
+                    if (EncryptTexture.HasAlpha(tex))
+                        code = 3;
+                }
             }
             else if (filter == 1)
             {
-                shader_data = Regex.Replace(shader_data, "float4 mainTexture = .*?;", shader_code_bilinear_XXTEA);
+                if (tex.format == TextureFormat.DXT1)
+                    code = 4;
+                else
+                {
+                    code = 0;
+                    if (EncryptTexture.HasAlpha(tex))
+                        code = 1;
+                }
             }
-            if (EncryptTexture.HasAlpha(tex))
-                shader_data = Regex.Replace(shader_data, "DecryptTextureXXTEA", "DecryptTextureXXTEARGBA");
+            shader_data = Regex.Replace(shader_data, "int code = 0;", "int code = " + code + ";");
+            File.WriteAllText(output_dir + "/custom.hlsl", shader_data);
 
             string decode = GenerateDecoder(decode_dir, tex);
             File.WriteAllText(output_dir + "/Decrypt.cginc", decode);

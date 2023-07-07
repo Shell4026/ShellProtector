@@ -42,13 +42,14 @@ namespace Shell.Protector
             string shader_data = File.ReadAllText(output_path + "/" + shader_name);
             shader_data = shader_data.Insert(0, "//ShellProtect\n");
 
-            shader_data = Regex.Replace(shader_data, "Shader \"(.*?)\"", "Shader \"$1_encrypted\"");
+            shader_data = Regex.Replace(shader_data, "Shader \"(.*?)\"", "Shader \"$1_encrypted\""); //shader name change
 
+            //properties insert
             Match match = Regex.Match(shader_data, "Properties\\W*{");
             if (match.Success)
             {
                 int suffix_idx = match.Index + match.Length;
-                shader_data = shader_data.Insert(suffix_idx, "\n\t\t[HideInInspector] _MipTex (\"Texture\", 2D) = \"white\" { }");
+                shader_data = shader_data.Insert(suffix_idx, "\n\t\t_MipTex (\"MipReference\", 2D) = \"white\" { }\n\t\t_EncryptTex (\"Encrypted\", 2D) = \"white\" { }");
             }
             else
             {
@@ -60,23 +61,41 @@ namespace Shell.Protector
             {
                 case 7:
                     {
-                        string frag_path = output_path + "/CGI_PoiFrag.cginc";
-                        string frag = File.ReadAllText(frag_path);
-                        frag = Regex.Replace(frag, "float4 frag\\(", "sampler2D _MipTex;\n#include \"Decrypt.cginc\"\nfloat4 frag(");
+                        string path = output_path + "/CGI_Poicludes.cginc";
+                        string poicludes = File.ReadAllText(path);
+                        poicludes = Regex.Replace(poicludes, "UNITY_DECLARE_TEX2D\\(_MainTex\\);(.*?)", "UNITY_DECLARE_TEX2D(_MainTex);$1\nUNITY_DECLARE_TEX2D(_MipTex);\nTexture2D _EncryptTex;");
+                        File.WriteAllText(path, poicludes);
+
+                        path = output_path + "/CGI_PoiFrag.cginc";
+                        string frag = File.ReadAllText(path);
+                        frag = Regex.Replace(frag, "float4 frag\\(", "#include \"Decrypt.cginc\"\nfloat4 frag(");
+
+                        string shader_code = shader_code_nofilter_XXTEA;
                         if (filter == 0)
                         {
-                            frag = Regex.Replace(frag, "float4 mainTexture = .*?;", shader_code_nofilter_XXTEA);
+                            shader_code = shader_code_nofilter_XXTEA;
                         }
                         else if (filter == 1)
                         {
-                            frag = Regex.Replace(frag, "float4 mainTexture = .*?;", shader_code_bilinear_XXTEA);
+                            shader_code = shader_code_bilinear_XXTEA;
                         }
-                        File.WriteAllText(frag_path, frag);
+                        frag = Regex.Replace(frag, "float4 mainTexture = .*?;", shader_code);
+                        frag = Regex.Replace(frag, "float4 mip_texture = _MipTex.Sample\\(sampler_MipTex, .*?\\);", "float4 mip_texture = _MipTex.Sample(sampler_MipTex, poiMesh.uv[0]);");
+                        if (tex.format == TextureFormat.DXT1)
+                        {
+                            frag = Regex.Replace(frag, "DecryptTextureXXTEA", "DecryptTextureXXTEADXT1");
+                        }
+                        else if (EncryptTexture.HasAlpha(tex))
+                        {
+                            frag = Regex.Replace(frag, "DecryptTextureXXTEA", "DecryptTextureXXTEARGBA");
+                        }
+                        File.WriteAllText(path, frag);
                         break;
                     }
                 case 8:
                     {
-                        shader_data = Regex.Replace(shader_data, "UNITY_DECLARE_TEX2D\\(_MainTex\\);", "UNITY_DECLARE_TEX2D(_MainTex);\nUNITY_DECLARE_TEX2D(_MipTex);");
+                        shader_data = Regex.Replace(shader_data, "UNITY_DECLARE_TEX2D\\(_MainTex\\);", "UNITY_DECLARE_TEX2D(_MainTex);\nUNITY_DECLARE_TEX2D(_MipTex);\nTexture2D _EncryptTex;");
+
                         shader_data = Regex.Replace(shader_data, "POI2D_SAMPLER_PAN\\((.*?), _MainTex", "POI2D_SAMPLER_PAN($1, _MipTex");
                         shader_data = Regex.Replace(shader_data, "UNITY_SAMPLE_TEX2D_SAMPLER_LOD\\((.*?), _MainTex", "UNITY_SAMPLE_TEX2D_SAMPLER_LOD($1, _MipTex");
                         shader_data = Regex.Replace(shader_data, "UNITY_SAMPLE_TEX2D_SAMPLER\\((.*?), _MainTex", "UNITY_SAMPLE_TEX2D_SAMPLER($1, _MipTex");
@@ -91,8 +110,14 @@ namespace Shell.Protector
                             shader_code = shader_code_bilinear_XXTEA;
                         }
                         shader_data = Regex.Replace(shader_data, "float4 mainTexture = .*?;", shader_code);
-                        if (EncryptTexture.HasAlpha(tex))
+                        if(tex.format == TextureFormat.DXT1)
+                        {
+                            shader_data = Regex.Replace(shader_data, "DecryptTextureXXTEA", "DecryptTextureXXTEADXT1");
+                        }
+                        else if (EncryptTexture.HasAlpha(tex))
+                        {
                             shader_data = Regex.Replace(shader_data, "DecryptTextureXXTEA", "DecryptTextureXXTEARGBA");
+                        }
                         break;
                     }
             }
