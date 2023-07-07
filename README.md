@@ -17,15 +17,19 @@
 
 ### 세부 원리
 XXTEA 알고리즘을 사용하여 메테리얼의 MainTexure를 암호화합니다.
-
 텍스쳐 자체를 암호화 한 후 VRChat 서버에 업로드 됩니다. 이 텍스쳐는 게임에서 쉐이더를 통해 복호화 시킵니다.
+MainTexture만 암호화 하기 때문에 메테리얼 내 다른 곳에 MainTexture와 동일한 텍스쳐를 쓰는지 확인하고 보안을 위해 다른 텍스쳐로 교체하세요.
 
 ### 지원 쉐이더
 - Poiyomi 7.3, 8.0, 8.1, 8.2
 - lilToon
 
+### 지원 텍스쳐 형식
+- RGB24, RGB32
+- DXT1, DXT5
+- Crunch 압축은 자동으로 압축을 풉니다.
+ 
 ### 예정
-- 압축 (진행중)
 - OSC를 이용한 인게임 패스워드
 
 ## English
@@ -46,11 +50,15 @@ If you want to prevent copying, use it in conjunction with the password assets.
 ### How it works
 Encrypt the texture using a XXTEA algorithm.
 After encrypting the texture itself, it is uploaded to the VRChat server. The texture is then decrypted in the game via shaders.
+Since it only encrypts the MainTexture, make sure you are not using the same texture elsewhere in your Material as the MainTexture and replace it with a different texture for security.
 
 ### Supported shaders
 - Poiyomi 7.3, 8.0, 8.1, 8.2
 - lilToon
 
+### Supported texture formats
+- RGB24, RGB32
+- DXT1, DXT5
+- Crunch compression decompresses automatically.
 ### feature
-- Compress (In Progress)
 - In-game passwords with OSC
