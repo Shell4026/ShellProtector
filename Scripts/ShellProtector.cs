@@ -192,13 +192,21 @@ namespace Shell.Protector
                 Material new_mat = new Material(mat.shader);
                 new_mat.CopyPropertiesFromMaterial(mat);
                 new_mat.shader = encrypted_shader;
+                var original_tex = new_mat.mainTexture;
                 new_mat.mainTexture = encrypted_tex[0];
                 new_mat.SetTexture("_MipTex", mips[Math.Max(encrypted_tex[0].width, encrypted_tex[0].height)]);
                 if (encrypted_tex[1] != null)
                     new_mat.SetTexture("_EncryptTex", encrypted_tex[1]);
+
+                foreach (var name in new_mat.GetTexturePropertyNames())
+                {
+                    if (new_mat.GetTexture(name) == original_tex)
+                        new_mat.SetTexture(name, null);
+                }
+
                 AssetDatabase.CreateAsset(new_mat, asset_dir + '/' + gameObject.name + "/mat/" + mat.name + "_encrypt.mat");
                 
-                var renderers = avatar.GetComponentsInChildren<MeshRenderer>();
+                var renderers = avatar.GetComponentsInChildren<MeshRenderer>(true);
                 for (int i = 0; i < renderers.Length; ++i)
                 {
                     var mats = renderers[i].sharedMaterials;
@@ -209,7 +217,7 @@ namespace Shell.Protector
                     }
                     renderers[i].sharedMaterials = mats;
                 }
-                var skinned_renderers = avatar.GetComponentsInChildren<SkinnedMeshRenderer>();
+                var skinned_renderers = avatar.GetComponentsInChildren<SkinnedMeshRenderer>(true);
                 for (int i = 0; i < skinned_renderers.Length; ++i)
                 {
                     var mats = skinned_renderers[i].sharedMaterials;
@@ -236,7 +244,8 @@ namespace Shell.Protector
         }
         IEnumerator Wait()
         {
-            yield return new WaitForSeconds(1f);
+            yield return new WaitForSeconds(3f);
+            Debug.Log("3seconds");
             foreach (var mat in material_list)
             {
                 Texture encrypted_tex = mat.mainTexture;
