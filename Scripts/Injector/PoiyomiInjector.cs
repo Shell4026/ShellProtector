@@ -110,9 +110,9 @@ namespace Shell.Protector
                             shader_code = shader_code_bilinear_XXTEA;
                         }
                         shader_data = Regex.Replace(shader_data, "float4 mainTexture = .*?;", shader_code);
-                        if(tex.format == TextureFormat.DXT1)
+                        if(tex.format == TextureFormat.DXT1 || tex.format == TextureFormat.DXT5)
                         {
-                            shader_data = Regex.Replace(shader_data, "DecryptTextureXXTEA", "DecryptTextureXXTEADXT1");
+                            shader_data = Regex.Replace(shader_data, "DecryptTextureXXTEA", "DecryptTextureXXTEADXT");
                         }
                         else if (EncryptTexture.HasAlpha(tex))
                         {

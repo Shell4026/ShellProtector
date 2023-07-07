@@ -21,9 +21,9 @@ float3 GammaCorrection(float3 rgb)
 
 void XXTEADecrypt(float3 pixel[4], out uint data[3])
 {
-	data[0] = ((uint)round(pixel[0].r * 255.0f) + ((uint)round(pixel[0].g * 255.0f) << 8) + ((uint)round(pixel[0].b * 255.0f) << 16) + ((uint)round(pixel[1].r * 255.0f) << 24));
-	data[1] = ((uint)round(pixel[1].g * 255.0f) + ((uint)round(pixel[1].b * 255.0f) << 8) + ((uint)round(pixel[2].r * 255.0f) << 16) + ((uint)round(pixel[2].g * 255.0f) << 24));
-	data[2] = ((uint)round(pixel[2].b * 255.0f) + ((uint)round(pixel[3].r * 255.0f) << 8) + ((uint)round(pixel[3].g * 255.0f) << 16) + ((uint)round(pixel[3].b * 255.0f) << 24));
+	data[0] = ((uint)round(pixel[0].r * 255.0f) | ((uint)round(pixel[0].g * 255.0f) << 8) | ((uint)round(pixel[0].b * 255.0f) << 16) | ((uint)round(pixel[1].r * 255.0f) << 24));
+	data[1] = ((uint)round(pixel[1].g * 255.0f) | ((uint)round(pixel[1].b * 255.0f) << 8) + ((uint)round(pixel[2].r * 255.0f) << 16) | ((uint)round(pixel[2].g * 255.0f) << 24));
+	data[2] = ((uint)round(pixel[2].b * 255.0f) | ((uint)round(pixel[3].r * 255.0f) << 8) + ((uint)round(pixel[3].g * 255.0f) << 16) | ((uint)round(pixel[3].b * 255.0f) << 24));
 	
 	uint n = 3;
 	uint v0, v1, sum;
@@ -51,8 +51,8 @@ void XXTEADecrypt(float3 pixel[4], out uint data[3])
 
 void XXTEADecrypt(float4 pixel[2], out uint data[2])
 {
-	data[0] = ((uint)round(pixel[0].r * 255.0f) + ((uint)round(pixel[0].g * 255.0f) << 8) + ((uint)round(pixel[0].b * 255.0f) << 16) + ((uint)round(pixel[0].a * 255.0f) << 24));
-	data[1] = ((uint)round(pixel[1].r * 255.0f) + ((uint)round(pixel[1].g * 255.0f) << 8) + ((uint)round(pixel[1].b * 255.0f) << 16) + ((uint)round(pixel[1].a * 255.0f) << 24));
+	data[0] = ((uint)round(pixel[0].r * 255.0f) | ((uint)round(pixel[0].g * 255.0f) << 8) | ((uint)round(pixel[0].b * 255.0f) << 16) | ((uint)round(pixel[0].a * 255.0f) << 24));
+	data[1] = ((uint)round(pixel[1].r * 255.0f) | ((uint)round(pixel[1].g * 255.0f) << 8) | ((uint)round(pixel[1].b * 255.0f) << 16) | ((uint)round(pixel[1].a * 255.0f) << 24));
 
 	uint n = 2;
 	uint v0, v1, sum;
@@ -106,9 +106,9 @@ float4 DecryptTextureXXTEA(float2 uv, int m)
 	pixels[3] = _MainTex.SampleLevel(sampler_MainTex, GetUV(idx + 3 + offset, m, w, h), m);
 
 	uint data[3] = { 0, 0, 0 };
-	data[0] = (round(pixels[0].r * 255.0f) + ((uint)round(pixels[0].g * 255.0f) << 8) + ((uint)round(pixels[0].b * 255.0f) << 16) + ((uint)round(pixels[1].r * 255.0f) << 24));
-	data[1] = (round(pixels[1].g * 255.0f) + ((uint)round(pixels[1].b * 255.0f) << 8) + ((uint)round(pixels[2].r * 255.0f) << 16) + ((uint)round(pixels[2].g * 255.0f) << 24));
-	data[2] = (round(pixels[2].b * 255.0f) + ((uint)round(pixels[3].r * 255.0f) << 8) + ((uint)round(pixels[3].g * 255.0f) << 16) + ((uint)round(pixels[3].b * 255.0f) << 24));
+	data[0] = ((uint)round(pixels[0].r * 255.0f) | ((uint)round(pixels[0].g * 255.0f) << 8) | ((uint)round(pixels[0].b * 255.0f) << 16) | ((uint)round(pixels[1].r * 255.0f) << 24));
+	data[1] = ((uint)round(pixels[1].g * 255.0f) | ((uint)round(pixels[1].b * 255.0f) << 8) | ((uint)round(pixels[2].r * 255.0f) << 16) | ((uint)round(pixels[2].g * 255.0f) << 24));
+	data[2] = ((uint)round(pixels[2].b * 255.0f) | ((uint)round(pixels[3].r * 255.0f) << 8) | ((uint)round(pixels[3].g * 255.0f) << 16) | ((uint)round(pixels[3].b * 255.0f) << 24));
 
 	XXTEADecrypt(pixels, data);
 
@@ -137,8 +137,8 @@ float4 DecryptTextureXXTEARGBA(float2 uv, int m)
 	pixels[1] = _MainTex.SampleLevel(sampler_MainTex, GetUV(idx + 1 + offset, m, w, h), m);
 
 	uint data[2] = { 0, 0 };
-	data[0] = (round(pixels[0].r * 255.0f) + ((uint)round(pixels[0].g * 255.0f) << 8) + ((uint)round(pixels[0].b * 255.0f) << 16) + ((uint)round(pixels[0].a * 255.0f) << 24));
-	data[1] = (round(pixels[1].r * 255.0f) + ((uint)round(pixels[1].g * 255.0f) << 8) + ((uint)round(pixels[1].b * 255.0f) << 16) + ((uint)round(pixels[1].a * 255.0f) << 24));
+	data[0] = ((uint)round(pixels[0].r * 255.0f) | ((uint)round(pixels[0].g * 255.0f) << 8) | ((uint)round(pixels[0].b * 255.0f) << 16) | ((uint)round(pixels[0].a * 255.0f) << 24));
+	data[1] = ((uint)round(pixels[1].r * 255.0f) | ((uint)round(pixels[1].g * 255.0f) << 8) | ((uint)round(pixels[1].b * 255.0f) << 16) | ((uint)round(pixels[1].a * 255.0f) << 24));
 
 	XXTEADecrypt(pixels, data);
 
@@ -150,7 +150,7 @@ float4 DecryptTextureXXTEARGBA(float2 uv, int m)
 
 	return float4(GammaCorrection(decrypt.rgb), decrypt.a);
 }
-float4 DecryptTextureXXTEADXT1(float2 uv, int m)
+float4 DecryptTextureXXTEADXT(float2 uv, int m)
 {
 	float x = frac(uv.x);
 	float y = frac(uv.y);
@@ -175,8 +175,8 @@ float4 DecryptTextureXXTEADXT1(float2 uv, int m)
 	pixels[1] = _EncryptTex.SampleLevel(sampler_MainTex, GetUV(idx + 1 + offset, m, woffset, hoffset), m);
 	
 	uint data[2];
-	data[0] = (round(pixels[0].r * 255.0f) + ((uint)round(pixels[0].g * 255.0f) << 8) + ((uint)round(pixels[0].b * 255.0f) << 16) + ((uint)round(pixels[0].a * 255.0f) << 24));
-	data[1] = (round(pixels[1].r * 255.0f) + ((uint)round(pixels[1].g * 255.0f) << 8) + ((uint)round(pixels[1].b * 255.0f) << 16) + ((uint)round(pixels[1].a * 255.0f) << 24));
+	data[0] = ((uint)round(pixels[0].r * 255.0f) | ((uint)round(pixels[0].g * 255.0f) << 8) | ((uint)round(pixels[0].b * 255.0f) << 16) | ((uint)round(pixels[0].a * 255.0f) << 24));
+	data[1] = ((uint)round(pixels[1].r * 255.0f) | ((uint)round(pixels[1].g * 255.0f) << 8) | ((uint)round(pixels[1].b * 255.0f) << 16) | ((uint)round(pixels[1].a * 255.0f) << 24));
 	
 	XXTEADecrypt(pixels, data);
 	
@@ -210,6 +210,6 @@ float4 DecryptTextureXXTEADXT1(float2 uv, int m)
 		result = lerp(col2, col1, col);
 	else
 		result = lerp(col2, col1, 0.5);
-	return float4(GammaCorrection(result), 1);
+	return float4(GammaCorrection(result), col.a);
 }
 #endif

@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿#if UNITY_EDITOR
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System;
@@ -12,17 +13,23 @@ namespace Shell.Protector
         {
             int w_level = 0, h_level = 0;
             int min_size = dxt ? 8 : 1;
+            if (w < min_size || h < min_size)
+                return 0;
             while(w != min_size)
             {
                 w /= 2;
+                if (w < 0)
+                    break;
                 ++w_level;
             }
             while (h != min_size)
             {
                 h /= 2;
+                if (h < 0)
+                    break;
                 ++h_level;
             }
-            return Math.Min(w_level, h_level) + 1;
+            return Math.Min(w_level, h_level);
         }
         public int GetDXT1Length(int w, int h, int m)
         {
@@ -58,7 +65,7 @@ namespace Shell.Protector
             return pivot + n / 4 * w + n % 4;
         }
 
-        private byte[] GetArrayDXT1(byte[] data, int texture_width, int texture_height, int miplv)
+        private byte[] GetArrayDXT(byte[] data, int texture_width, int texture_height, bool dxt5, int miplv)
         {
             int start = 0;
             int end = 0;
@@ -70,6 +77,8 @@ namespace Shell.Protector
                 int h = texture_height / (int)(Mathf.Pow(2, i));
                 int block_count = (w / 4) * (h / 4);
                 int len = block_count * 8;
+                if (dxt5)
+                    len *= 2;
                 end = len;
             }
 
@@ -125,22 +134,31 @@ namespace Shell.Protector
                 if(texture.format == TextureFormat.DXT1Crunched)
                 {
                     dxt1 = new Texture2D(tex.width, tex.height, TextureFormat.RGB24, mip_lv, true);
-                    for(int m = 0; m < mip_lv; ++m)
+                    for(int m = 0; m <= mip_lv; ++m)
                         dxt1.SetPixels32(tex.GetPixels32(m), m);
                     dxt1.Compress(false);
                 }
                 mip_lv = GetCanMipmapLevel(tex.width, tex.height, true);
-                tmp[0] = new Texture2D(tex.width, tex.height, TextureFormat.DXT1, mip_lv, true);
-                tmp[1] = new Texture2D(tex.width / 4, tex.height / 4, TextureFormat.RGBA32, mip_lv, true);
+                if (mip_lv != 0)
+                {
+                    tmp[0] = new Texture2D(tex.width, tex.height, TextureFormat.DXT1, mip_lv, true);
+                    tmp[1] = new Texture2D(tex.width / 4, tex.height / 4, TextureFormat.RGBA32, mip_lv, true);
+                }
+                else
+                {
+                    tmp[0] = new Texture2D(tex.width, tex.height, TextureFormat.DXT1, false, true);
+                    tmp[1] = new Texture2D(tex.width / 4, tex.height / 4, TextureFormat.RGBA32, false, true);
+                }
                 tmp[1].filterMode = FilterMode.Point;
                 tmp[1].anisoLevel = 0;
                 var raw_data = dxt1.GetRawTextureData();
 
-                Color32[] mip_data = new Color32[raw_data.Length];
                 int lenidx = 0;
-                for (int m = 0; m < mip_lv; ++m)
+                for (int m = 0; m <= mip_lv; ++m)
                 {
-                    var tex_data = GetArrayDXT1(raw_data, tex.width, tex.height, m);
+                    if (m != 0 && m == mip_lv)
+                        break;
+                    var tex_data = GetArrayDXT(raw_data, tex.width, tex.height, false, m);
                     var pixel = tmp[1].GetPixels32(m);
                     //Debug.Log(m + "=" + tex_data.Length);
 
@@ -149,10 +167,9 @@ namespace Shell.Protector
                         key_uint[3] = (uint)(i / 8);
 
                         uint[] data = new uint[2];
-                        for (int j = 0; j < 2; ++j)
-                        {
-                            data[j] = (uint)(tex_data[(i + 8 * j) + 0] + (tex_data[(i + 8 * j) + 1] << 8) + (tex_data[(i + 8 * j) + 2] << 16) + (tex_data[(i + 8 * j) + 3] << 24));
-                        }
+                        data[0] = (uint)(tex_data[i + 0] + (tex_data[i + 1] << 8) + (tex_data[i + 2] << 16) + (tex_data[i + 3] << 24));
+                        data[1] = (uint)(tex_data[(i + 8) + 0] + (tex_data[(i + 8) + 1] << 8) + (tex_data[(i + 8) + 2] << 16) + (tex_data[(i + 8) + 3] << 24));
+                        
                         uint[] data_enc = XXTEA.Encrypt(data, key_uint);
 
                         for (int j = 0; j < 2; ++j)
@@ -169,6 +186,74 @@ namespace Shell.Protector
                         tex_data[i + 1] = 255;
                         tex_data[i + 2] = 0;
                         tex_data[i + 3] = 0;
+                    }
+                    for (int i = 0; i < tex_data.Length; ++i)
+                    {
+                        raw_data[i + lenidx] = tex_data[i];
+                    }
+                    lenidx += tex_data.Length;
+                    tmp[1].SetPixels32(pixel, m);
+                }
+                tmp[0].LoadRawTextureData(raw_data);
+            }
+            else if(texture.format == TextureFormat.DXT5 || texture.format == TextureFormat.DXT5Crunched)
+            {
+                Texture2D dxt5 = tex;
+                if (texture.format == TextureFormat.DXT5Crunched)
+                {
+                    dxt5 = new Texture2D(tex.width, tex.height, TextureFormat.RGBA32, mip_lv, true);
+                    for (int m = 0; m < mip_lv; ++m)
+                        dxt5.SetPixels32(tex.GetPixels32(m), m);
+                    dxt5.Compress(true);
+                }
+                mip_lv = GetCanMipmapLevel(tex.width, tex.height, true);
+
+                if (mip_lv != 0)
+                {
+                    tmp[0] = new Texture2D(tex.width, tex.height, TextureFormat.DXT5, mip_lv, true);
+                    tmp[1] = new Texture2D(tex.width / 4, tex.height / 4, TextureFormat.RGBA32, mip_lv, true);
+                }
+                else
+                {
+                    tmp[0] = new Texture2D(tex.width, tex.height, TextureFormat.DXT5, false, true);
+                    tmp[1] = new Texture2D(tex.width / 4, tex.height / 4, TextureFormat.RGBA32, false, true);
+                }
+                tmp[0].alphaIsTransparency = true;
+                tmp[1].filterMode = FilterMode.Point;
+                tmp[1].anisoLevel = 0;
+                var raw_data = dxt5.GetRawTextureData();
+                int lenidx = 0;
+                for (int m = 0; m <= mip_lv; ++m)
+                {
+                    if (m != 0 && m == mip_lv)
+                        break;
+                    var tex_data = GetArrayDXT(raw_data, tex.width, tex.height, true, m);
+                    var pixel = tmp[1].GetPixels32(m);
+
+                    for (int i = 0; i < tex_data.Length; i += 32) //reference color texture
+                    {
+                        key_uint[3] = (uint)(i / 16);
+
+                        uint[] data = new uint[2];
+                        data[0] = (uint)(tex_data[i + 8] + (tex_data[i + 9] << 8) + (tex_data[i + 10] << 16) + (tex_data[i + 11] << 24));
+                        data[1] = (uint)(tex_data[i + 16 + 8] + (tex_data[i + 16 + 9] << 8) + (tex_data[i + 16 + 10] << 16) + (tex_data[i + 16 + 11] << 24));
+
+                        uint[] data_enc = XXTEA.Encrypt(data, key_uint);
+
+                        for (int j = 0; j < 2; ++j)
+                        {
+                            pixel[i / 16 + j].r = (byte)((data_enc[j] & 0x000000FF) >> 0);
+                            pixel[i / 16 + j].g = (byte)((data_enc[j] & 0x0000FF00) >> 8);
+                            pixel[i / 16 + j].b = (byte)((data_enc[j] & 0x00FF0000) >> 16);
+                            pixel[i / 16 + j].a = (byte)((data_enc[j] & 0xFF000000) >> 24);
+                        }
+                    }
+                    for (int i = 0; i < tex_data.Length; i += 16)
+                    {
+                        tex_data[i + 8] = 255;
+                        tex_data[i + 9] = 255;
+                        tex_data[i + 10] = 0;
+                        tex_data[i + 11] = 0;
                     }
                     for (int i = 0; i < tex_data.Length; ++i)
                     {
@@ -336,3 +421,4 @@ namespace Shell.Protector
         }
     }
 }
+#endif

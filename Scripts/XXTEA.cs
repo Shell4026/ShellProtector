@@ -39,7 +39,7 @@ public class XXTEA
         } while (--rounds > 0);
         return result;
     }
-    public static uint[] Decrypt(uint[] data, uint[] key, bool debug = false)
+    public static uint[] Decrypt(uint[] data, uint[] key)
     {
         uint n = (uint)data.Length;
 

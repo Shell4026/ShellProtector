@@ -119,6 +119,15 @@ namespace Shell.Protector
                 GUILayout.Space(10);
                 if (GUILayout.Button("XXTEA test"))
                     root.Test2();
+                /*tex = EditorGUILayout.ObjectField(tex, typeof(Texture2D)) as Texture2D;
+                if (GUILayout.Button("Test"))
+                {
+                    var data = tex.GetRawTextureData();
+                    Texture2D tmp = new Texture2D(tex.width, tex.height, TextureFormat.DXT5, false);
+                    tmp.LoadRawTextureData(data);
+                    tmp.filterMode = FilterMode.Point;
+                    AssetDatabase.CreateAsset(tmp, root.asset_dir + "/test.asset");
+                }*/
                 GUILayout.Space(10);
 
                 texture_list.DoLayoutList();

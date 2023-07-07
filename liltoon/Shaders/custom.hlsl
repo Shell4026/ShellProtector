@@ -117,10 +117,10 @@
 		int mip = round(mip_texture.r * 255 / 10);\
 		int m[13] = { 0, 0, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };\
 		\
-		float4 c00 = DecryptTextureXXTEADXT1(uv_bilinear + float2(uv_unit.x * 0, uv_unit.y * 0), m[mip]);\
-		float4 c10 = DecryptTextureXXTEADXT1(uv_bilinear + float2(uv_unit.x * 1, uv_unit.y * 0), m[mip]);\
-		float4 c01 = DecryptTextureXXTEADXT1(uv_bilinear + float2(uv_unit.x * 0, uv_unit.y * 1), m[mip]);\
-		float4 c11 = DecryptTextureXXTEADXT1(uv_bilinear + float2(uv_unit.x * 1, uv_unit.y * 1), m[mip]);\
+		float4 c00 = DecryptTextureXXTEADXT(uv_bilinear + float2(uv_unit.x * 0, uv_unit.y * 0), m[mip]);\
+		float4 c10 = DecryptTextureXXTEADXT(uv_bilinear + float2(uv_unit.x * 1, uv_unit.y * 0), m[mip]);\
+		float4 c01 = DecryptTextureXXTEADXT(uv_bilinear + float2(uv_unit.x * 0, uv_unit.y * 1), m[mip]);\
+		float4 c11 = DecryptTextureXXTEADXT(uv_bilinear + float2(uv_unit.x * 1, uv_unit.y * 1), m[mip]);\
 		\
 		float2 f = frac(uv_bilinear * _MainTex_TexelSize.zw);\
 		\
@@ -137,7 +137,7 @@
 		int mip = round(mip_texture.r * 255 / 10);\
 		int m[13] = { 0, 0, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };\
 		\
-		float4 c00 = DecryptTextureXXTEADXT1(uv, m[mip]);\
+		float4 c00 = DecryptTextureXXTEADXT(uv, m[mip]);\
 		fd.col = c00;\
 	}\
 	\

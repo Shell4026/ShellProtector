@@ -7,9 +7,9 @@
     }
     SubShader
     {
-        Tags { "RenderType"="Opaque" }
+        Tags { "RenderType"="Transparent" }
         LOD 100
-
+		Blend SrcAlpha OneMinusSrcAlpha
         Pass
         {
             CGPROGRAM
@@ -48,34 +48,34 @@
                 return o;
             }
 			
-			#include "Assets/ShaderDebugger/debugger.cginc"
+			/*#include "Assets/ShaderDebugger/debugger.cginc"
 			void Debug1(float4 vert, float4 localPos, float v)
 			{
-				uint root = DebugFragment(vert);     /* 'i.vertex' is the SV_POSITION field */
+				uint root = DebugFragment(vert);
 				DbgSetColor(root, float4(1, 1, 1, 1));
-				DbgVectorO3(root, localPos.xyz * 0.01);     /* a 3D vector in object coordinates */
+				DbgVectorO3(root, localPos.xyz * 0.01);
 
-				DbgChangePosByO3(root, localPos.xyz * 0.01);  /* move to the other end of that 3D vector */
+				DbgChangePosByO3(root, localPos.xyz * 0.01);
 				DbgValue1(root, v);      
 			}
 			void Debug2(float4 vert, float4 localPos, float2 v)
 			{
-				uint root = DebugFragment(vert);     /* 'i.vertex' is the SV_POSITION field */
+				uint root = DebugFragment(vert);
 				DbgSetColor(root, float4(1, 1, 1, 1));
-				DbgVectorO3(root, localPos.xyz * 0.01);     /* a 3D vector in object coordinates */
+				DbgVectorO3(root, localPos.xyz * 0.01);
 
-				DbgChangePosByO3(root, localPos.xyz * 0.01);  /* move to the other end of that 3D vector */
+				DbgChangePosByO3(root, localPos.xyz * 0.01);
 				DbgValue2(root, v);      
 			}
 			void Debug3(float4 vert, float4 localPos, float3 v)
 			{
-				uint root = DebugFragment(vert);     /* 'i.vertex' is the SV_POSITION field */
+				uint root = DebugFragment(vert);
 				DbgSetColor(root, float4(1, 1, 1, 1));
-				DbgVectorO3(root, localPos.xyz * 0.01);     /* a 3D vector in object coordinates */
+				DbgVectorO3(root, localPos.xyz * 0.01);
 
-				DbgChangePosByO3(root, localPos.xyz * 0.01);  /* move to the other end of that 3D vector */
+				DbgChangePosByO3(root, localPos.xyz * 0.01);
 				DbgValue3(root, v);      
-			}
+			}*/
 			
 			static uint k[4] = { 808810359, 808726578, 556873266, 0 };
 			void XXTEADecrypt(float4 pixel[2], out uint data[2])
@@ -108,11 +108,12 @@
 				} while (--rounds > 0);
 			}
 			
+			static uint size = 256;
 			float2 GetUV(int idx, int m, int woffset = 0, int hoffset = 0)
 			{
-				int w = idx % 512;
-				int h = idx / 512;
-				return float2((float)w/512.0, (float)h/512.0);
+				int w = idx % size;
+				int h = idx / size;
+				return float2((float)w/size, (float)h/size);
 			}
 			
 			float3 GammaCorrection(float3 rgb)
@@ -123,13 +124,14 @@
 			
             float4 frag (v2f i) : SV_Target
             {
+				
 				float2 uv = i.uv;
                 float4 col = _MainTex.SampleLevel(sampler_MainTex, uv, 0);
 				float2 uv_unit = _MainTex_TexelSize.xy;
 				
 				float x = uv.x;
 				float y = uv.y;
-				int idx = (512 * floor(frac(y) * 512)) + floor(frac(x) * 512);
+				int idx = (size * floor(frac(y) * size)) + floor(frac(x) * size);
 				k[3] = floor(idx / 2) * 2;
 				int pos[2] = { 0, -1 };
 				int offset = pos[idx % 2];
@@ -175,7 +177,7 @@
 				else
 					result = lerp(col2, col1, 0.5);
 				Debug3(i.vertex, i.local_pos, col);
-                return float4(GammaCorrection(result), 1);
+                return float4(GammaCorrection(result), col.a);
             }
             ENDCG
         }
