@@ -9,7 +9,8 @@
 
 // Custom textures
 #define LIL_CUSTOM_TEXTURES \
-	SAMPLER(_MipTex);
+	SAMPLER(_MipTex); \
+	TEXTURE2D(_EncryptTex);
 // Add vertex shader input
 //#define LIL_REQUIRE_APP_POSITION
 //#define LIL_REQUIRE_APP_TEXCOORD0
@@ -50,24 +51,95 @@
 	float4 mip_texture = tex2D(_MipTex, fd.uvMain);\
 	\
 	float2 uv_unit = _MainTex_TexelSize.xy;\
+	int code = 0;\
 	\
-	float2 uv_bilinear = fd.uvMain - 0.5 * uv_unit;\
-	int mip = round(mip_texture.r * 255 / 10);\
-	int m[13] = { 0, 0, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };\
-	\
-	float4 c00 = DecryptTextureXXTEA(uv_bilinear + float2(uv_unit.x * 0, uv_unit.y * 0), m[mip]);\
-	float4 c10 = DecryptTextureXXTEA(uv_bilinear + float2(uv_unit.x * 1, uv_unit.y * 0), m[mip]);\
-	float4 c01 = DecryptTextureXXTEA(uv_bilinear + float2(uv_unit.x * 0, uv_unit.y * 1), m[mip]);\
-	float4 c11 = DecryptTextureXXTEA(uv_bilinear + float2(uv_unit.x * 1, uv_unit.y * 1), m[mip]);\
-	\
-	float2 f = frac(uv_bilinear * _MainTex_TexelSize.zw);\
-	\
-	float4 c0 = lerp(c00, c10, f.x);\
-	float4 c1 = lerp(c01, c11, f.x);\
-	\
-	float4 bilinear = lerp(c0, c1, f.y);\
-	\
-	fd.col = bilinear;\
+	if(code == 0)\
+	{\
+		float2 uv_bilinear = fd.uvMain - 0.5 * uv_unit;\
+		int mip = round(mip_texture.r * 255 / 10);\
+		int m[13] = { 0, 0, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };\
+		\
+		float4 c00 = DecryptTextureXXTEA(uv_bilinear + float2(uv_unit.x * 0, uv_unit.y * 0), m[mip]);\
+		float4 c10 = DecryptTextureXXTEA(uv_bilinear + float2(uv_unit.x * 1, uv_unit.y * 0), m[mip]);\
+		float4 c01 = DecryptTextureXXTEA(uv_bilinear + float2(uv_unit.x * 0, uv_unit.y * 1), m[mip]);\
+		float4 c11 = DecryptTextureXXTEA(uv_bilinear + float2(uv_unit.x * 1, uv_unit.y * 1), m[mip]);\
+		\
+		float2 f = frac(uv_bilinear * _MainTex_TexelSize.zw);\
+		\
+		float4 c0 = lerp(c00, c10, f.x);\
+		float4 c1 = lerp(c01, c11, f.x);\
+		\
+		float4 bilinear = lerp(c0, c1, f.y);\
+		\
+		fd.col = bilinear;\
+	}\
+	else if(code == 1)\
+	{\
+		float2 uv_bilinear = fd.uvMain - 0.5 * uv_unit;\
+		int mip = round(mip_texture.r * 255 / 10);\
+		int m[13] = { 0, 0, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };\
+		\
+		float4 c00 = DecryptTextureXXTEARGBA(uv_bilinear + float2(uv_unit.x * 0, uv_unit.y * 0), m[mip]);\
+		float4 c10 = DecryptTextureXXTEARGBA(uv_bilinear + float2(uv_unit.x * 1, uv_unit.y * 0), m[mip]);\
+		float4 c01 = DecryptTextureXXTEARGBA(uv_bilinear + float2(uv_unit.x * 0, uv_unit.y * 1), m[mip]);\
+		float4 c11 = DecryptTextureXXTEARGBA(uv_bilinear + float2(uv_unit.x * 1, uv_unit.y * 1), m[mip]);\
+		\
+		float2 f = frac(uv_bilinear * _MainTex_TexelSize.zw);\
+		\
+		float4 c0 = lerp(c00, c10, f.x);\
+		float4 c1 = lerp(c01, c11, f.x);\
+		\
+		float4 bilinear = lerp(c0, c1, f.y);\
+		\
+		fd.col = bilinear;\
+	}\
+	else if(code == 2)\
+	{\
+		float2 uv = fd.uvMain;\
+		int mip = round(mip_texture.r * 255 / 10);\
+		int m[13] = { 0, 0, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };\
+		\
+		float4 c00 = DecryptTextureXXTEA(uv, m[mip]);\
+		fd.col = c00;\
+	}\
+	else if(code == 3)\
+	{\
+		float2 uv = fd.uvMain;\
+		int mip = round(mip_texture.r * 255 / 10);\
+		int m[13] = { 0, 0, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };\
+		\
+		float4 c00 = DecryptTextureXXTEARGBA(uv, m[mip]);\
+		fd.col = c00;\
+	}\
+	else if(code == 4)\
+	{\
+		float2 uv_bilinear = fd.uvMain - 0.5 * uv_unit;\
+		int mip = round(mip_texture.r * 255 / 10);\
+		int m[13] = { 0, 0, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };\
+		\
+		float4 c00 = DecryptTextureXXTEADXT1(uv_bilinear + float2(uv_unit.x * 0, uv_unit.y * 0), m[mip]);\
+		float4 c10 = DecryptTextureXXTEADXT1(uv_bilinear + float2(uv_unit.x * 1, uv_unit.y * 0), m[mip]);\
+		float4 c01 = DecryptTextureXXTEADXT1(uv_bilinear + float2(uv_unit.x * 0, uv_unit.y * 1), m[mip]);\
+		float4 c11 = DecryptTextureXXTEADXT1(uv_bilinear + float2(uv_unit.x * 1, uv_unit.y * 1), m[mip]);\
+		\
+		float2 f = frac(uv_bilinear * _MainTex_TexelSize.zw);\
+		\
+		float4 c0 = lerp(c00, c10, f.x);\
+		float4 c1 = lerp(c01, c11, f.x);\
+		\
+		float4 bilinear = lerp(c0, c1, f.y);\
+		\
+		fd.col = bilinear;\
+	}\
+	else if(code == 5)\
+	{\
+		float2 uv = fd.uvMain;\
+		int mip = round(mip_texture.r * 255 / 10);\
+		int m[13] = { 0, 0, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };\
+		\
+		float4 c00 = DecryptTextureXXTEADXT1(uv, m[mip]);\
+		fd.col = c00;\
+	}\
 	\
 	LIL_APPLY_MAIN_TONECORRECTION\
 	fd.col *= _Color;

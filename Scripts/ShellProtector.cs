@@ -32,7 +32,8 @@ namespace Shell.Protector
         int rounds = 32;
         [SerializeField]
         int filter = 1;
-        
+        [SerializeField]
+        int algorithm = 1;
         public byte[] MakeKeyBytes(string _key)
         {
             byte[] key = new byte[16] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
@@ -164,11 +165,11 @@ namespace Shell.Protector
                 Texture2D main_texture = (Texture2D)mat.mainTexture; 
                 SetRWEnableTexture(main_texture);
 
-                Texture2D encrypted_tex = encrypt.TextureEncryptXXTEA(main_texture, key_bytes);
+                Texture2D[] encrypted_tex = encrypt.TextureEncryptXXTEA(main_texture, key_bytes);
                 Shader encrypted_shader;
                 try
                 {
-                    encrypted_shader = injector.Inject(mat, asset_dir + "/Decrypt.cginc", encrypted_tex);
+                    encrypted_shader = injector.Inject(mat, asset_dir + "/Decrypt.cginc", encrypted_tex[0]);
                     if (encrypted_shader == null)
                     {
                         Debug.LogWarning("Injection failed");
@@ -181,16 +182,17 @@ namespace Shell.Protector
                     continue;
                 }
 
-                AssetDatabase.CreateAsset(encrypted_tex, asset_dir + '/' + gameObject.name + '/' + main_texture.name + "_encrypt.asset");
+                AssetDatabase.CreateAsset(encrypted_tex[0], asset_dir + '/' + gameObject.name + '/' + main_texture.name + "_encrypt.asset");
+                if(encrypted_tex[1] != null)
+                    AssetDatabase.CreateAsset(encrypted_tex[1], asset_dir + '/' + gameObject.name + '/' + main_texture.name + "_encrypt2.asset");
                 /////////////////Materials///////////////////////
                 Material new_mat = new Material(mat.shader);
                 new_mat.CopyPropertiesFromMaterial(mat);
                 new_mat.shader = encrypted_shader;
-                new_mat.mainTexture = encrypted_tex;
-                //Debug.Log(string.Join(", ", new_mat.GetTexturePropertyNames()));
-                //Debug.Log(mips[Math.Max(encrypted_tex.width, encrypted_tex.height)]);
-                new_mat.SetTexture("_MipTex", mips[Math.Max(encrypted_tex.width, encrypted_tex.height)]);
-                
+                new_mat.mainTexture = encrypted_tex[0];
+                new_mat.SetTexture("_MipTex", mips[Math.Max(encrypted_tex[0].width, encrypted_tex[0].height)]);
+                if (encrypted_tex[1] != null)
+                    new_mat.SetTexture("_EncryptTex", encrypted_tex[1]);
                 AssetDatabase.CreateAsset(new_mat, asset_dir + '/' + gameObject.name + "/mat/" + mat.name + "_encrypt.mat");
                 
                 var renderers = avatar.GetComponentsInChildren<MeshRenderer>();
@@ -230,7 +232,9 @@ namespace Shell.Protector
             foreach(var mat in material_list)
             {
                 Texture encrypted_tex = mat.mainTexture;
-                mat.SetTexture("_MipTex", mips[Math.Max(encrypted_tex.width, encrypted_tex.height)]);
+                int max = Math.Max(encrypted_tex.width, encrypted_tex.height);
+                Texture2D mip = AssetDatabase.LoadAssetAtPath(asset_dir + '/' + gameObject.name + "/mip_" + max + ".asset" , typeof(Texture2D)) as Texture2D;
+                mat.SetTexture("_MipTex", mip);
             }
 
             DestroyImmediate(avatar.GetComponent<ShellProtector>());

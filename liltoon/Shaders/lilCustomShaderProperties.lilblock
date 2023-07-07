@@ -1,1 +1,2 @@
-		_MipTex ("Texture", 2D) = "white" { }
+		_MipTex ("MipReference", 2D) = "white" { }
+		_EncryptTex("Encrypted", 2D) = "white" { }

@@ -4,6 +4,8 @@ using UnityEngine;
 using UnityEditor;
 using UnityEditorInternal;
 using System.Text;
+using System;
+using System.IO;
 
 namespace Shell.Protector
 {
@@ -26,6 +28,8 @@ namespace Shell.Protector
         // Start is called before the first frame update
 
         List<string> shaders = new List<string>();
+
+        Texture2D tex;
 
         void OnEnable()
         {
@@ -129,19 +133,22 @@ namespace Shell.Protector
 
                         root.SetRWEnableTexture(texture);
 
-                        Texture2D encrypted_texture = root.GetEncryptTexture().TextureEncryptXXTEA(texture, root.MakeKeyBytes(root.pwd));
+                        Texture2D[] encrypted_texture = root.GetEncryptTexture().TextureEncryptXXTEA(texture, root.MakeKeyBytes(root.pwd));
 
                         if (root.asset_dir[root.asset_dir.Length - 1] == '/')
                             root.asset_dir = root.asset_dir.Remove(root.asset_dir.Length - 1);
 
-                        last = encrypted_texture;
+                        last = encrypted_texture[0];
 
                         if (!AssetDatabase.IsValidFolder(root.asset_dir + '/' + root.gameObject.name))
                             AssetDatabase.CreateFolder(root.asset_dir, root.gameObject.name);
                         if (!AssetDatabase.IsValidFolder(root.asset_dir + '/' + root.gameObject.name + "/mat"))
                             AssetDatabase.CreateFolder(root.asset_dir + '/' + root.gameObject.name, "mat");
 
-                        AssetDatabase.CreateAsset(encrypted_texture, root.asset_dir + '/' + root.gameObject.name + '/' + texture.name + "_encrypt.asset");
+                        AssetDatabase.CreateAsset(encrypted_texture[0], root.asset_dir + '/' + root.gameObject.name + '/' + texture.name + "_encrypt.asset");
+                        File.WriteAllBytes(root.asset_dir + '/' + root.gameObject.name + '/' + texture.name + "_encrypt.png", encrypted_texture[1].EncodeToPNG());
+                        if (encrypted_texture[1] != null)
+                            AssetDatabase.CreateAsset(encrypted_texture[1], root.asset_dir + '/' + root.gameObject.name + '/' + texture.name + "_encrypt2.asset");
                         AssetDatabase.SaveAssets();
 
                         AssetDatabase.Refresh();
@@ -177,6 +184,7 @@ namespace Shell.Protector
                     if (last != null)
                         Selection.activeObject = last;
                 }
+                
                 GUILayout.EndHorizontal();
             }
             serializedObject.ApplyModifiedProperties();
