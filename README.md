@@ -28,7 +28,7 @@ MainTexture만 암호화 하기 때문에 메테리얼 내 다른 곳에 MainTex
 ### 지원 텍스쳐 형식
 - RGB24, RGBA32
 - DXT1, DXT5
-- Crunch 압축은 자동으로 압축을 풉니다.
+- Crunch Compression 포멧은 DXT1이나 DXT5로 변환 되지만, 화질에 열화가 생기므로 풀고 진행하세요.
  
 ### 예정
 - OSC를 이용한 인게임 패스워드
@@ -61,6 +61,6 @@ Since it only encrypts the MainTexture, make sure you are not using the same tex
 ### Supported texture formats
 - RGB24, RGBA32
 - DXT1, DXT5
-- Crunch compression decompresses automatically.
+- The Crunch Compression format will convert to DXT1 or DXT5, but the quality will be degraded, so unpack it before proceeding.
 ### feature
 - In-game passwords with OSC
