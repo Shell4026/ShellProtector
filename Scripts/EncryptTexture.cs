@@ -127,15 +127,18 @@ namespace Shell.Protector
             key_uint[1] = (uint)(key[4] + (key[5] << 8) + (key[6] << 16) + (key[7] << 24));
             key_uint[2] = (uint)(key[8] + (key[9] << 8) + (key[10] << 16) + (key[11] << 24));
 
-            Debug.Log(string.Join(", ", key_uint));
             if (texture.format == TextureFormat.DXT1 || texture.format == TextureFormat.DXT1Crunched)
             {
                 Texture2D dxt1 = tex;
                 if(texture.format == TextureFormat.DXT1Crunched)
                 {
                     dxt1 = new Texture2D(tex.width, tex.height, TextureFormat.RGB24, mip_lv, true);
-                    for(int m = 0; m <= mip_lv; ++m)
+                    for (int m = 0; m <= mip_lv; ++m)
+                    {
+                        if (m != 0 && m == mip_lv)
+                            break;
                         dxt1.SetPixels32(tex.GetPixels32(m), m);
+                    }
                     dxt1.Compress(false);
                 }
                 mip_lv = GetCanMipmapLevel(tex.width, tex.height, true);
@@ -203,7 +206,12 @@ namespace Shell.Protector
                 {
                     dxt5 = new Texture2D(tex.width, tex.height, TextureFormat.RGBA32, mip_lv, true);
                     for (int m = 0; m < mip_lv; ++m)
+                    {
+                        if (m != 0 && m == mip_lv)
+                            break;
                         dxt5.SetPixels32(tex.GetPixels32(m), m);
+                    }
+                        
                     dxt5.Compress(true);
                 }
                 mip_lv = GetCanMipmapLevel(tex.width, tex.height, true);
