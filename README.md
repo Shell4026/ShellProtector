@@ -25,7 +25,7 @@ MainTexture만 암호화 하기 때문에 메테리얼 내 다른 곳에 MainTex
 - lilToon
 
 ### 지원 텍스쳐 형식
-- RGB24, RGB32
+- RGB24, RGBA32
 - DXT1, DXT5
 - Crunch 압축은 자동으로 압축을 풉니다.
  
@@ -57,7 +57,7 @@ Since it only encrypts the MainTexture, make sure you are not using the same tex
 - lilToon
 
 ### Supported texture formats
-- RGB24, RGB32
+- RGB24, RGBA32
 - DXT1, DXT5
 - Crunch compression decompresses automatically.
 ### feature
