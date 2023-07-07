@@ -25,7 +25,7 @@ XXTEA 알고리즘을 사용하여 메테리얼의 MainTexure를 암호화합니
 - lilToon
 
 ### 예정
-- 압축
+- 압축 (진행중)
 - OSC를 이용한 인게임 패스워드
 
 ## English
@@ -52,5 +52,5 @@ After encrypting the texture itself, it is uploaded to the VRChat server. The te
 - lilToon
 
 ### feature
-- Compress
+- Compress (In Progress)
 - In-game passwords with OSC
