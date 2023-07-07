@@ -22,7 +22,7 @@ XXTEA 알고리즘을 사용하여 메테리얼의 MainTexure를 암호화합니
 
 셰이더와 메테리얼은 복사 되기 때문에 원본에 영향이 없습니다.
 
-MainTexture만 암호화 하기 때문에 메테리얼 내 다른 곳에 MainTexture와 동일한 텍스쳐를 쓰는지 확인하고 보안을 위해 다른 텍스쳐로 교체하세요.
+MainTexture만 암호화 하기 때문에 메테리얼 내 다른 곳에 MainTexture와 동일한 텍스쳐를 쓴다면 보안을 위해 자동으로 빠집니다. 빠진 곳엔 적절한 텍스쳐를 채워 넣으세요.
 
 ### 성능에 영향은 없나요?
 메모리는 원본보다 조금 더 차지합니다. 2K DXT1 이미지 기준 2mb정도 커집니다.
@@ -63,7 +63,7 @@ After encrypting the texture itself, it is uploaded to the VRChat server. The te
 
 Shaders and Materials are copied, so the original is not affected.
 
-Since it only encrypts the MainTexture, make sure you are not using the same texture elsewhere in your Material as the MainTexture and replace it with a different texture for security.
+Only the MainTexture is encrypted, so if you use the same texture elsewhere in the Material as the MainTexture, it will automatically be removed for security purposes. Fill in the gaps with the appropriate texture.
 
 ### Is there any performance impact?
 It takes up a little more memory than the original. It's about 2mb larger for a 2K DXT1 image.
