@@ -77,9 +77,12 @@ namespace Shell.Protector
             }
             string replace;
 
-            replace = "static uint k[4] = { " + (keys[0] + (keys[1] << 16)) + ", " + (keys[2] + (keys[3] << 16)) + ", " + (keys[4] + (keys[5] << 16)) + ", 0 };";
-            data = Regex.Replace(data, "static uint k\\[8\\] = { 0, 0, 0, 0, 0, 0, 0, 0 };", replace);
+            uint k0 = (uint)(keys[0] + (keys[1] << 16));
+            uint k1 = (uint)(keys[2] + (keys[3] << 16));
+            uint k2 = (uint)(keys[4] + (keys[5] << 16));
 
+            replace = "static const uint k[3] = { " + k0 + ", " + k1 + ", " + k2 + " };";
+            data = Regex.Replace(data, "static const uint k\\[3\\] = { 0, 0, 0 };", replace);
             return data;
         }
 

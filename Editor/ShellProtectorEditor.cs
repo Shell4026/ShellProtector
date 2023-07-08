@@ -165,7 +165,7 @@ namespace Shell.Protector
                     if(last != null)
                         Selection.activeObject = last;
                 }
-                if (GUILayout.Button("Decrypt"))
+                /*if (GUILayout.Button("Decrypt"))
                 {
                     Texture2D last = null;
                     for (int i = 0; i < texture_list.count; i++)
@@ -192,7 +192,7 @@ namespace Shell.Protector
                     }
                     if (last != null)
                         Selection.activeObject = last;
-                }
+                }*/
                 
                 GUILayout.EndHorizontal();
             }

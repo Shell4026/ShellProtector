@@ -33,7 +33,7 @@ namespace Shell.Protector
         [SerializeField]
         int filter = 1;
         [SerializeField]
-        int algorithm = 1;
+        int algorithm = 0;
         public byte[] MakeKeyBytes(string _key)
         {
             byte[] key = new byte[16] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
