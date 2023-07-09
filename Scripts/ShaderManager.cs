@@ -94,6 +94,16 @@ namespace Shell.Protector
 
             return return_shader;
         }
+
+        public void ResetDefine()
+        {
+            string symbols = PlayerSettings.GetScriptingDefineSymbolsForGroup(EditorUserBuildSettings.selectedBuildTargetGroup);
+
+            symbols = symbols.Replace(";LILTOON", ";");
+            symbols = symbols.Replace(";POIYOMI", ";");
+
+            PlayerSettings.SetScriptingDefineSymbolsForGroup(EditorUserBuildSettings.selectedBuildTargetGroup, symbols);
+        }
     }
 }
 #endif
