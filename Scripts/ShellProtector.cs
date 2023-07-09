@@ -27,6 +27,8 @@ namespace Shell.Protector
 
         public string asset_dir = "Assets/ShellProtect";
         public string pwd = "password";
+        public int lang_idx = 0;
+        public string lang = "kor";
 
         [SerializeField]
         int rounds = 32;
