@@ -90,6 +90,18 @@ namespace Shell.Protector
 
             AssetDatabase.Refresh();
         }
+        public void SetCrunchCompression(Texture2D texture, bool crunch)
+        {
+            string path = AssetDatabase.GetAssetPath(texture);
+            string meta = File.ReadAllText(path + ".meta");
+
+            int enable = crunch ? 1 : 0;
+            meta = Regex.Replace(meta, "crunchedCompression: \\d", "crunchedCompression: " + enable);
+            File.WriteAllText(path + ".meta", meta);
+
+            AssetDatabase.Refresh();
+        }
+        
         public GameObject DuplicateAvatar(GameObject avatar)
         {
             GameObject cpy = Instantiate(avatar);
@@ -165,6 +177,7 @@ namespace Shell.Protector
 
                 Texture2D main_texture = (Texture2D)mat.mainTexture; 
                 SetRWEnableTexture(main_texture);
+                SetCrunchCompression(main_texture, false);
 
                 Texture2D[] encrypted_tex = encrypt.TextureEncryptXXTEA(main_texture, key_bytes);
                 if (encrypted_tex[0] == null)
@@ -194,7 +207,13 @@ namespace Shell.Protector
                 new_mat.shader = encrypted_shader;
                 var original_tex = new_mat.mainTexture;
                 new_mat.mainTexture = encrypted_tex[0];
-                new_mat.SetTexture("_MipTex", mips[Math.Max(encrypted_tex[0].width, encrypted_tex[0].height)]);
+
+                int max = Math.Max(encrypted_tex[0].width, encrypted_tex[0].height);
+                var mip_tex = mips[max];
+                if(mip_tex == null)
+                    Debug.LogWarningFormat("mip_{0} is not exsist", max);
+                new_mat.SetTexture("_MipTex", mip_tex);
+
                 if (encrypted_tex[1] != null)
                     new_mat.SetTexture("_EncryptTex", encrypted_tex[1]);
 
@@ -238,22 +257,7 @@ namespace Shell.Protector
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
-            StartCoroutine(Wait());
-
             DestroyImmediate(avatar.GetComponent<ShellProtector>());
-        }
-        IEnumerator Wait()
-        {
-            yield return new WaitForSeconds(3f);
-            Debug.Log("3seconds");
-            foreach (var mat in material_list)
-            {
-                Texture encrypted_tex = mat.mainTexture;
-                int max = Math.Max(encrypted_tex.width, encrypted_tex.height);
-                Texture2D mip = AssetDatabase.LoadAssetAtPath(asset_dir + '/' + gameObject.name + "/mip_" + max + ".asset", typeof(Texture2D)) as Texture2D;
-                mat.SetTexture("_MipTex", mip);
-            }
-            gameObject.SetActive(false);
         }
     }
 }
