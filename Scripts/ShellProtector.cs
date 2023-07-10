@@ -27,6 +27,7 @@ namespace Shell.Protector
 
         public string asset_dir = "Assets/ShellProtect";
         public string pwd = "password";
+        public string pwd2 = "pass";
         public int lang_idx = 0;
         public string lang = "kor";
 
@@ -58,18 +59,18 @@ namespace Shell.Protector
         public void Test2()
         {
             byte[] data_byte = new byte[12] { 255, 250, 245, 240, 235, 230, 225, 220, 215, 210, 205, 200 };
-            byte[] key_byte = MakeKeyBytes(pwd);
+            byte[] key_byte = MakeKeyBytes(pwd + pwd2);
 
             uint[] data = new uint[3];
-            data[0] = (uint)(data_byte[0] + (data_byte[1] << 8) + (data_byte[2] << 16) + (data_byte[3] << 24));
-            data[1] = (uint)(data_byte[4] + (data_byte[5] << 8) + (data_byte[6] << 16) + (data_byte[7] << 24));
-            data[2] = (uint)(data_byte[8] + (data_byte[9] << 8) + (data_byte[10] << 16) + (data_byte[11] << 24));
+            data[0] = (uint)(data_byte[0] | (data_byte[1] << 8) | (data_byte[2] << 16) | (data_byte[3] << 24));
+            data[1] = (uint)(data_byte[4] | (data_byte[5] << 8) | (data_byte[6] << 16) | (data_byte[7] << 24));
+            data[2] = (uint)(data_byte[8] | (data_byte[9] << 8) | (data_byte[10] << 16) | (data_byte[11] << 24));
 
             uint[] key = new uint[4];
-            key[0] = (uint)(key_byte[0] + (key_byte[1] << 8) + (key_byte[2] << 16) + (key_byte[3] << 24));
-            key[1] = (uint)(key_byte[4] + (key_byte[5] << 8) + (key_byte[6] << 16) + (key_byte[7] << 24));
-            key[2] = (uint)(key_byte[8] + (key_byte[9] << 8) + (key_byte[10] << 16) + (key_byte[11] << 24));
-            key[3] = 0;
+            key[0] = (uint)(key_byte[0] | (key_byte[1] << 8) | (key_byte[2] << 16) | (key_byte[3] << 24));
+            key[1] = (uint)(key_byte[4] | (key_byte[5] << 8) | (key_byte[6] << 16) | (key_byte[7] << 24));
+            key[2] = (uint)(key_byte[8] | (key_byte[9] << 8) | (key_byte[10] << 16) | (key_byte[11] << 24));
+            key[3] = (uint)(key_byte[12] | (key_byte[13] << 8) | (key_byte[14] << 16) | (key_byte[15] << 24));
 
             Debug.Log("Key bytes: " + string.Join(", ", key_byte));
             Debug.Log(string.Format("key1:{0}, key2:{1}, key3:{2}", key[0], key[1], key[2]));
@@ -139,13 +140,13 @@ namespace Shell.Protector
         public void Encrypt()
         {
             gameObject.SetActive(true);
-            Debug.Log("Key bytes: " + string.Join(", ", MakeKeyBytes(pwd)));
+            Debug.Log("Key bytes: " + string.Join(", ", MakeKeyBytes(pwd + pwd2)));
 
             GameObject avatar = DuplicateAvatar(gameObject);
 
             var mips = new Dictionary<int, Texture2D>();
 
-            byte[] key_bytes = MakeKeyBytes(pwd);
+            byte[] key_bytes = MakeKeyBytes(pwd + pwd2);
 
             if (!AssetDatabase.IsValidFolder(asset_dir + '/' + gameObject.name))
                 AssetDatabase.CreateFolder(asset_dir, gameObject.name);

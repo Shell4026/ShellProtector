@@ -7,6 +7,8 @@ using System.Text;
 using System;
 using System.IO;
 
+
+
 namespace Shell.Protector
 {
     [CustomEditor(typeof(ShellProtector))]
@@ -26,23 +28,45 @@ namespace Shell.Protector
         readonly string[] languages = new string[2];
         readonly string[] filters = new string[2];
         readonly string[] enc_funcs = new string[1];
-        // Start is called before the first frame update
 
         List<string> shaders = new List<string>();
 
+        ShellProtector root = null;
         readonly LanguageManager lang = LanguageManager.GetInstance();
 
         Texture2D tex;
 
+        private string Lang(string word)
+        {
+            if (root == null)
+                return "";
+            return lang.GetLang(root.lang, word);
+        }
+        private string GenerateRandomString(int length)
+        {
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_-+=|\\/?.>,<~`\'\" ";
+            StringBuilder builder = new StringBuilder();
+
+            System.Random random = new System.Random();
+            for (int i = 0; i < length; i++)
+            {
+                int index = random.Next(chars.Length);
+                builder.Append(chars[index]);
+            }
+
+            return builder.ToString();
+        }
+
         void OnEnable()
         {
-            ShellProtector root = target as ShellProtector;
+            root = target as ShellProtector;
+
             MonoScript monoScript = MonoScript.FromMonoBehaviour(root);
             string script_path = AssetDatabase.GetAssetPath(monoScript);
             root.asset_dir = Path.GetDirectoryName(Path.GetDirectoryName(script_path));
 
             material_list = new ReorderableList(serializedObject, serializedObject.FindProperty("material_list"), true, true, true, true);
-            material_list.drawHeaderCallback = rect => EditorGUI.LabelField(rect, lang.GetLang(root.lang, "Material List"));
+            material_list.drawHeaderCallback = rect => EditorGUI.LabelField(rect, Lang("Material List"));
             material_list.drawElementCallback = (rect, index, is_active, is_focused) =>
             {
                 SerializedProperty element = material_list.serializedProperty.GetArrayElementAtIndex(index);
@@ -50,7 +74,7 @@ namespace Shell.Protector
             };
 
             texture_list = new ReorderableList(serializedObject, serializedObject.FindProperty("texture_list"), true, true, true, true);
-            texture_list.drawHeaderCallback = rect => EditorGUI.LabelField(rect, lang.GetLang(root.lang, "Texture List"));
+            texture_list.drawHeaderCallback = rect => EditorGUI.LabelField(rect, Lang("Texture List"));
             texture_list.drawElementCallback = (rect, index, is_active, is_focused) =>
             {
                 SerializedProperty element = texture_list.serializedProperty.GetArrayElementAtIndex(index);
@@ -74,10 +98,10 @@ namespace Shell.Protector
 
         public override void OnInspectorGUI()
         {
-            ShellProtector root = target as ShellProtector;
+            root = target as ShellProtector;
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label(lang.GetLang(root.lang, "Languages: "));
+            GUILayout.Label(Lang("Languages: "));
             GUILayout.FlexibleSpace();
             root.lang_idx = EditorGUILayout.Popup(root.lang_idx, languages, GUILayout.Width(100));
             switch(root.lang_idx)
@@ -94,41 +118,49 @@ namespace Shell.Protector
             }
             GUILayout.EndHorizontal();
 
-            GUILayout.Label(lang.GetLang(root.lang, "Decteced shaders:") + string.Join(", ", shaders), EditorStyles.boldLabel);
+            GUILayout.Label(Lang("Decteced shaders:") + string.Join(", ", shaders), EditorStyles.boldLabel);
             GUILayout.Space(20);
 
+            GUILayout.Label(Lang("Password"), EditorStyles.boldLabel);
+
             GUILayout.BeginHorizontal();
-            GUILayout.Label(lang.GetLang(root.lang, "Password (max:12)"), EditorStyles.boldLabel);
+            root.pwd = GUILayout.TextField(root.pwd, 12, GUILayout.Width(100));
+            if (GUILayout.Button(Lang("Generate")))
+                root.pwd = GenerateRandomString(12);
             GUILayout.FlexibleSpace();
-            GUILayout.Label(lang.GetLang(root.lang, "You don't need to memorize your password."), EditorStyles.wordWrappedLabel);
+            GUILayout.Label(Lang("A password that you don't need to memorize. (max:12)"), EditorStyles.wordWrappedLabel);
             GUILayout.EndHorizontal();
 
-            root.pwd = GUILayout.PasswordField(root.pwd, '*', 12, GUILayout.Width(100));
+            GUILayout.BeginHorizontal();
+            root.pwd2 = GUILayout.PasswordField(root.pwd2, '*', 4, GUILayout.Width(100));
+            GUILayout.FlexibleSpace();
+            GUILayout.Label(Lang("This password should be memorized. (max:4)"), EditorStyles.wordWrappedLabel);
+            GUILayout.EndHorizontal();
 
             serializedObject.Update();
             material_list.DoLayoutList();
 
-            option = EditorGUILayout.Foldout(option, lang.GetLang(root.lang, "Options"));
+            option = EditorGUILayout.Foldout(option, Lang("Options"));
             if(option)
             {
-                GUILayout.Label(lang.GetLang(root.lang, "Encrytion algorithm"), EditorStyles.boldLabel);
+                GUILayout.Label(Lang("Encrytion algorithm"), EditorStyles.boldLabel);
                 algorithm.intValue = EditorGUILayout.Popup(algorithm.intValue, enc_funcs, GUILayout.Width(120));
 
-                GUILayout.Label(lang.GetLang(root.lang, "Texture filter"), EditorStyles.boldLabel);
+                GUILayout.Label(Lang("Texture filter"), EditorStyles.boldLabel);
                 filter.intValue = EditorGUILayout.Popup(filter.intValue, filters, GUILayout.Width(100));
 
                 GUILayout.Space(30);
             }
 
-            if (GUILayout.Button(lang.GetLang(root.lang, "Encrypt!")))
+            if (GUILayout.Button(Lang("Encrypt!")))
                 root.Encrypt();
 
 
-            debug = EditorGUILayout.Foldout(debug, lang.GetLang(root.lang, "Debug"));
+            debug = EditorGUILayout.Foldout(debug, Lang("Debug"));
             if(debug)
             {
                 GUILayout.Space(10);
-                if (GUILayout.Button(lang.GetLang(root.lang, "XXTEA test")))
+                if (GUILayout.Button(Lang("XXTEA test")))
                     root.Test2();
                 /*tex = EditorGUILayout.ObjectField(tex, typeof(Texture2D)) as Texture2D;
                 if (GUILayout.Button("Test"))
@@ -143,7 +175,7 @@ namespace Shell.Protector
 
                 texture_list.DoLayoutList();
                 GUILayout.BeginHorizontal();
-                if (GUILayout.Button(lang.GetLang(root.lang, "Encrypt")))
+                if (GUILayout.Button(Lang("Encrypt")))
                 {
                     Texture2D last = null;
                     for (int i = 0; i < texture_list.count; i++)
@@ -153,7 +185,7 @@ namespace Shell.Protector
 
                         root.SetRWEnableTexture(texture);
 
-                        Texture2D[] encrypted_texture = root.GetEncryptTexture().TextureEncryptXXTEA(texture, root.MakeKeyBytes(root.pwd));
+                        Texture2D[] encrypted_texture = root.GetEncryptTexture().TextureEncryptXXTEA(texture, root.MakeKeyBytes(root.pwd + root.pwd2));
 
                         last = encrypted_texture[0];
 

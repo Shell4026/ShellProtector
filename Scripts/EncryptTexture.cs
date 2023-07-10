@@ -64,7 +64,6 @@ namespace Shell.Protector
 
             return pivot + n / 4 * w + n % 4;
         }
-
         private byte[] GetArrayDXT(byte[] data, int texture_width, int texture_height, bool dxt5, int miplv)
         {
             int start = 0;
@@ -85,7 +84,6 @@ namespace Shell.Protector
             var segment = new ArraySegment<byte>(data, start, end);
             return segment.ToArray();
         }
-
         public Texture2D GenerateRefMipmap(int width, int height)
         {
             int mip_lv = GetCanMipmapLevel(width, height);
@@ -123,9 +121,10 @@ namespace Shell.Protector
             Texture2D[] tmp = new Texture2D[2];
 
             uint[] key_uint = new uint[4];
-            key_uint[0] = (uint)(key[0] + (key[1] << 8) + (key[2] << 16) + (key[3] << 24));
-            key_uint[1] = (uint)(key[4] + (key[5] << 8) + (key[6] << 16) + (key[7] << 24));
-            key_uint[2] = (uint)(key[8] + (key[9] << 8) + (key[10] << 16) + (key[11] << 24));
+            key_uint[0] = (uint)(key[0] | (key[1] << 8) | (key[2] << 16) | (key[3] << 24));
+            key_uint[1] = (uint)(key[4] | (key[5] << 8) | (key[6] << 16) | (key[7] << 24));
+            key_uint[2] = (uint)(key[8] | (key[9] << 8) | (key[10] << 16) | (key[11] << 24));
+            key_uint[3] = 0;
 
             if (texture.format == TextureFormat.DXT1 || texture.format == TextureFormat.DXT1Crunched)
             {
@@ -169,7 +168,8 @@ namespace Shell.Protector
 
                     for (int i = 0; i < tex_data.Length; i += 16) //reference color texture
                     {
-                        key_uint[3] = (uint)(i / 8);
+                        key_uint[3] = (uint)(key[12] | (key[13] << 8) | (key[14] << 16) | (key[15] << 24));
+                        key_uint[3] ^= (uint)(i / 8);
 
                         uint[] data = new uint[2];
                         data[0] = (uint)(tex_data[i + 0] + (tex_data[i + 1] << 8) + (tex_data[i + 2] << 16) + (tex_data[i + 3] << 24));
@@ -244,7 +244,8 @@ namespace Shell.Protector
 
                     for (int i = 0; i < tex_data.Length; i += 32) //reference color texture
                     {
-                        key_uint[3] = (uint)(i / 16);
+                        key_uint[3] = (uint)(key[12] | (key[13] << 8) | (key[14] << 16) | (key[15] << 24));
+                        key_uint[3] ^= (uint)(i / 16);
 
                         uint[] data = new uint[2];
                         data[0] = (uint)(tex_data[i + 8] + (tex_data[i + 9] << 8) + (tex_data[i + 10] << 16) + (tex_data[i + 11] << 24));
@@ -285,7 +286,8 @@ namespace Shell.Protector
 
                     for (int i = 0; i < pixels.Length; i += 2)
                     {
-                        key_uint[3] = (uint)i;
+                        key_uint[3] = (uint)(key[12] | (key[13] << 8) | (key[14] << 16) | (key[15] << 24));
+                        key_uint[3] ^= (uint)i;
 
                         uint[] data = new uint[2];
                         data[0] = (uint)(pixels[i + 0].r + (pixels[i + 0].g << 8) + (pixels[i + 0].b << 16) + (pixels[i + 0].a << 24));
@@ -314,7 +316,8 @@ namespace Shell.Protector
 
                     for (int i = 0; i < pixels.Length; i += 4)
                     {
-                        key_uint[3] = (uint)i;
+                        key_uint[3] = (uint)(key[12] | (key[13] << 8) | (key[14] << 16) | (key[15] << 24));
+                        key_uint[3] ^= (uint)i;
 
                         uint[] data = new uint[3];
                         data[0] = (uint)(pixels[i + 0].r + (pixels[i + 0].g << 8) + (pixels[i + 0].b << 16) + (pixels[i + 1].r << 24));
@@ -366,9 +369,10 @@ namespace Shell.Protector
             Texture2D tmp;
 
             uint[] key_uint = new uint[4];
-            key_uint[0] = (uint)(key[0] + (key[1] << 8) + (key[2] << 16) + (key[3] << 24));
-            key_uint[1] = (uint)(key[4] + (key[5] << 8) + (key[6] << 16) + (key[7] << 24));
-            key_uint[2] = (uint)(key[8] + (key[9] << 8) + (key[10] << 16) + (key[11] << 24));
+            key_uint[0] = (uint)(key[0] | (key[1] << 8) | (key[2] << 16) | (key[3] << 24));
+            key_uint[1] = (uint)(key[4] | (key[5] << 8) | (key[6] << 16) | (key[7] << 24));
+            key_uint[2] = (uint)(key[8] | (key[9] << 8) | (key[10] << 16) | (key[11] << 24));
+            key_uint[3] = 0;
             if (HasAlpha(tex))
             {
                 tmp = new Texture2D(tex.width, tex.height, TextureFormat.RGB24, mip_lv - 2, true); //mip_lv-2 is blur trick (like the box filter)
@@ -378,7 +382,9 @@ namespace Shell.Protector
 
                     for (int i = 0; i < pixels.Length; i += 4)
                     {
-                        key_uint[3] = (uint)i;
+                        key_uint[3] = (uint)(key[12] | (key[13] << 8) | (key[14] << 16) | (key[15] << 24));
+                        key_uint[3] ^= (uint)i;
+
                         uint[] data = new uint[2];
                         data[0] = (uint)(pixels[i + 0].r + (pixels[i + 0].g << 8) + (pixels[i + 0].b << 16) + (pixels[i + 0].a << 24));
                         data[1] = (uint)(pixels[i + 1].r + (pixels[i + 1].g << 8) + (pixels[i + 1].b << 16) + (pixels[i + 1].a << 24));
@@ -406,7 +412,8 @@ namespace Shell.Protector
 
                     for (int i = 0; i < pixels.Length; i += 4)
                     {
-                        key_uint[3] = (uint)i;
+                        key_uint[3] = (uint)(key[12] | (key[13] << 8) | (key[14] << 16) | (key[15] << 24));
+                        key_uint[3] ^= (uint)i;
 
                         uint[] data = new uint[3];
                         data[0] = (uint)(pixels[i + 0].r + (pixels[i + 0].g << 8) + (pixels[i + 0].b << 16) + (pixels[i + 1].r << 24));

@@ -4,7 +4,7 @@
 static const uint mw[13] = { 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1 };
 static const uint mh[13] = { 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1 };
 
-static const uint k[3] = { 0, 0, 0 };
+static const uint k[4] = { 0, 0, 0, 0 };
 
 static const uint Delta = 0x9e3779b9;
 
@@ -99,7 +99,7 @@ float4 DecryptTextureXXTEA(float2 uv, int m)
 	key[0] = k[0];
 	key[1] = k[1];
 	key[2] = k[2];
-	key[3] = floor(idx / 2) * 2;
+	key[3] = k[3] ^ (uint)(floor(idx / 2) * 2);
 	
 	float3 pixels[4];
 	
@@ -137,7 +137,7 @@ float4 DecryptTextureXXTEARGBA(float2 uv, int m)
 	key[0] = k[0];
 	key[1] = k[1];
 	key[2] = k[2];
-	key[3] = floor(idx / 2) * 2;
+	key[3] = k[3] ^ (uint)(floor(idx / 2) * 2);
 	
 	float4 pixels[2];
 	
@@ -178,7 +178,7 @@ float4 DecryptTextureXXTEADXT(float2 uv, int m)
 	key[0] = k[0];
 	key[1] = k[1];
 	key[2] = k[2];
-	key[3] = floor(idx / 2) * 2;
+	key[3] = k[3] ^ (uint)(floor(idx / 2) * 2);
 	
 	int pos[2] = { 0, -1 };
 	int offset = pos[idx % 2];
