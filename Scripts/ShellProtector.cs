@@ -234,12 +234,14 @@ namespace Shell.Protector
                 if (encrypted_tex[1] != null)
                     new_mat.SetTexture("_EncryptTex", encrypted_tex[1]);
 
-                foreach (var name in new_mat.GetTexturePropertyNames())
+                //Remove Duplicate Textures
+                foreach (var name in new_mat.GetTexturePropertyNames()) 
                 {
                     if (new_mat.GetTexture(name) == original_tex)
                         new_mat.SetTexture(name, null);
                 }
-
+                ///////////////////////////
+                
                 AssetDatabase.CreateAsset(new_mat, asset_dir + '/' + gameObject.name + "/mat/" + mat.name + "_encrypt.mat");
                 
                 var renderers = avatar.GetComponentsInChildren<MeshRenderer>(true);

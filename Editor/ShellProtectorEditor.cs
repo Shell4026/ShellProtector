@@ -77,7 +77,7 @@ namespace Shell.Protector
             ShellProtector root = target as ShellProtector;
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Languages: ");
+            GUILayout.Label(lang.GetLang(root.lang, "Languages: "));
             GUILayout.FlexibleSpace();
             root.lang_idx = EditorGUILayout.Popup(root.lang_idx, languages, GUILayout.Width(100));
             switch(root.lang_idx)
