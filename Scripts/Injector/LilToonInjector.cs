@@ -69,7 +69,7 @@ namespace Shell.Protector
                         code = 1;
                 }
             }
-            shader_data = Regex.Replace(shader_data, "int code = 0;", "int code = " + code + ";");
+            shader_data = Regex.Replace(shader_data, "const int code = 0;", "const int code = " + code + ";");
             File.WriteAllText(output_dir + "/custom.hlsl", shader_data);
 
             string decode = GenerateDecoder(decode_dir, tex);

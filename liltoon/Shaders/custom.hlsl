@@ -51,7 +51,7 @@
 	float4 mip_texture = tex2D(_MipTex, fd.uvMain);\
 	\
 	float2 uv_unit = _MainTex_TexelSize.xy;\
-	int code = 0;\
+	const int code = 0;\
 	\
 	if(code == 0)\
 	{\
