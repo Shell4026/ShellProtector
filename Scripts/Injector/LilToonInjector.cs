@@ -32,7 +32,7 @@ namespace Shell.Protector
             string shader_data;
             string output_dir = asset_dir + '/' + target.name + "/shader/" + mat.name;
 
-            string[] files = Directory.GetFiles(asset_dir + "/lilToon/Shaders/");
+            string[] files = Directory.GetFiles(asset_dir + "/lilToonCustom/Shaders/");
             foreach (string file in files)
             {
                 string filename = Path.GetFileName(file);
