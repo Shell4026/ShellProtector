@@ -36,7 +36,7 @@ MainTexture만 암호화 하기 때문에 메테리얼 내 다른 곳에 MainTex
 ### 지원 텍스쳐 형식
 - RGB24, RGBA32
 - DXT1, DXT5
-- Crunch Compression 포멧은 DXT1이나 DXT5로 변환 되지만, 화질에 열화가 생기므로 풀고 진행하세요.
+- Crunch Compression 포멧은 자동으로로 DXT1이나 DXT5로 변환 됩니다.
  
 ### 예정
 - OSC를 이용한 인게임 패스워드
@@ -77,6 +77,6 @@ On average, it's about 0.2ms~0.8ms slower based on the same 50 materials. Poiyom
 ### Supported texture formats
 - RGB24, RGBA32
 - DXT1, DXT5
-- The Crunch Compression format will convert to DXT1 or DXT5, but the quality will be degraded, so unpack it before proceeding.
+- The Crunch Compression format will auto-convert to DXT1 or DXT5.
 ### feature
 - In-game passwords with OSC
