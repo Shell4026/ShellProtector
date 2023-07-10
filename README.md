@@ -36,7 +36,7 @@ MainTexture만 암호화 하기 때문에 메테리얼 내 다른 곳에 MainTex
 ### 지원 텍스쳐 형식
 - RGB24, RGBA32
 - DXT1, DXT5
-- Crunch Compression 포멧은 자동으로로 DXT1이나 DXT5로 변환 됩니다.
+- Crunch Compression 포멧은 자동으로 DXT1이나 DXT5로 변환 됩니다.
  
 ### 예정
 - OSC를 이용한 인게임 패스워드
