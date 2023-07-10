@@ -175,6 +175,8 @@ namespace Shell.Protector
                 {
                     var mip = encrypt.GenerateRefMipmap(size, size);
                     mips.Add(size, mip);
+                    AssetDatabase.CreateAsset(mip, asset_dir + '/' + gameObject.name + "/mip_" + size + ".asset");
+                    AssetDatabase.Refresh();
                 }
 
                 Texture2D main_texture = (Texture2D)mat.mainTexture; 
@@ -214,6 +216,21 @@ namespace Shell.Protector
                 var mip_tex = mips[max];
                 if(mip_tex == null)
                     Debug.LogWarningFormat("mip_{0} is not exsist", max);
+                string[] properties = new_mat.GetTexturePropertyNames();
+                bool has_property = false;
+                foreach(var p in properties)
+                {
+                    if (p == "_MipTex")
+                    {
+                        has_property = true;
+                        break;
+                    }
+                }
+                if(!has_property)
+                {
+                    AssetDatabase.Refresh();
+                    Debug.LogWarningFormat("_MipTex property is not exsist!", max);
+                }
                 new_mat.SetTexture("_MipTex", mip_tex);
 
                 if (encrypted_tex[1] != null)
@@ -251,14 +268,12 @@ namespace Shell.Protector
                 }
                 //////////////////////////////////////////////////
             }
-            foreach (var mip in mips)
-                AssetDatabase.CreateAsset(mip.Value, asset_dir + '/' + gameObject.name + "/mip_" + mip.Key + ".asset");
-
             EditorUtility.ClearProgressBar();
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
+            gameObject.SetActive(false);
             DestroyImmediate(avatar.GetComponent<ShellProtector>());
         }
     }
