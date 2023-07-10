@@ -38,14 +38,16 @@ namespace Shell.Protector
         [SerializeField]
         int algorithm = 0;
 
-        public byte[] MakeKeyBytes(string _key)
+        public static byte[] MakeKeyBytes(string _key1, string _key2, int key2_length = 4)
         {
             byte[] key = new byte[16] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-            byte[] key_bytes = Encoding.ASCII.GetBytes(_key);
+            byte[] key_bytes = Encoding.ASCII.GetBytes(_key1);
+            byte[] key_bytes2 = Encoding.ASCII.GetBytes(_key2);
 
             for (int i = 0; i < key_bytes.Length; ++i)
                 key[i] = key_bytes[i];
-
+            for (int i = 0; i < key_bytes2.Length; ++i)
+                key[i + (16 - key2_length)] = key_bytes2[i];
             return key;
         }
         public EncryptTexture GetEncryptTexture()
@@ -59,7 +61,7 @@ namespace Shell.Protector
         public void Test2()
         {
             byte[] data_byte = new byte[12] { 255, 250, 245, 240, 235, 230, 225, 220, 215, 210, 205, 200 };
-            byte[] key_byte = MakeKeyBytes(pwd + pwd2);
+            byte[] key_byte = MakeKeyBytes(pwd, pwd2);
 
             uint[] data = new uint[3];
             data[0] = (uint)(data_byte[0] | (data_byte[1] << 8) | (data_byte[2] << 16) | (data_byte[3] << 24));
@@ -82,7 +84,7 @@ namespace Shell.Protector
             result = XXTEA.Decrypt(result, key);
             Debug.Log("Decrypted data: " + string.Join(", ", result));
         }
-        public void SetRWEnableTexture(Texture2D texture)
+        public static void SetRWEnableTexture(Texture2D texture)
         {
             if (texture.isReadable)
                 return;
@@ -94,7 +96,7 @@ namespace Shell.Protector
 
             AssetDatabase.Refresh();
         }
-        public void SetCrunchCompression(Texture2D texture, bool crunch)
+        public static void SetCrunchCompression(Texture2D texture, bool crunch)
         {
             string path = AssetDatabase.GetAssetPath(texture);
             string meta = File.ReadAllText(path + ".meta");
@@ -140,13 +142,13 @@ namespace Shell.Protector
         public void Encrypt()
         {
             gameObject.SetActive(true);
-            Debug.Log("Key bytes: " + string.Join(", ", MakeKeyBytes(pwd + pwd2)));
+            Debug.Log("Key bytes: " + string.Join(", ", MakeKeyBytes(pwd, pwd2)));
 
             GameObject avatar = DuplicateAvatar(gameObject);
 
             var mips = new Dictionary<int, Texture2D>();
 
-            byte[] key_bytes = MakeKeyBytes(pwd + pwd2);
+            byte[] key_bytes = MakeKeyBytes(pwd, pwd2);
 
             if (!AssetDatabase.IsValidFolder(asset_dir + '/' + gameObject.name))
                 AssetDatabase.CreateFolder(asset_dir, gameObject.name);
@@ -243,7 +245,7 @@ namespace Shell.Protector
                 }
                 ///////////////////////////
                 
-                AssetDatabase.CreateAsset(new_mat, asset_dir + '/' + gameObject.name + "/mat/" + mat.name + "_encrypt.mat");
+                AssetDatabase.CreateAsset(new_mat, asset_dir + '/' + gameObject.name + "/mat/" + mat.name + "_encrypted.mat");
                 
                 var renderers = avatar.GetComponentsInChildren<MeshRenderer>(true);
                 for (int i = 0; i < renderers.Length; ++i)
@@ -275,6 +277,11 @@ namespace Shell.Protector
             AssetDatabase.Refresh();
 
             gameObject.SetActive(false);
+            var tester = avatar.AddComponent<ShellProtectorTester>();
+            tester.pwd = pwd2;
+            tester.lang = lang;
+            tester.lang_idx = lang_idx;
+            Selection.activeObject = tester;
             DestroyImmediate(avatar.GetComponent<ShellProtector>());
         }
     }

@@ -80,9 +80,9 @@ namespace Shell.Protector
             uint k0 = (uint)(keys[0] + (keys[1] << 16));
             uint k1 = (uint)(keys[2] + (keys[3] << 16));
             uint k2 = (uint)(keys[4] + (keys[5] << 16));
-            uint k3 = (uint)(keys[6] + (keys[7] << 16));
-            replace = "static const uint k[4] = { " + k0 + ", " + k1 + ", " + k2 + ", " + k3 + " };";
-            data = Regex.Replace(data, "static const uint k\\[4\\] = { 0, 0, 0, 0 };", replace);
+            //uint k3 = (uint)(keys[6] + (keys[7] << 16));
+            replace = "static const uint k[3] = { " + k0 + ", " + k1 + ", " + k2 + " };";
+            data = Regex.Replace(data, "static const uint k\\[3\\] = { 0, 0, 0 };", replace);
             return data;
         }
 

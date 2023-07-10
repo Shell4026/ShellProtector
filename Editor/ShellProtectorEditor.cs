@@ -7,14 +7,15 @@ using System.Text;
 using System;
 using System.IO;
 
-
-
 namespace Shell.Protector
 {
     [CustomEditor(typeof(ShellProtector))]
     [CanEditMultipleObjects]
     public class ShellProtectorEditor : Editor
     {
+        ShellProtector root = null;
+        readonly LanguageManager lang = LanguageManager.GetInstance();
+
         ReorderableList material_list;
         ReorderableList texture_list;
 
@@ -30,9 +31,6 @@ namespace Shell.Protector
         readonly string[] enc_funcs = new string[1];
 
         List<string> shaders = new List<string>();
-
-        ShellProtector root = null;
-        readonly LanguageManager lang = LanguageManager.GetInstance();
 
         Texture2D tex;
 
@@ -183,9 +181,9 @@ namespace Shell.Protector
                         SerializedProperty element = texture_list.serializedProperty.GetArrayElementAtIndex(i);
                         Texture2D texture = element.objectReferenceValue as Texture2D;
 
-                        root.SetRWEnableTexture(texture);
+                        ShellProtector.SetRWEnableTexture(texture);
 
-                        Texture2D[] encrypted_texture = root.GetEncryptTexture().TextureEncryptXXTEA(texture, root.MakeKeyBytes(root.pwd + root.pwd2));
+                        Texture2D[] encrypted_texture = root.GetEncryptTexture().TextureEncryptXXTEA(texture, ShellProtector.MakeKeyBytes(root.pwd, root.pwd2));
 
                         last = encrypted_texture[0];
 

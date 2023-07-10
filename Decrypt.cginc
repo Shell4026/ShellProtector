@@ -4,7 +4,7 @@
 static const uint mw[13] = { 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1 };
 static const uint mh[13] = { 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1 };
 
-static const uint k[4] = { 0, 0, 0, 0 };
+static const uint k[3] = { 0, 0, 0 };
 
 static const uint Delta = 0x9e3779b9;
 
@@ -48,7 +48,6 @@ void XXTEADecrypt(float3 pixel[4], out uint data[3], uint key[4])
 		sum -= Delta;
 	} while (--rounds > 0);
 }
-
 void XXTEADecrypt(float4 pixel[2], out uint data[2], uint key[4])
 {
 	data[0] = ((uint)round(pixel[0].r * 255.0f) | ((uint)round(pixel[0].g * 255.0f) << 8) | ((uint)round(pixel[0].b * 255.0f) << 16) | ((uint)round(pixel[0].a * 255.0f) << 24));
@@ -85,7 +84,6 @@ float2 GetUV(int idx, int m, int woffset = 0, int hoffset = 0)
 	return float2((float)w/mw[m + woffset], (float)h/mh[m + hoffset]);
 }
 
-
 float4 DecryptTextureXXTEA(float2 uv, int m)
 {
 	float x = frac(uv.x);
@@ -99,7 +97,7 @@ float4 DecryptTextureXXTEA(float2 uv, int m)
 	key[0] = k[0];
 	key[1] = k[1];
 	key[2] = k[2];
-	key[3] = k[3] ^ (uint)(floor(idx / 2) * 2);
+	key[3] = ((uint)(_Key0) | (uint)(_Key1 << 8) | (uint)(_Key2 << 16) | (uint)(_Key3 << 24)) ^ (uint)(floor(idx / 2) * 2);
 	
 	float3 pixels[4];
 	
@@ -137,7 +135,7 @@ float4 DecryptTextureXXTEARGBA(float2 uv, int m)
 	key[0] = k[0];
 	key[1] = k[1];
 	key[2] = k[2];
-	key[3] = k[3] ^ (uint)(floor(idx / 2) * 2);
+	key[3] = ((uint)(_Key0) | (uint)(_Key1 << 8) | (uint)(_Key2 << 16) | (uint)(_Key3 << 24)) ^ (uint)(floor(idx / 2) * 2);
 	
 	float4 pixels[2];
 	
@@ -178,7 +176,7 @@ float4 DecryptTextureXXTEADXT(float2 uv, int m)
 	key[0] = k[0];
 	key[1] = k[1];
 	key[2] = k[2];
-	key[3] = k[3] ^ (uint)(floor(idx / 2) * 2);
+	key[3] = ((uint)(_Key0) | (uint)(_Key1 << 8) | (uint)(_Key2 << 16) | (uint)(_Key3 << 24)) ^ (uint)(floor(idx / 2) * 2);
 	
 	int pos[2] = { 0, -1 };
 	int offset = pos[idx % 2];

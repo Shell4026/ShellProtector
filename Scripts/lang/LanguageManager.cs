@@ -35,7 +35,12 @@ public class LanguageManager
             { "Debug", "디버그" },
             { "XXTEA test", "XXTEA 테스트" },
             { "Encrypt", "암호화" },
-            { "Languages: ", "언어: "}
+            { "Languages: ", "언어: "},
+            { "If it looks like its original appearance when pressed, it's a success.", "눌렀을 때 원본과 같으면 성공입니다." },
+            { "Check encryption success", "암호화 성공 체크" },
+            { "Press it before uploading.", "업로드 전에 누르세요."},
+            { "Done", "완료"}
+
         };
         languageMap.Add("kor", koreanStrings);
     }
