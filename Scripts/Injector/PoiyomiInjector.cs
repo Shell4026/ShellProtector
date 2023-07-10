@@ -49,7 +49,14 @@ namespace Shell.Protector
             if (match.Success)
             {
                 int suffix_idx = match.Index + match.Length;
-                shader_data = shader_data.Insert(suffix_idx, "\n\t\t_MipTex (\"MipReference\", 2D) = \"white\" { }\n\t\t_EncryptTex (\"Encrypted\", 2D) = \"white\" { }");
+                string properties = @"
+        _MipTex (""MipReference"", 2D) = ""white"" { }
+        _EncryptTex (""Encrypted"", 2D) = ""white"" { }
+        _Key0 (""key0"", Integer) = 0
+        _Key1 (""key1"", Integer) = 0
+        _Key2 (""key2"", Integer) = 0
+        _Key3 (""key3"", Integer) = 0";
+                shader_data = shader_data.Insert(suffix_idx, properties);
             }
             else
             {
@@ -57,13 +64,23 @@ namespace Shell.Protector
                 return null;
             }
 
+            string declare = @"
+            UNITY_DECLARE_TEX2D(_MainTex);
+            UNITY_DECLARE_TEX2D(_MipTex);
+            Texture2D _EncryptTex;
+            int _Key0;
+            int _Key1;
+            int _Key2;
+            int _Key3;
+";
+
             switch (ShaderManager.GetInstance().GetShaderType(shader))
             {
                 case 7:
                     {
                         string path = output_path + "/CGI_Poicludes.cginc";
                         string poicludes = File.ReadAllText(path);
-                        poicludes = Regex.Replace(poicludes, "UNITY_DECLARE_TEX2D\\(_MainTex\\);(.*?)", "UNITY_DECLARE_TEX2D(_MainTex);$1\nUNITY_DECLARE_TEX2D(_MipTex);\nTexture2D _EncryptTex;");
+                        poicludes = Regex.Replace(poicludes, "UNITY_DECLARE_TEX2D\\(_MainTex\\);(.*?)", declare);
                         File.WriteAllText(path, poicludes);
 
                         path = output_path + "/CGI_PoiFrag.cginc";
@@ -94,7 +111,7 @@ namespace Shell.Protector
                     }
                 case 8:
                     {
-                        shader_data = Regex.Replace(shader_data, "UNITY_DECLARE_TEX2D\\(_MainTex\\);", "UNITY_DECLARE_TEX2D(_MainTex);\nUNITY_DECLARE_TEX2D(_MipTex);\nTexture2D _EncryptTex;");
+                        shader_data = Regex.Replace(shader_data, "UNITY_DECLARE_TEX2D\\(_MainTex\\);", declare);
 
                         shader_data = Regex.Replace(shader_data, "POI2D_SAMPLER_PAN\\((.*?), _MainTex", "POI2D_SAMPLER_PAN($1, _MipTex");
                         shader_data = Regex.Replace(shader_data, "UNITY_SAMPLE_TEX2D_SAMPLER_LOD\\((.*?), _MainTex", "UNITY_SAMPLE_TEX2D_SAMPLER_LOD($1, _MipTex");
