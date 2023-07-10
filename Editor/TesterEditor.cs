@@ -60,7 +60,7 @@ namespace Shell.Protector
             GUILayout.Label(Lang("Press it before uploading."));
             if (GUILayout.Button(Lang("Done")))
             {
-                root.ResetEncryption();
+                //root.ResetEncryption();
                 DestroyImmediate(root.GetComponent<ShellProtectorTester>());
             }
         }
