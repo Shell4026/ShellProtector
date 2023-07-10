@@ -37,6 +37,9 @@ namespace Shell.Protector
         void OnEnable()
         {
             ShellProtector root = target as ShellProtector;
+            MonoScript monoScript = MonoScript.FromMonoBehaviour(root);
+            string script_path = AssetDatabase.GetAssetPath(monoScript);
+            root.asset_dir = Path.GetDirectoryName(Path.GetDirectoryName(script_path));
 
             material_list = new ReorderableList(serializedObject, serializedObject.FindProperty("material_list"), true, true, true, true);
             material_list.drawHeaderCallback = rect => EditorGUI.LabelField(rect, lang.GetLang(root.lang, "Material List"));
@@ -91,10 +94,6 @@ namespace Shell.Protector
             }
             GUILayout.EndHorizontal();
 
-            GUILayout.BeginHorizontal();
-            GUILayout.Label(lang.GetLang(root.lang, "Directory"), EditorStyles.boldLabel);
-            root.asset_dir = GUILayout.TextField(root.asset_dir, GUILayout.Width(300));
-            GUILayout.EndHorizontal();
             GUILayout.Label(lang.GetLang(root.lang, "Decteced shaders:") + string.Join(", ", shaders), EditorStyles.boldLabel);
             GUILayout.Space(20);
 
@@ -155,9 +154,6 @@ namespace Shell.Protector
                         root.SetRWEnableTexture(texture);
 
                         Texture2D[] encrypted_texture = root.GetEncryptTexture().TextureEncryptXXTEA(texture, root.MakeKeyBytes(root.pwd));
-
-                        if (root.asset_dir[root.asset_dir.Length - 1] == '/')
-                            root.asset_dir = root.asset_dir.Remove(root.asset_dir.Length - 1);
 
                         last = encrypted_texture[0];
 

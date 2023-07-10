@@ -36,6 +36,7 @@ namespace Shell.Protector
         int filter = 1;
         [SerializeField]
         int algorithm = 0;
+
         public byte[] MakeKeyBytes(string _key)
         {
             byte[] key = new byte[16] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
@@ -143,9 +144,6 @@ namespace Shell.Protector
             GameObject avatar = DuplicateAvatar(gameObject);
 
             var mips = new Dictionary<int, Texture2D>();
-
-            if (asset_dir[asset_dir.Length - 1] == '/')
-                asset_dir = asset_dir.Remove(asset_dir.Length - 1);
 
             byte[] key_bytes = MakeKeyBytes(pwd);
 
