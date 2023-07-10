@@ -52,10 +52,10 @@ namespace Shell.Protector
                 string properties = @"
         _MipTex (""MipReference"", 2D) = ""white"" { }
         _EncryptTex (""Encrypted"", 2D) = ""white"" { }
-        _Key0 (""key0"", Integer) = 0
-        _Key1 (""key1"", Integer) = 0
-        _Key2 (""key2"", Integer) = 0
-        _Key3 (""key3"", Integer) = 0";
+        _Key0 (""key0"", int) = 0
+        _Key1 (""key1"", int) = 0
+        _Key2 (""key2"", int) = 0
+        _Key3 (""key3"", int) = 0";
                 shader_data = shader_data.Insert(suffix_idx, properties);
             }
             else
