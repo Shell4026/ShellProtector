@@ -34,11 +34,11 @@ MainTexture만 암호화 하기 때문에 메테리얼 내 다른 곳에 MainTex
 ### 얼마나 안전한가요?
 기본적으로 16바이트의 키를 가지며, 12바이트의 키는 셰이더 내부에 저장돼 있으며 4바이트의 키는 사용자가 VRC 파라미터를 이용하여 입력할 수 있는 구조입니다. (사용자 키라고 부르겠습니다.)
 
-4바이트의 사용자 키는 누군가 시간만 들이면 키를 알아낼 수 있습니다. (4바이트 키 = 파라미터 64칸)
+4바이트의 사용자 키는 누군가 시간만 들이면 키를 알아낼 수 있습니다. (4바이트 키 = 파라미터 32칸)
 
 12바이트의 키는 컴파일된 셰이더를 어셈블리어로 바꾸고 분석하면 알아낼 수 있습니다.
 
-최소 파라미터 196칸을 써서 사용자 키의 수를 늘린다면 웬만한 컴퓨터 연산으로는 뚫을 수 없습니다. 하지만 그러기엔 VRChat의 파라미터는 너무 작습니다.
+최소 파라미터 96칸을 써서 사용자 키의 수를 늘린다면 웬만한 컴퓨터 연산으로는 뚫을 수 없습니다. 하지만 그러기엔 VRChat의 파라미터는 너무 작습니다.
 
 기본 세팅은 최소한의 방어선이라고 보면 되고, 단순 툴을 이용한 툴키디들을 막아내는데는 매우 효과적일 것입니다.
 
@@ -91,11 +91,11 @@ On average, it's about 0.2ms~0.8ms slower based on the same 50 materials. Poiyom
 ### How secure is it?
 By default, it has a 16-byte key, 12 bytes of which are stored inside the shader, and 4 bytes of which can be entered by the user using VRC parameters. (Let's call it the user key.)
 
-A 4-byte user key can be broken if someone takes the time to figure it out (4-byte key = 64 parameter spaces).
+A 4-byte user key can be broken if someone takes the time to figure it out (4-byte key = 32 parameter spaces).
 
 A 12-byte key can be figured out by turning the compiled shader into an assembler and analyzing it.
 
-You can increase the number of user keys by using at least 196 parameter spaces to make them unbreakable for most computers, but VRChat's parameters are too small for that.
+You can increase the number of user keys by using at least 96 parameter spaces to make them unbreakable for most computers, but VRChat's parameters are too small for that.
 
 The default settings are the first line of defense, and should be very effective against toolkiddies using simple tools.
 
