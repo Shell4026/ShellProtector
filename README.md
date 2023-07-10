@@ -18,6 +18,8 @@
 ### 세부 원리
 XXTEA 알고리즘을 사용하여 메테리얼의 MainTexure를 암호화합니다.
 
+압축 텍스쳐는 색만 암호화하여 용량을 줄입니다. 원본 텍스쳐의 형태는 일부 남아있습니다.
+
 텍스쳐 자체를 암호화 한 후 VRChat 서버에 업로드 됩니다. 이 텍스쳐는 게임에서 셰이더를 통해 복호화 시킵니다.
 
 셰이더와 메테리얼은 복사 되기 때문에 원본에 영향이 없습니다.
@@ -28,6 +30,19 @@ MainTexture만 암호화 하기 때문에 메테리얼 내 다른 곳에 MainTex
 메모리는 원본보다 조금 더 차지합니다. 2K DXT1 이미지 기준 2mb정도 커집니다.
 
 같은 메테리얼 50개를 기준으로 평균 0.2ms ~ 0.8ms정도 느려집니다. 포이요미가 릴툰보다 성능이 좋았습니다.
+
+### 얼마나 안전한가요?
+기본적으로 16바이트의 키를 가지며, 12바이트의 키는 셰이더 내부에 저장돼 있으며 4바이트의 키는 사용자가 VRC 파라미터를 이용하여 입력할 수 있는 구조입니다. (사용자 키라고 부르겠습니다.)
+
+4바이트의 사용자 키는 누군가 시간만 들이면 키를 알아낼 수 있습니다. (4바이트 키 = 파라미터 64칸)
+
+12바이트의 키는 컴파일된 셰이더를 어셈블리어로 바꾸고 분석하면 알아낼 수 있습니다.
+
+최소 파라미터 196칸을 써서 사용자 키의 수를 늘린다면 웬만한 컴퓨터 연산으로는 뚫을 수 없습니다. 하지만 그러기엔 VRChat의 파라미터는 너무 작습니다.
+
+기본 세팅은 최소한의 방어선이라고 보면 되고, 단순 툴을 이용한 툴키디들을 막아내는데는 매우 효과적일 것입니다.
+
+아직은 4바이트 키 설정만 가능하지만, 파라미터 칸이 넉넉하고 더 안전한 보안을 원하는 사용자를 위해 늘릴 수 있게 개발하겠습니다.
 
 ### 지원 셰이더
 - Poiyomi 7.3, 8.0, 8.1, 8.2
@@ -40,12 +55,15 @@ MainTexture만 암호화 하기 때문에 메테리얼 내 다른 곳에 MainTex
  
 ### 예정
 - OSC를 이용한 인게임 패스워드
+- 가변 사용자키 길이
 
 ## English
 
 ### **Texture encryption using shaders available in VRChat**.
 
 After encrypting the texture, the shader is used to decrypt the MainTexure of materials.
+
+A compressed texture reduces its size by encrypting only the colors. Some of the original texture's shape remains.
 
 This does not prevent copying of the avatar, but it does prevent ripping and modifying the avatar's texture.
 
@@ -70,6 +88,19 @@ It takes up a little more memory than the original. It's about 2mb larger for a 
 
 On average, it's about 0.2ms~0.8ms slower based on the same 50 materials. Poiyomi performed better than lilToon.
 
+### How secure is it?
+By default, it has a 16-byte key, 12 bytes of which are stored inside the shader, and 4 bytes of which can be entered by the user using VRC parameters. (Let's call it the user key.)
+
+A 4-byte user key can be broken if someone takes the time to figure it out (4-byte key = 64 parameter spaces).
+
+A 12-byte key can be figured out by turning the compiled shader into an assembler and analyzing it.
+
+You can increase the number of user keys by using at least 196 parameter spaces to make them unbreakable for most computers, but VRChat's parameters are too small for that.
+
+The default settings are the first line of defense, and should be very effective against toolkiddies using simple tools.
+
+For now, you can only set a 4-byte key, but I'll work on increasing that for users who want more security by using more parameter space.
+
 ### Supported shaders
 - Poiyomi 7.3, 8.0, 8.1, 8.2
 - lilToon
@@ -80,3 +111,4 @@ On average, it's about 0.2ms~0.8ms slower based on the same 50 materials. Poiyom
 - The Crunch Compression format will auto-convert to DXT1 or DXT5.
 ### feature
 - In-game passwords with OSC
+- Variable user key length
