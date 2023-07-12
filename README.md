@@ -14,6 +14,7 @@
 1. 아바타에 'Shell Protector' 컴포넌트를 추가합니다.
 2. 비밀번호를 지정해주고 메테리얼 리스트에 암호화 할 텍스쳐가 존재하는 메테리얼을 넣습니다.
 3. Encrypt 버튼을 누르세요.
+4. 새로 생긴 아바타에 들어간 Testor컴포넌트를 확인하세요.
 
 ### 세부 원리
 XXTEA 알고리즘을 사용하여 메테리얼의 MainTexure를 암호화합니다.
@@ -73,6 +74,7 @@ If you want to prevent copying, use it in conjunction with the password assets.
 1. Add an 'Shell Protector' Component to your avatar.
 2. Enter a password and add the material that contains the texture you want to encrypt to the Material List.
 3. Click the Encrypt button.
+4. Check a Testor component in the copied avatar.
 
 ### How it works
 Encrypt the texture using a XXTEA algorithm.
