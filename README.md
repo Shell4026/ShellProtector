@@ -14,10 +14,16 @@
 1. 아바타에 'Shell Protector' 컴포넌트를 추가합니다.
 2. 비밀번호를 지정해주고 메테리얼 리스트에 암호화 할 텍스쳐가 존재하는 메테리얼을 넣습니다.
 3. Encrypt 버튼을 누르세요.
-4. 새로 생긴 아바타에 들어간 Testor컴포넌트를 확인하세요.
+4. 새로 생긴 아바타에 들어간 Testor컴포넌트를 통해 암호화 여부를 확인하고 완료 버튼을 누르세요.
+5. 아바타를 업로드 합니다.
+
+#### 자신의 비밀번호가 4자리 이상인 경우 (OSC)
+1. Release에 있는 ShellProtectorOSC.zip을 다운 후 압축을 풀고 ShellProtectorOSC.exe를 실행시킵니다. (최초 한 번만 실행하거나 리셋 아바타를 사용한다면 계속 켜두세요.)
+2. 업로드 한 아바타로 바꾼 후 OSC프로그램에서 사용자 비밀번호를 입력합니다.
+3. 만약 비밀번호가 바뀌어도 아바타의 외형에 변화가 없다면 VRChat에서 액션 메뉴 - Options - OSC - Reset Config를 눌러보세요.
 
 ### 세부 원리
-XXTEA 알고리즘을 사용하여 메테리얼의 MainTexure를 암호화합니다.
+SHA-256으로 키를 변형 후 XXTEA 알고리즘을 사용하여 메테리얼의 MainTexure를 암호화합니다.
 
 압축 텍스쳐는 색만 암호화하여 용량을 줄입니다. 원본 텍스쳐의 형태는 일부 남아있습니다.
 
@@ -33,17 +39,19 @@ MainTexture만 암호화 하기 때문에 메테리얼 내 다른 곳에 MainTex
 같은 메테리얼 50개를 기준으로 평균 0.2ms ~ 0.8ms정도 느려집니다. 포이요미가 릴툰보다 성능이 좋았습니다.
 
 ### 얼마나 안전한가요?
-기본적으로 16바이트의 키를 가지며, 12바이트의 키는 셰이더 내부에 저장돼 있으며 4바이트의 키는 사용자가 VRC 파라미터를 이용하여 입력할 수 있는 구조입니다. (사용자 키라고 부르겠습니다.)
+기본적으로 16바이트의 키를 가지며, 셰이더 내부에 저장되는 키와 사용자가 VRC 파라미터를 이용하여 입력할 수 있는 키로 나누어져 있습니다. (사용자 키라고 부르겠습니다.)
+
+0바이트의 사용자 키는 컴파일된 셰이더를 어셈블리어로 바꾸고 분석하기만 하면 알아낼 수 있습니다.
 
 4바이트의 사용자 키는 누군가 시간만 들이면 키를 알아낼 수 있습니다. (4바이트 키 = 파라미터 32칸)
 
-12바이트의 키는 컴파일된 셰이더를 어셈블리어로 바꾸고 분석하면 알아낼 수 있습니다.
+8바이트의 사용자 키는 개인용 컴퓨터로는 알아내는데 시간이 많이 걸릴 것입니다. (8바이트 키 = 파라미터 64칸)
 
-최소 파라미터 96칸을 써서 사용자 키의 수를 늘린다면 웬만한 컴퓨터 연산으로는 뚫을 수 없습니다. 하지만 그러기엔 VRChat의 파라미터는 너무 작습니다.
+12바이트의 사용자 키부터는 현대 컴퓨터로는 알아낼 수 없습니다. (12바이트 키 = 파라미터 96칸)
 
-기본 세팅은 최소한의 방어선이라고 보면 되고, 단순 툴을 이용한 툴키디들을 막아내는데는 매우 효과적일 것입니다.
+최소 파라미터 96칸을 써서 사용자 키의 수를 늘린다면 안전합니다. 자신의 파라미터 공간을 생각해서 키를 설정하시길 바랍니다.
 
-아직은 4바이트 키 설정만 가능하지만, 파라미터 칸이 넉넉하고 더 안전한 보안을 원하는 사용자를 위해 늘릴 수 있게 개발하겠습니다.
+0바이트의 사용자 키는 최소한의 방어라고 보면 되고, 단순 툴을 이용한 툴키디들을 막아내는데는 효과적일 것입니다.
 
 ### 지원 셰이더
 - Poiyomi 7.3, 8.0, 8.1, 8.2
@@ -74,10 +82,16 @@ If you want to prevent copying, use it in conjunction with the password assets.
 1. Add an 'Shell Protector' Component to your avatar.
 2. Enter a password and add the material that contains the texture you want to encrypt to the Material List.
 3. Click the Encrypt button.
-4. Check a Testor component in the copied avatar.
+4. Check the encryption via the Testor component in the new avatar and press the Done button.
+5. Upload the avatar.
+
+#### If your password is more than 4 digits (OSC)
+1. Download ShellProtectorOSC.zip from the release, unzip it, and run ShellProtectorOSC.exe. (Run it only once, or keep it on if you're using a reset avatar).
+2. Replace your uploaded avatar and enter your user password in the OSC program.
+3. If changing the password doesn't change the appearance of your avatar, try going to the Action menu - Options - OSC - Reset Config in VRChat.
 
 ### How it works
-Encrypt the texture using a XXTEA algorithm.
+Encrypt the texture using a XXTEA algorithm after transforming the key with SHA-256.
 
 After encrypting the texture itself, it is uploaded to the VRChat server. The texture is then decrypted in the game via shaders.
 
@@ -91,17 +105,19 @@ It takes up a little more memory than the original. It's about 2mb larger for a 
 On average, it's about 0.2ms~0.8ms slower based on the same 50 materials. Poiyomi performed better than lilToon.
 
 ### How secure is it?
-By default, it has a 16-byte key, 12 bytes of which are stored inside the shader, and 4 bytes of which can be entered by the user using VRC parameters. (Let's call it the user key.)
+By default, it has 16 bytes of keys, split between keys stored inside the shader and keys that the user can enter using VRC parameters. (I'll call these user keys.)
 
-A 4-byte user key can be broken if someone takes the time to figure it out (4-byte key = 32 parameter spaces).
+A user key of 0 bytes can be figured out by simply turning the compiled shader into an assembler and analyzing it.
 
-A 12-byte key can be figured out by turning the compiled shader into an assembler and analyzing it.
+A 4-byte user key can be figured out if someone takes the time to do so. (A 4-byte key = 32 lines of parameters.)
 
-You can increase the number of user keys by using at least 96 parameter spaces to make them unbreakable for most computers, but VRChat's parameters are too small for that.
+An 8-byte user key would take a long time to crack on a personal computer. (8-byte key = 64 parameters)
 
-The default settings are the first line of defense, and should be very effective against toolkiddies using simple tools.
+User keys starting at 12 bytes are impossible to crack on a modern computer. (12-byte key = 96 parameter fields)
 
-For now, you can only set a 4-byte key, but I'll work on increasing that for users who want more security by using more parameter space.
+It is safe to increase the number of user keys by using a minimum of 96 parameter spaces. Please be mindful of your parameter space when setting your keys.
+
+A 0-byte user key is a minimal defense, and should be effective against toolkiddies using simple tools.
 
 ### Supported shaders
 - Poiyomi 7.3, 8.0, 8.1, 8.2
