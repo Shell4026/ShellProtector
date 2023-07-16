@@ -29,9 +29,24 @@ namespace Shell.Protector
         }
         public override void OnInspectorGUI()
         {
+            root.protector = EditorGUILayout.ObjectField(root.protector, typeof(ShellProtector), GUILayout.Width(200)) as ShellProtector;
+
+            GUILayout.Space(10);
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(Lang("Max password length"));
+            GUILayout.FlexibleSpace();
+            root.user_key_length = EditorGUILayout.IntField(root.user_key_length, GUILayout.Width(50));
+            GUILayout.EndHorizontal();
+
+            GUILayout.Space(10);
+
             GUILayout.BeginHorizontal();
             GUILayout.Label(Lang("Languages: "));
             GUILayout.FlexibleSpace();
+
+            GUILayout.Space(10);
+
             root.lang_idx = EditorGUILayout.Popup(root.lang_idx, languages, GUILayout.Width(100));
             switch (root.lang_idx)
             {
@@ -46,11 +61,6 @@ namespace Shell.Protector
                     break;
             }
             GUILayout.EndHorizontal();
-
-            GUILayout.Space(10);
-
-            GUILayout.Label(Lang("Password"));
-            root.pwd = GUILayout.PasswordField(root.pwd, '*', 4, GUILayout.Width(100));
             
             GUILayout.Space(10);
 
@@ -58,9 +68,9 @@ namespace Shell.Protector
             if (GUILayout.Button(Lang("Check encryption success")))
                 root.CheckEncryption();
             GUILayout.Label(Lang("Press it before uploading."));
-            if (GUILayout.Button(Lang("Done")))
+            if (GUILayout.Button(Lang("Done & Reset")))
             {
-                //root.ResetEncryption();
+                root.ResetEncryption();
                 DestroyImmediate(root.GetComponent<ShellProtectorTester>());
             }
         }

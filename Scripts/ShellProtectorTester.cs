@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿#if UNITY_EDITOR
+using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
@@ -7,25 +8,15 @@ namespace Shell.Protector
 {
     public class ShellProtectorTester : MonoBehaviour
     {
-        public string pwd = "pwd";
         public string lang = "eng";
         public int lang_idx = 0;
+        public int user_key_length = 4;
 
-        private byte[] MakeKeyBytes()
-        {
-            byte[] pwd_bytes = new byte[4] { 0, 0, 0, 0 };
-            byte[] bytes = Encoding.ASCII.GetBytes(pwd);
-            for (int i = 0; i < bytes.Length; ++i)
-            {
-                if (i == pwd_bytes.Length)
-                    break;
-                pwd_bytes[i] = bytes[i];
-            }
-            return pwd_bytes;
-        }
+        public ShellProtector protector;
+
         public void CheckEncryption()
         {
-            byte[] pwd_bytes = MakeKeyBytes();
+            byte[] pwd_bytes = protector.GetKeyBytes();
 
             var renderers = GetComponentsInChildren<MeshRenderer>(true);
             foreach(var r in renderers)
@@ -35,10 +26,8 @@ namespace Shell.Protector
                 {
                     if(mat.name.Contains("_encrypted"))
                     {
-                        mat.SetInt("_Key0", pwd_bytes[0]);
-                        mat.SetInt("_Key1", pwd_bytes[1]);
-                        mat.SetInt("_Key2", pwd_bytes[2]);
-                        mat.SetInt("_Key3", pwd_bytes[3]);
+                        for(int i = 0; i < user_key_length; ++i)
+                            mat.SetInt("_Key" + i, pwd_bytes[16 - user_key_length + i]);
                     }
                 }
             }
@@ -50,10 +39,8 @@ namespace Shell.Protector
                 {
                     if (mat.name.Contains("_encrypted"))
                     {
-                        mat.SetInt("_Key0", pwd_bytes[0]);
-                        mat.SetInt("_Key1", pwd_bytes[1]);
-                        mat.SetInt("_Key2", pwd_bytes[2]);
-                        mat.SetInt("_Key3", pwd_bytes[3]);
+                        for (int i = 0; i < user_key_length; ++i)
+                            mat.SetInt("_Key" + i, pwd_bytes[16 - user_key_length + i]);
                     }
                 }
             }
@@ -68,10 +55,8 @@ namespace Shell.Protector
                 {
                     if (mat.name.Contains("_encrypted"))
                     {
-                        mat.SetInt("_Key0", 0);
-                        mat.SetInt("_Key1", 0);
-                        mat.SetInt("_Key2", 0);
-                        mat.SetInt("_Key3", 0);
+                        for (int i = 0; i < 16; ++i)
+                            mat.SetInt("_Key" + i, 0);
                     }
                 }
             }
@@ -83,13 +68,12 @@ namespace Shell.Protector
                 {
                     if (mat.name.Contains("_encrypted"))
                     {
-                        mat.SetInt("_Key0", 0);
-                        mat.SetInt("_Key1", 0);
-                        mat.SetInt("_Key2", 0);
-                        mat.SetInt("_Key3", 0);
+                        for (int i = 0; i < 16; ++i)
+                            mat.SetInt("_Key" + i, 0);
                     }
                 }
             }
         }
     }
 }
+#endif

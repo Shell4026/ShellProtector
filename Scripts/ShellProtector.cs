@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
+using System.Security.Cryptography;
 
 #if POIYOMI
 using Thry;
@@ -30,6 +31,7 @@ namespace Shell.Protector
         public string pwd2 = "pass";
         public int lang_idx = 0;
         public string lang = "kor";
+        
 
         [SerializeField]
         int rounds = 32;
@@ -37,18 +39,31 @@ namespace Shell.Protector
         int filter = 1;
         [SerializeField]
         int algorithm = 0;
+        [SerializeField]
+        int key_size_idx = 0;
+        [SerializeField]
+        int key_size = 4;
 
         public static byte[] MakeKeyBytes(string _key1, string _key2, int key2_length = 4)
         {
+            SHA256 sha256 = SHA256.Create();
+
             byte[] key = new byte[16] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
             byte[] key_bytes = Encoding.ASCII.GetBytes(_key1);
             byte[] key_bytes2 = Encoding.ASCII.GetBytes(_key2);
+            byte[] hash = sha256.ComputeHash(key_bytes2);
 
             for (int i = 0; i < key_bytes.Length; ++i)
                 key[i] = key_bytes[i];
             for (int i = 0; i < key_bytes2.Length; ++i)
                 key[i + (16 - key2_length)] = key_bytes2[i];
+            for (int i = 0; i < key2_length; ++i)
+                key[i + (16 - key2_length)] ^= hash[i];
             return key;
+        }
+        public byte[] GetKeyBytes()
+        {
+            return MakeKeyBytes(pwd, pwd2, key_size);
         }
         public EncryptTexture GetEncryptTexture()
         {
@@ -61,7 +76,7 @@ namespace Shell.Protector
         public void Test2()
         {
             byte[] data_byte = new byte[12] { 255, 250, 245, 240, 235, 230, 225, 220, 215, 210, 205, 200 };
-            byte[] key_byte = MakeKeyBytes(pwd, pwd2);
+            byte[] key_byte = MakeKeyBytes(pwd, pwd2, key_size);
 
             uint[] data = new uint[3];
             data[0] = (uint)(data_byte[0] | (data_byte[1] << 8) | (data_byte[2] << 16) | (data_byte[3] << 24));
@@ -107,7 +122,6 @@ namespace Shell.Protector
 
             AssetDatabase.Refresh();
         }
-        
         public GameObject DuplicateAvatar(GameObject avatar)
         {
             GameObject cpy = Instantiate(avatar);
@@ -142,13 +156,14 @@ namespace Shell.Protector
         public void Encrypt()
         {
             gameObject.SetActive(true);
-            Debug.Log("Key bytes: " + string.Join(", ", MakeKeyBytes(pwd, pwd2)));
+            Debug.Log("Key bytes: " + string.Join(", ", GetKeyBytes()));
 
             GameObject avatar = DuplicateAvatar(gameObject);
 
             var mips = new Dictionary<int, Texture2D>();
+            HashSet<GameObject> meshes = new HashSet<GameObject>();
 
-            byte[] key_bytes = MakeKeyBytes(pwd, pwd2);
+            byte[] key_bytes = GetKeyBytes();
 
             if (!AssetDatabase.IsValidFolder(asset_dir + '/' + gameObject.name))
                 AssetDatabase.CreateFolder(asset_dir, gameObject.name);
@@ -156,6 +171,8 @@ namespace Shell.Protector
                 AssetDatabase.CreateFolder(asset_dir + '/' + gameObject.name, "mat");
             if (!AssetDatabase.IsValidFolder(asset_dir + '/' + gameObject.name + "/shader"))
                 AssetDatabase.CreateFolder(asset_dir + '/' + gameObject.name, "shader");
+            if (!AssetDatabase.IsValidFolder(asset_dir + '/' + gameObject.name + "/animations"))
+                AssetDatabase.CreateFolder(asset_dir + '/' + gameObject.name, "animations");
             int progress = 0;
             foreach (var mat in material_list)
             {
@@ -169,7 +186,7 @@ namespace Shell.Protector
                 if (!ConditionCheck(mat))
                     continue;
 
-                injector.Init(gameObject, key_bytes, filter, asset_dir, rounds);
+                injector.Init(gameObject, key_bytes, key_size, filter, asset_dir);
 
                 int size = Math.Max(mat.mainTexture.width, mat.mainTexture.height);
                 if (!mips.ContainsKey(size))
@@ -246,7 +263,7 @@ namespace Shell.Protector
                 ///////////////////////////
                 
                 AssetDatabase.CreateAsset(new_mat, asset_dir + '/' + gameObject.name + "/mat/" + mat.name + "_encrypted.mat");
-                
+
                 var renderers = avatar.GetComponentsInChildren<MeshRenderer>(true);
                 for (int i = 0; i < renderers.Length; ++i)
                 {
@@ -254,7 +271,10 @@ namespace Shell.Protector
                     for (int j = 0; j < mats.Length; ++j)
                     {
                         if (mats[j].name == mat.name)
+                        {
                             mats[j] = new_mat;
+                            meshes.Add(renderers[i].gameObject);
+                        }
                     }
                     renderers[i].sharedMaterials = mats;
                 }
@@ -265,7 +285,10 @@ namespace Shell.Protector
                     for (int j = 0; j < mats.Length; ++j)
                     {
                         if (mats[j].name == mat.name)
+                        {
                             mats[j] = new_mat;
+                            meshes.Add(skinned_renderers[i].gameObject);
+                        }
                     }
                     skinned_renderers[i].sharedMaterials = mats;
                 }
@@ -273,14 +296,28 @@ namespace Shell.Protector
             }
             EditorUtility.ClearProgressBar();
 
+            var av3 = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
+            av3.expressionParameters = ParameterManager.AddKeyParameter(av3.expressionParameters, key_size);
+            AssetDatabase.CreateAsset(av3.expressionParameters, asset_dir + "/" + gameObject.name + "/" + av3.expressionParameters.name + ".asset");
+
+            var fx = AnimatorManager.DuplicateAnimator(av3.baseAnimationLayers[4].animatorController, Path.Combine(asset_dir, gameObject.name));
+            av3.baseAnimationLayers[4].animatorController = fx;
+            string animation_dir = Path.Combine(asset_dir, gameObject.name, "animations");
+
+            GameObject[] mesh_array = new GameObject[meshes.Count];
+            meshes.CopyTo(mesh_array);
+            AnimatorManager.DuplicateAniamtions(Path.Combine(asset_dir, "Animations"), animation_dir, mesh_array);
+            AnimatorManager.AddKeyLayer(fx, animation_dir, key_size);
+
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
             gameObject.SetActive(false);
             var tester = avatar.AddComponent<ShellProtectorTester>();
-            tester.pwd = pwd2;
             tester.lang = lang;
             tester.lang_idx = lang_idx;
+            tester.protector = this;
+            tester.user_key_length = key_size;
             Selection.activeObject = tester;
             DestroyImmediate(avatar.GetComponent<ShellProtector>());
         }

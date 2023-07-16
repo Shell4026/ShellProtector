@@ -14,6 +14,7 @@ namespace Shell.Protector
         protected ShaderManager shader_manager = ShaderManager.GetInstance();
         protected int filter = 1;
         protected string asset_dir;
+        protected int user_key_length = 4;
 
         protected string shader_code_nofilter_XXTEA = @"
 				float4 mip_texture = _MipTex.Sample(sampler_MipTex, mainUV);
@@ -51,7 +52,7 @@ namespace Shell.Protector
 
         protected GameObject target;
 
-        public void Init(GameObject target, byte[] key, int filter, string asset_dir, int rounds = 32)
+        public void Init(GameObject target, byte[] key, int user_key_length, int filter, string asset_dir)
         {
             if (key.Length != 16)
             {
@@ -65,6 +66,7 @@ namespace Shell.Protector
             }
             this.filter = filter;
             this.asset_dir = asset_dir;
+            this.user_key_length = user_key_length;
         }
 
         protected string GenerateDecoder(string decode_dir, Texture2D tex)
@@ -76,13 +78,73 @@ namespace Shell.Protector
                 return null;
             }
             string replace;
-
+            string replace2;
             uint k0 = (uint)(keys[0] + (keys[1] << 16));
             uint k1 = (uint)(keys[2] + (keys[3] << 16));
             uint k2 = (uint)(keys[4] + (keys[5] << 16));
+            uint k3 = (uint)(keys[6] + (keys[7] << 16));
             //uint k3 = (uint)(keys[6] + (keys[7] << 16));
-            replace = "static const uint k[3] = { " + k0 + ", " + k1 + ", " + k2 + " };";
-            data = Regex.Replace(data, "static const uint k\\[3\\] = { 0, 0, 0 };", replace);
+            switch(user_key_length)
+            {
+                case 0:
+                    replace = "static const uint k[4] = { " + k0 + ", " + k1 + ", " + k2 + ", " + k3 + " };";
+
+                    replace2 = @"
+	uint key[4];
+	key[0] = k[0];
+	key[1] = k[1];
+	key[2] = k[2];
+	key[3] = k[3];";
+                    break;
+                case 4:
+                    replace = "static const uint k[4] = { " + k0 + ", " + k1 + ", " + k2 + ", 0 };\n";
+                    replace += "int _Key0, _Key1, _Key2, _Key3;";
+
+                    replace2 = @"
+	uint key[4];
+	key[0] = k[0];
+	key[1] = k[1];
+	key[2] = k[2];
+	key[3] = ((uint)(_Key0) | (uint)(_Key1 << 8) | (uint)(_Key2 << 16) | (uint)(_Key3 << 24)) ^ (uint)(floor(idx / 2) * 2);";
+                    break;
+                case 8:
+                    replace = "static const uint k[4] = { " + k0 + ", " + k1 + ", 0, 0 };\n";
+                    replace += "int _Key0, _Key1, _Key2, _Key3, _Key4, _Key5, _Key6, _Key7;";
+
+                    replace2 = @"
+	uint key[4];
+	key[0] = k[0];
+	key[1] = k[1];
+	key[2] = ((uint)(_Key0) | (uint)(_Key1 << 8) | (uint)(_Key2 << 16) | (uint)(_Key3 << 24));
+	key[3] = ((uint)(_Key4) | (uint)(_Key5 << 8) | (uint)(_Key6 << 16) | (uint)(_Key7 << 24)) ^ (uint)(floor(idx / 2) * 2);";
+                    break;
+                case 12:
+                    replace = "static const uint k[4] = { " + k0 + ", 0, 0, 0 };\n";
+                    replace += "int _Key0, _Key1, _Key2, _Key3, _Key4, _Key5, _Key6, _Key7, _Key8, _Key9, _Key10, _Key11;";
+
+                    replace2 = @"
+	uint key[4];
+	key[0] = k[0];
+	key[1] = ((uint)(_Key0) | (uint)(_Key1 << 8) | (uint)(_Key2 << 16) | (uint)(_Key3 << 24));
+	key[2] = ((uint)(_Key4) | (uint)(_Key5 << 8) | (uint)(_Key6 << 16) | (uint)(_Key7 << 24));
+	key[3] = ((uint)(_Key8) | (uint)(_Key9 << 8) | (uint)(_Key10 << 16) | (uint)(_Key11 << 24)) ^ (uint)(floor(idx / 2) * 2);";
+                    break;
+                default:
+                    replace = "static const uint k[4] = { 0, 0, 0, 0 };\n";
+                    replace += "int _Key0, _Key1, _Key2, _Key3, _Key4, _Key5, _Key6, _Key7, _Key8, _Key9, _Key10, _Key11, _Key12, _Key13, _Key14, _Key15;";
+
+                    replace2 = @"
+	uint key[4];
+	key[0] = ((uint)(_Key0) | (uint)(_Key1 << 8) | (uint)(_Key2 << 16) | (uint)(_Key3 << 24));
+	key[1] = ((uint)(_Key4) | (uint)(_Key5 << 8) | (uint)(_Key6 << 16) | (uint)(_Key7 << 24));
+	key[2] = ((uint)(_Key8) | (uint)(_Key9 << 8) | (uint)(_Key10 << 16) | (uint)(_Key11 << 24));
+	key[3] = ((uint)(_Key12) | (uint)(_Key13 << 8) | (uint)(_Key14 << 16) | (uint)(_Key15 << 24)) ^ (uint)(floor(idx / 2) * 2);";
+                    break;
+            }
+            
+            data = Regex.Replace(data, "static const uint k\\[4\\] = { 0, 0, 0, 0 };", replace);
+            data = Regex.Replace(data, "//key make[\\w\\W]*?//key make end", replace2);
+            data = Regex.Replace(data, @"key\[3\] = (.*?)\(uint\)\(floor\(idx / 2\) \* 2\);[\w\W]*?//4idx", "key[3] = $1(uint)(floor(idx / 4) * 4);"); //DecryptRGB
             return data;
         }
 

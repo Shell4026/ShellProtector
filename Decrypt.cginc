@@ -3,10 +3,9 @@
 
 static const uint mw[13] = { 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1 };
 static const uint mh[13] = { 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1 };
-
-static const uint k[3] = { 0, 0, 0 };
-
 static const uint Delta = 0x9e3779b9;
+
+static const uint k[4] = { 0, 0, 0, 0 };
 
 float3 InverseGammaCorrection(float3 rgb)
 {
@@ -93,11 +92,14 @@ float4 DecryptTextureXXTEA(float2 uv, int m)
 	int h = 13 - log2(_MainTex_TexelSize.w) - 1;
 	int idx = (mw[m + w] * floor(y * mh[m + h])) + floor(x * mw[m + w]);
 	
+	//key make
 	uint key[4];
 	key[0] = k[0];
 	key[1] = k[1];
 	key[2] = k[2];
-	key[3] = ((uint)(_Key0) | (uint)(_Key1 << 8) | (uint)(_Key2 << 16) | (uint)(_Key3 << 24)) ^ (uint)(floor(idx / 2) * 2);
+	key[3] = k[3];
+	//key make end
+	//4idx
 	
 	float3 pixels[4];
 	
@@ -131,11 +133,13 @@ float4 DecryptTextureXXTEARGBA(float2 uv, int m)
 	int h = 13 - log2(_MainTex_TexelSize.w) - 1;
 	int idx = (mw[m + w] * floor(y * mh[m + h])) + floor(x * mw[m + w]);
 	
+	//key make
 	uint key[4];
 	key[0] = k[0];
 	key[1] = k[1];
 	key[2] = k[2];
-	key[3] = ((uint)(_Key0) | (uint)(_Key1 << 8) | (uint)(_Key2 << 16) | (uint)(_Key3 << 24)) ^ (uint)(floor(idx / 2) * 2);
+	key[3] = k[3];
+	////key make end
 	
 	float4 pixels[2];
 	
@@ -172,11 +176,14 @@ float4 DecryptTextureXXTEADXT(float2 uv, int m)
 	uint h = mh[m + hoffset];
 	
 	int idx = (w * floor(y * h)) + floor(x * w);
+	
+	//key make
 	uint key[4];
 	key[0] = k[0];
 	key[1] = k[1];
 	key[2] = k[2];
-	key[3] = ((uint)(_Key0) | (uint)(_Key1 << 8) | (uint)(_Key2 << 16) | (uint)(_Key3 << 24)) ^ (uint)(floor(idx / 2) * 2);
+	key[3] = k[3];
+	//key make end
 	
 	int pos[2] = { 0, -1 };
 	int offset = pos[idx % 2];

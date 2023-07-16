@@ -6,6 +6,7 @@ using UnityEditorInternal;
 using System.Text;
 using System;
 using System.IO;
+using System.Text.RegularExpressions;
 
 namespace Shell.Protector
 {
@@ -22,13 +23,16 @@ namespace Shell.Protector
         SerializedProperty rounds;
         SerializedProperty filter;
         SerializedProperty algorithm;
+        SerializedProperty key_size;
+        SerializedProperty key_size_idx;
 
         bool debug = false;
-        bool option = false;
+        bool option = true;
 
         readonly string[] languages = new string[2];
         readonly string[] filters = new string[2];
         readonly string[] enc_funcs = new string[1];
+        readonly string[] key_lengths = new string[5];
 
         List<string> shaders = new List<string>();
 
@@ -82,6 +86,8 @@ namespace Shell.Protector
             rounds = serializedObject.FindProperty("rounds");
             filter = serializedObject.FindProperty("filter");
             algorithm = serializedObject.FindProperty("algorithm");
+            key_size = serializedObject.FindProperty("key_size");
+            key_size_idx = serializedObject.FindProperty("key_size_idx");
 
             filters[0] = "Point";
             filters[1] = "Bilinear";
@@ -90,6 +96,12 @@ namespace Shell.Protector
 
             languages[0] = "English";
             languages[1] = "한국어";
+
+            key_lengths[0] = Lang("0 (Minimal security)");
+            key_lengths[1] = Lang("4 (Low security)");
+            key_lengths[2] = Lang("8 (Middle security)");
+            key_lengths[3] = Lang("12 (Hight security)");
+            key_lengths[4] = Lang("16 (Unbreakable security)");
 
             shaders = ShaderManager.GetInstance().CheckShader();
         }
@@ -101,8 +113,10 @@ namespace Shell.Protector
             GUILayout.BeginHorizontal();
             GUILayout.Label(Lang("Languages: "));
             GUILayout.FlexibleSpace();
+
             root.lang_idx = EditorGUILayout.Popup(root.lang_idx, languages, GUILayout.Width(100));
-            switch(root.lang_idx)
+
+            switch (root.lang_idx)
             {
                 case 0:
                     root.lang = "eng";
@@ -114,6 +128,7 @@ namespace Shell.Protector
                     root.lang = "eng";
                     break;
             }
+
             GUILayout.EndHorizontal();
 
             GUILayout.Label(Lang("Decteced shaders:") + string.Join(", ", shaders), EditorStyles.boldLabel);
@@ -121,19 +136,26 @@ namespace Shell.Protector
 
             GUILayout.Label(Lang("Password"), EditorStyles.boldLabel);
 
-            GUILayout.BeginHorizontal();
-            root.pwd = GUILayout.TextField(root.pwd, 12, GUILayout.Width(100));
-            if (GUILayout.Button(Lang("Generate")))
-                root.pwd = GenerateRandomString(12);
-            GUILayout.FlexibleSpace();
-            GUILayout.Label(Lang("A password that you don't need to memorize. (max:12)"), EditorStyles.wordWrappedLabel);
-            GUILayout.EndHorizontal();
-
-            GUILayout.BeginHorizontal();
-            root.pwd2 = GUILayout.PasswordField(root.pwd2, '*', 4, GUILayout.Width(100));
-            GUILayout.FlexibleSpace();
-            GUILayout.Label(Lang("This password should be memorized. (max:4)"), EditorStyles.wordWrappedLabel);
-            GUILayout.EndHorizontal();
+            if (key_size.intValue < 16)
+            {
+                int length = 16 - key_size.intValue;
+                GUILayout.BeginHorizontal();
+                root.pwd = GUILayout.TextField(root.pwd, length, GUILayout.Width(100));
+                if (GUILayout.Button(Lang("Generate")))
+                    root.pwd = GenerateRandomString(length);
+                GUILayout.FlexibleSpace();
+                GUILayout.Label(Lang("A password that you don't need to memorize. (max:") + length + ")", EditorStyles.wordWrappedLabel);
+                GUILayout.EndHorizontal();
+            }
+            if (key_size.intValue > 0)
+            {
+                GUILayout.BeginHorizontal();
+                root.pwd2 = GUILayout.PasswordField(root.pwd2, '*', key_size.intValue, GUILayout.Width(100));
+                GUILayout.FlexibleSpace();
+                GUILayout.Label(Lang("This password should be memorized. (max:") + key_size.intValue + ")", EditorStyles.wordWrappedLabel);
+                GUILayout.EndHorizontal();
+            }
+            GUILayout.Label(Lang("Using parameter:") + (key_size.intValue * 8), EditorStyles.wordWrappedLabel);
 
             serializedObject.Update();
             material_list.DoLayoutList();
@@ -147,7 +169,29 @@ namespace Shell.Protector
                 GUILayout.Label(Lang("Texture filter"), EditorStyles.boldLabel);
                 filter.intValue = EditorGUILayout.Popup(filter.intValue, filters, GUILayout.Width(100));
 
-                GUILayout.Space(30);
+                GUILayout.Label(Lang("Max password length"), EditorStyles.boldLabel);
+                key_size_idx.intValue = EditorGUILayout.Popup(key_size_idx.intValue, key_lengths, GUILayout.Width(150));
+
+                switch(key_size_idx.intValue)
+                {
+                    case 0:
+                        key_size.intValue = 0;
+                        break;
+                    case 1:
+                        key_size.intValue = 4;
+                        break;
+                    case 2:
+                        key_size.intValue = 8;
+                        break;
+                    case 3:
+                        key_size.intValue = 12;
+                        break;
+                    case 4:
+                        key_size.intValue = 16;
+                        break;
+                }
+
+                GUILayout.Space(10);
             }
 
             if (GUILayout.Button(Lang("Encrypt!")))
@@ -160,15 +204,18 @@ namespace Shell.Protector
                 GUILayout.Space(10);
                 if (GUILayout.Button(Lang("XXTEA test")))
                     root.Test2();
-                /*tex = EditorGUILayout.ObjectField(tex, typeof(Texture2D)) as Texture2D;
-                if (GUILayout.Button("Test"))
+
+                if (GUILayout.Button("Go"))
                 {
-                    var data = tex.GetRawTextureData();
-                    Texture2D tmp = new Texture2D(tex.width, tex.height, TextureFormat.DXT5, false);
-                    tmp.LoadRawTextureData(data);
-                    tmp.filterMode = FilterMode.Point;
-                    AssetDatabase.CreateAsset(tmp, root.asset_dir + "/test.asset");
-                }*/
+                    for (int i = 0; i < 16; ++i)
+                    {
+                        string anim = File.ReadAllText(Path.Combine(root.asset_dir, "Animations/key" + i + "_2.anim"));
+                        anim = Regex.Replace(anim, "attribute: material._Key\\d+", "attribute: material._Key" + i);
+                        File.WriteAllText(Path.Combine(root.asset_dir, "Animations/key" + i + "_2.anim"), anim);
+                    }
+                    AssetDatabase.Refresh();
+                }
+
                 GUILayout.Space(10);
 
                 texture_list.DoLayoutList();
@@ -183,7 +230,7 @@ namespace Shell.Protector
 
                         ShellProtector.SetRWEnableTexture(texture);
 
-                        Texture2D[] encrypted_texture = root.GetEncryptTexture().TextureEncryptXXTEA(texture, ShellProtector.MakeKeyBytes(root.pwd, root.pwd2));
+                        Texture2D[] encrypted_texture = root.GetEncryptTexture().TextureEncryptXXTEA(texture, ShellProtector.MakeKeyBytes(root.pwd, root.pwd2, key_size.intValue));
 
                         last = encrypted_texture[0];
 

@@ -51,11 +51,11 @@ namespace Shell.Protector
                 int suffix_idx = match.Index + match.Length;
                 string properties = @"
         _MipTex (""MipReference"", 2D) = ""white"" { }
-        _EncryptTex (""Encrypted"", 2D) = ""white"" { }
-        _Key0 (""key0"", int) = 0
-        _Key1 (""key1"", int) = 0
-        _Key2 (""key2"", int) = 0
-        _Key3 (""key3"", int) = 0";
+        _EncryptTex (""Encrypted"", 2D) = ""white"" { }";
+
+                for(int i = 0; i < user_key_length; ++i)
+                    properties += "_Key" + i + " (\"key" + i + "\", int) = 0\n";
+
                 shader_data = shader_data.Insert(suffix_idx, properties);
             }
             else
@@ -68,10 +68,6 @@ namespace Shell.Protector
             UNITY_DECLARE_TEX2D(_MainTex);
             UNITY_DECLARE_TEX2D(_MipTex);
             Texture2D _EncryptTex;
-            int _Key0;
-            int _Key1;
-            int _Key2;
-            int _Key3;
 ";
 
             switch (ShaderManager.GetInstance().GetShaderType(shader))
