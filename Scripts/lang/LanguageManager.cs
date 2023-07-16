@@ -25,8 +25,8 @@ public class LanguageManager
             { "Directory", "에셋 경로" },
             { "Decteced shaders:", "검출된 셰이더:" },
             { "Password", "비밀번호" },
-            { "A password that you don't need to memorize. (max:12)", "이 비밀번호는 외울 필요 없습니다. (12자리)" },
-            { "This password should be memorized. (max:4)", "이 비밀번호는 외워야 합니다. (4자리)" },
+            { "A password that you don't need to memorize. (max:", "이 비밀번호는 외울 필요 없습니다. (최대 자릿수:" },
+            { "This password should be memorized. (max:", "이 비밀번호는 외워야 합니다. (최대 자릿수:" },
             { "Generate", "자동 생성" },
             { "Options", "옵션" },
             { "Encrytion algorithm", "암호 알고리즘" },
@@ -39,7 +39,14 @@ public class LanguageManager
             { "If it looks like its original appearance when pressed, it's a success.", "눌렀을 때 원본과 같으면 성공입니다." },
             { "Check encryption success", "암호화 성공 체크" },
             { "Press it before uploading.", "업로드 전에 누르세요."},
-            { "Done", "완료"}
+            { "Done & Reset", "완료 & 리셋"},
+            { "Max password length", "최대 비밀번호 길이" },
+            { "0 (Minimal security)", "0 (최소한의 보안)" },
+            { "4 (Low security)", "4 (낮은 보안)" },
+            { "8 (Middle security)", "8 (중간 보안)" },
+            { "12 (Hight security)", "12 (높은 보안)" },
+            { "16 (Unbreakable security)", "16 (뚫을 수 없는 보안)" },
+            { "Using parameter:", "사용한 파라미터:" }
 
         };
         languageMap.Add("kor", koreanStrings);

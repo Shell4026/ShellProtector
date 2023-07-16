@@ -6,7 +6,7 @@ AnimationClip:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: key0
+  m_Name: key5
   serializedVersion: 6
   m_Legacy: 0
   m_Compressed: 0
@@ -41,7 +41,7 @@ AnimationClip:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-    attribute: material._Key0
+    attribute: material._Key5
     path: Body
     classID: 137
     script: {fileID: 0}
@@ -106,7 +106,7 @@ AnimationClip:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-    attribute: material._Key0
+    attribute: material._Key5
     path: Body
     classID: 137
     script: {fileID: 0}
