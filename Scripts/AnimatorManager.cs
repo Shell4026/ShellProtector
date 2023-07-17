@@ -148,26 +148,20 @@ public static class AnimatorManager
 
             BlendTree tree_root = new BlendTree();
             tree_root.name = "key" + i;
-            tree_root.blendType = BlendTreeType.Direct;
-            tree_root.blendParameter = "weight";
-            BlendTree tree = new BlendTree();
-            tree.name = "key" + i;
-            tree.blendType = BlendTreeType.Simple1D;
-            tree.blendParameter = "key" + i;
-            tree.useAutomaticThresholds = false;
-
-            tree_root.AddChild(tree);
+            tree_root.blendType = BlendTreeType.Simple1D;
+            tree_root.blendParameter = "key" + i;
+            tree_root.useAutomaticThresholds = false;
 
             Motion motion0 = AssetDatabase.LoadAssetAtPath(Path.Combine(animation_dir, "key" + i + ".anim"), typeof(AnimationClip)) as AnimationClip;
             Motion motion1 = AssetDatabase.LoadAssetAtPath(Path.Combine(animation_dir, "key" + i + "_2.anim"), typeof(AnimationClip)) as AnimationClip;
-            
-            tree.AddChild(motion0, -1);
-            tree.AddChild(motion1, 1);
 
-            state.motion = tree;
+            tree_root.AddChild(motion0, -1);
+            tree_root.AddChild(motion1, 1);
+
+            state.motion = tree_root;
             AssetDatabase.AddObjectToAsset(stateMachine, anim);
+            AssetDatabase.AddObjectToAsset(state, anim);
             AssetDatabase.AddObjectToAsset(tree_root, anim);
-            AssetDatabase.AddObjectToAsset(tree, tree_root);
         }
     }
 }
