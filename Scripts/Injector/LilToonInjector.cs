@@ -49,7 +49,7 @@ namespace Shell.Protector
 
             if (filter == 0)
             {
-                if (tex.format == TextureFormat.DXT1)
+                if (tex.format == TextureFormat.DXT1 || tex.format == TextureFormat.DXT5)
                     code = 5;
                 else
                 {
@@ -60,7 +60,7 @@ namespace Shell.Protector
             }
             else if (filter == 1)
             {
-                if (tex.format == TextureFormat.DXT1)
+                if (tex.format == TextureFormat.DXT1 || tex.format == TextureFormat.DXT5)
                     code = 4;
                 else
                 {
