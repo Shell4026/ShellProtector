@@ -6,9 +6,9 @@
 
 텍스쳐를 암호화 시킨 후, 셰이더를 이용하여 텍스쳐를 복호화합니다.
 
-아바타 복사는 막지 못하지만, 리핑을 통해 아바타의 텍스쳐를 뜯어가서 수정하는 것을 막을 수 있습니다.
+아바타 복사를 막아주고 리핑을 통해 아바타의 텍스쳐를 뜯어가서 수정하는 것을 막을 수 있습니다.
 
-복사를 막고 싶다면 비밀번호 에셋과 함께 쓰십시오.
+OSC 프로그램으로 간편하게 비밀번호를 입력할 수 있습니다.
 
 ### 사용법
 1. 아바타에 'Shell Protector' 컴포넌트를 추가합니다.
@@ -21,6 +21,7 @@
 1. Release에 있는 ShellProtectorOSC.zip을 다운 후 압축을 풀고 ShellProtectorOSC.exe를 실행시킵니다. (최초 한 번만 실행하거나 리셋 아바타를 사용한다면 계속 켜두세요.)
 2. 업로드 한 아바타로 바꾼 후 OSC프로그램에서 사용자 비밀번호를 입력합니다.
 3. 만약 비밀번호가 바뀌어도 아바타의 외형에 변화가 없다면 VRChat에서 액션 메뉴 - Options - OSC - Reset Config를 눌러보세요.
+4. 그래도 문제가 있다면 C:\Users\유저\AppData\LocalLow\VRChat\VRChat\OSC 폴더를 지워보세요.
 
 ### 세부 원리
 SHA-256으로 키를 변형 후 XXTEA 알고리즘을 사용하여 메테리얼의 MainTexure를 암호화합니다.
@@ -63,20 +64,17 @@ MainTexture만 암호화 하기 때문에 메테리얼 내 다른 곳에 MainTex
 - Crunch Compression 포멧은 자동으로 DXT1이나 DXT5로 변환 됩니다.
  
 ### 예정
-- OSC를 이용한 인게임 패스워드
-- 가변 사용자키 길이
+- 없음음
 
 ## English
 
 ### **Texture encryption using shaders available in VRChat**.
 
-After encrypting the texture, the shader is used to decrypt the MainTexure of materials.
+After encrypting the texture, a shader is used to decrypt the texture.
 
-A compressed texture reduces its size by encrypting only the colors. Some of the original texture's shape remains.
+This prevents your avatar from being copied and prevents people from modifying your avatar's texture through ripping.
 
-This does not prevent copying of the avatar, but it does prevent ripping and modifying the avatar's texture.
-
-If you want to prevent copying, use it in conjunction with the password assets.
+You can easily enter the password with the OSC program.
 
 ### Usage
 1. Add an 'Shell Protector' Component to your avatar.
@@ -89,9 +87,10 @@ If you want to prevent copying, use it in conjunction with the password assets.
 1. Download ShellProtectorOSC.zip from the release, unzip it, and run ShellProtectorOSC.exe. (Run it only once, or keep it on if you're using a reset avatar).
 2. Replace your uploaded avatar and enter your user password in the OSC program.
 3. If changing the password doesn't change the appearance of your avatar, try going to the Action menu - Options - OSC - Reset Config in VRChat.
+4. If you're still having trouble, try clearing the C:\Users\UserName\AppData\LocalLow\VRChat\VRChat\OSC folder.
 
 ### How it works
-Encrypt the texture using a XXTEA algorithm after transforming the key with SHA-256.
+Encrypt the texture using an XXTEA algorithm after transforming the key with SHA-256.
 
 After encrypting the texture itself, it is uploaded to the VRChat server. The texture is then decrypted in the game via shaders.
 
@@ -128,5 +127,4 @@ A 0-byte user key is a minimal defense, and should be effective against toolkidd
 - DXT1, DXT5
 - The Crunch Compression format will auto-convert to DXT1 or DXT5.
 ### feature
-- In-game passwords with OSC
-- Variable user key length
+- None
