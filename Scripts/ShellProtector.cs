@@ -8,6 +8,8 @@ using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
 using System.Security.Cryptography;
+using VRC.SDK3.Avatars.ScriptableObjects;
+using VRC.SDK3.Avatars.Components;
 
 #if POIYOMI
 using Thry;
@@ -320,6 +322,14 @@ namespace Shell.Protector
             tester.user_key_length = key_size;
             Selection.activeObject = tester;
             DestroyImmediate(avatar.GetComponent<ShellProtector>());
+        }
+
+        public VRCExpressionParameters GetParameter()
+        {
+            var av3 = gameObject.GetComponent<VRCAvatarDescriptor>();
+            if (av3 == null)
+                return null;
+            return av3.expressionParameters;
         }
     }
 }

@@ -46,7 +46,8 @@ public class LanguageManager
             { "8 (Middle security)", "8 (중간 보안)" },
             { "12 (Hight security)", "12 (높은 보안)" },
             { "16 (Unbreakable security)", "16 (뚫을 수 없는 보안)" },
-            { "Using parameter:", "사용한 파라미터:" }
+            { "Using parameter:", "사용한 파라미터:" },
+            { "Free parameter:", "여유 파라미터:" }
 
         };
         languageMap.Add("kor", koreanStrings);

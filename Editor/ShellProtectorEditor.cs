@@ -117,6 +117,12 @@ namespace Shell.Protector
 
             root.lang_idx = EditorGUILayout.Popup(root.lang_idx, languages, GUILayout.Width(100));
 
+            key_lengths[0] = Lang("0 (Minimal security)");
+            key_lengths[1] = Lang("4 (Low security)");
+            key_lengths[2] = Lang("8 (Middle security)");
+            key_lengths[3] = Lang("12 (Hight security)");
+            key_lengths[4] = Lang("16 (Unbreakable security)");
+
             switch (root.lang_idx)
             {
                 case 0:
@@ -155,6 +161,20 @@ namespace Shell.Protector
                 GUILayout.FlexibleSpace();
                 GUILayout.Label(Lang("This password should be memorized. (max:") + key_size.intValue + ")", EditorStyles.wordWrappedLabel);
                 GUILayout.EndHorizontal();
+            }
+            var parameters = root.GetParameter();
+            int free_parameter = -1;
+            if (parameters == null)
+            {
+                GUIStyle red_style = new GUIStyle(GUI.skin.label);
+                red_style.normal.textColor = Color.red;
+                red_style.wordWrap = true;
+                GUILayout.Label(Lang("Cannot find VRCExpressionParameters in your avatar!"), red_style);
+            }
+            else
+            {
+                free_parameter = 256 - parameters.CalcTotalCost();
+                GUILayout.Label(Lang("Free parameter:") + free_parameter, EditorStyles.wordWrappedLabel);
             }
             GUILayout.Label(Lang("Using parameter:") + (key_size.intValue * 8), EditorStyles.wordWrappedLabel);
 
