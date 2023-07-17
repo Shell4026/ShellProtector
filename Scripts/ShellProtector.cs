@@ -187,7 +187,7 @@ namespace Shell.Protector
                 injector = InjectorFactory.GetInjector(mat.shader);
                 if (injector == null)
                 {
-                    Debug.LogWarning(mat.shader + " is a unsupported shader!");
+                    Debug.LogWarning(mat.shader + " is a unsupported shader! supported type:DXT1, DXT5, RGB, RGBA");
                     continue;
                 }
                 if (!ConditionCheck(mat))
