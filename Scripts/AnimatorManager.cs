@@ -110,14 +110,12 @@ public static class AnimatorManager
                 string curve;
               
                 if (!filename.Contains("_"))
-                {
                     curve = Regex.Replace(curve1, "attribute: material._Key\\d+", "attribute: material._Key" + n);
-                }
                 else
-                {
                     curve = Regex.Replace(curve2, "attribute: material._Key\\d+", "attribute: material._Key" + n);
-                }
                 curve = Regex.Replace(curve, "path: Body", "path: " + hr_path);
+                if (obj.GetComponent<SkinnedMeshRenderer>() == null)
+                    curve = Regex.Replace(curve, "classID: 137", "classID: 23");
 
                 anim = Regex.Replace(anim, "m_FloatCurves:", "m_FloatCurves:" + curve);
                 anim = Regex.Replace(anim, "m_EditorCurves:", "m_EditorCurves:" + curve);
