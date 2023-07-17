@@ -37,6 +37,8 @@ namespace Shell.Protector
 
         List<string> shaders = new List<string>();
 
+        bool show_pwd = false;
+
         Texture2D tex;
 
         private string Lang(string word)
@@ -157,7 +159,12 @@ namespace Shell.Protector
             if (key_size.intValue > 0)
             {
                 GUILayout.BeginHorizontal();
-                root.pwd2 = GUILayout.PasswordField(root.pwd2, '*', key_size.intValue, GUILayout.Width(100));
+                if(!show_pwd)
+                    root.pwd2 = GUILayout.PasswordField(root.pwd2, '*', key_size.intValue, GUILayout.Width(100));
+                else
+                    root.pwd2 = GUILayout.TextField(root.pwd2, key_size.intValue, GUILayout.Width(100));
+                if (GUILayout.Button(Lang("Show")))
+                    show_pwd = !show_pwd;
                 GUILayout.FlexibleSpace();
                 GUILayout.Label(Lang("This password should be memorized. (max:") + key_size.intValue + ")", EditorStyles.wordWrappedLabel);
                 GUILayout.EndHorizontal();
