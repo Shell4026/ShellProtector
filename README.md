@@ -2,7 +2,7 @@
 
 ## 한국어
 
-### **VRChat에서 사용 가능한 셰이더를 이용한 텍스쳐 암호화**
+### **VRChat에서 사용 가능한 셰이더를 이용한 텍스쳐 암호화**[![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2FShell4026%2FShellProtector&count_bg=%2379C83D&title_bg=%23555555&icon=&icon_color=%23E7E7E7&title=hits&edge_flat=false)](https://hits.seeyoufarm.com)
 
 텍스쳐를 암호화 시킨 후, 셰이더를 이용하여 텍스쳐를 복호화합니다.
 
@@ -11,6 +11,7 @@
 OSC 프로그램으로 간편하게 비밀번호를 입력할 수 있습니다.
 
 ### 사용법
+---
 1. 아바타에 'Shell Protector' 컴포넌트를 추가합니다.
 2. 비밀번호를 지정해주고 메테리얼 리스트에 암호화 할 텍스쳐가 존재하는 메테리얼을 넣습니다.
 3. Encrypt 버튼을 누르세요.
@@ -22,6 +23,15 @@ OSC 프로그램으로 간편하게 비밀번호를 입력할 수 있습니다.
 2. 업로드 한 아바타로 바꾼 후 OSC프로그램에서 사용자 비밀번호를 입력합니다.
 3. 만약 비밀번호가 바뀌어도 아바타의 외형에 변화가 없다면 VRChat에서 액션 메뉴 - Options - OSC - Reset Config를 눌러보세요.
 4. 그래도 문제가 있다면 C:\Users\유저\AppData\LocalLow\VRChat\VRChat\OSC 폴더를 지워보세요.
+---
+### 문제해결
+**<is not supported texture format! 에러>**
+
+텍스쳐 압축 포멧을 DXT1이나 DXT5중 하나로 바꿔주세요.
+
+**릴툰)Testor컴포넌트로 테스트 했을 때 원래대로 안 돌아오는 경우**
+
+Assets - liltoon - Refresh Shader을 눌러보세요.
 
 ### 세부 원리
 SHA-256으로 키를 변형 후 XXTEA 알고리즘을 사용하여 메테리얼의 MainTexure를 암호화합니다.
@@ -64,7 +74,7 @@ MainTexture만 암호화 하기 때문에 메테리얼 내 다른 곳에 MainTex
 - Crunch Compression 포멧은 자동으로 DXT1이나 DXT5로 변환 됩니다.
  
 ### 예정
-- 없음음
+- BC7 지원원
 
 ## English
 
@@ -77,6 +87,7 @@ This prevents your avatar from being copied and prevents people from modifying y
 You can easily enter the password with the OSC program.
 
 ### Usage
+---
 1. Add an 'Shell Protector' Component to your avatar.
 2. Enter a password and add the material that contains the texture you want to encrypt to the Material List.
 3. Click the Encrypt button.
@@ -88,6 +99,16 @@ You can easily enter the password with the OSC program.
 2. Replace your uploaded avatar and enter your user password in the OSC program.
 3. If changing the password doesn't change the appearance of your avatar, try going to the Action menu - Options - OSC - Reset Config in VRChat.
 4. If you're still having trouble, try clearing the C:\Users\UserName\AppData\LocalLow\VRChat\VRChat\OSC folder.
+
+---
+### Troubleshooting
+**<is not supported texture format! Error>**
+
+Please change the texture compression format to either DXT1 or DXT5.
+
+**liltoon)At testor component, it doesn't come back to normal**.
+
+Try Assets - liltoon - Refresh Shader.
 
 ### How it works
 Encrypt the texture using an XXTEA algorithm after transforming the key with SHA-256.
@@ -127,4 +148,4 @@ A 0-byte user key is a minimal defense, and should be effective against toolkidd
 - DXT1, DXT5
 - The Crunch Compression format will auto-convert to DXT1 or DXT5.
 ### feature
-- None
+- Support BC7
