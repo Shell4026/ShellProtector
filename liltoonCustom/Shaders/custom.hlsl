@@ -5,11 +5,7 @@
 //#define LIL_CUSTOM_PROPERTIES \
 //    float _CustomVariable;
 #define LIL_CUSTOM_PROPERTIES \
-	float4 _MainTex_TexelSize; \
-	int _Key0;\
-	int _Key1;\
-	int _Key2;\
-	int _Key3;\
+	float4 _MainTex_TexelSize;
 
 // Custom textures
 #define LIL_CUSTOM_TEXTURES \
