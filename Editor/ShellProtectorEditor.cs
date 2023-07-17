@@ -164,19 +164,20 @@ namespace Shell.Protector
             }
             var parameters = root.GetParameter();
             int free_parameter = -1;
+
+            GUIStyle red_style = new GUIStyle(GUI.skin.label);
+            red_style.normal.textColor = Color.red;
+            red_style.wordWrap = true;
+
             if (parameters == null)
-            {
-                GUIStyle red_style = new GUIStyle(GUI.skin.label);
-                red_style.normal.textColor = Color.red;
-                red_style.wordWrap = true;
                 GUILayout.Label(Lang("Cannot find VRCExpressionParameters in your avatar!"), red_style);
-            }
             else
             {
                 free_parameter = 256 - parameters.CalcTotalCost();
                 GUILayout.Label(Lang("Free parameter:") + free_parameter, EditorStyles.wordWrappedLabel);
             }
-            GUILayout.Label(Lang("Using parameter:") + (key_size.intValue * 8), EditorStyles.wordWrappedLabel);
+            int using_parameter = (key_size.intValue * 8);
+            GUILayout.Label(Lang("Parameters to be used:") + using_parameter, EditorStyles.wordWrappedLabel);
 
             serializedObject.Update();
             material_list.DoLayoutList();
@@ -215,10 +216,17 @@ namespace Shell.Protector
                 GUILayout.Space(10);
             }
 
+            if (free_parameter - using_parameter < 0)
+            {
+                GUI.enabled = false;
+                GUILayout.Label(Lang("Not enough parameter space!"), red_style);
+            }
+            if (material_list.count == 0)
+                GUI.enabled = false;
+
             if (GUILayout.Button(Lang("Encrypt!")))
                 root.Encrypt();
-
-
+            GUI.enabled = true;
             debug = EditorGUILayout.Foldout(debug, Lang("Debug"));
             if(debug)
             {
