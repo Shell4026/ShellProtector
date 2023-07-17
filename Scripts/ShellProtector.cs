@@ -166,7 +166,11 @@ namespace Shell.Protector
             Debug.Log("Key bytes: " + string.Join(", ", GetKeyBytes()));
 
             GameObject avatar = DuplicateAvatar(gameObject);
-
+            if (avatar == null)
+            {
+                Debug.LogError("Cannot create duplicated avatar!");
+                return;
+            }
             var mips = new Dictionary<int, Texture2D>();
             HashSet<GameObject> meshes = new HashSet<GameObject>();
 
@@ -272,32 +276,38 @@ namespace Shell.Protector
                 AssetDatabase.CreateAsset(new_mat, asset_dir + '/' + gameObject.name + "/mat/" + mat.name + "_encrypted.mat");
 
                 var renderers = avatar.GetComponentsInChildren<MeshRenderer>(true);
-                for (int i = 0; i < renderers.Length; ++i)
+                if (renderers != null)
                 {
-                    var mats = renderers[i].sharedMaterials;
-                    for (int j = 0; j < mats.Length; ++j)
+                    for (int i = 0; i < renderers.Length; ++i)
                     {
-                        if (mats[j].name == mat.name)
+                        var mats = renderers[i].sharedMaterials;
+                        for (int j = 0; j < mats.Length; ++j)
                         {
-                            mats[j] = new_mat;
-                            meshes.Add(renderers[i].gameObject);
+                            if (mats[j].name == mat.name)
+                            {
+                                mats[j] = new_mat;
+                                meshes.Add(renderers[i].gameObject);
+                            }
                         }
+                        renderers[i].sharedMaterials = mats;
                     }
-                    renderers[i].sharedMaterials = mats;
                 }
                 var skinned_renderers = avatar.GetComponentsInChildren<SkinnedMeshRenderer>(true);
-                for (int i = 0; i < skinned_renderers.Length; ++i)
+                if (skinned_renderers != null)
                 {
-                    var mats = skinned_renderers[i].sharedMaterials;
-                    for (int j = 0; j < mats.Length; ++j)
+                    for (int i = 0; i < skinned_renderers.Length; ++i)
                     {
-                        if (mats[j].name == mat.name)
+                        var mats = skinned_renderers[i].sharedMaterials;
+                        for (int j = 0; j < mats.Length; ++j)
                         {
-                            mats[j] = new_mat;
-                            meshes.Add(skinned_renderers[i].gameObject);
+                            if (mats[j].name == mat.name)
+                            {
+                                mats[j] = new_mat;
+                                meshes.Add(skinned_renderers[i].gameObject);
+                            }
                         }
+                        skinned_renderers[i].sharedMaterials = mats;
                     }
-                    skinned_renderers[i].sharedMaterials = mats;
                 }
                 //////////////////////////////////////////////////
             }
