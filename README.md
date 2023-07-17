@@ -30,9 +30,9 @@ OSC 프로그램으로 간편하게 비밀번호를 입력할 수 있습니다.
 
 텍스쳐 압축 포멧을 DXT1이나 DXT5중 하나로 바꿔주세요.
 
-**릴툰)Testor컴포넌트로 테스트 했을 때 원래대로 안 돌아오는 경우**
+**<릴툰)Testor컴포넌트로 테스트 했을 때 원래대로 안 돌아오는 경우>**
 
-Assets - liltoon - Refresh Shader을 눌러보세요.
+Assets - liltoon - Refresh Shader을 눌러보거나 유니티를 재실행 해보세요.
 
 ## 세부 원리
 SHA-256으로 키를 변형 후 XXTEA 알고리즘을 사용하여 메테리얼의 MainTexure를 암호화합니다.
@@ -106,9 +106,9 @@ You can easily enter the password with the OSC program.
 
 Please change the texture compression format to either DXT1 or DXT5.
 
-**liltoon)At testor component, it doesn't come back to normal**.
+**<liltoon)At testor component, it doesn't come back to normal>**.
 
-Try Assets - liltoon - Refresh Shader.
+Try Assets - liltoon - Refresh Shader. or restart unity.
 
 ## How it works
 Encrypt the texture using an XXTEA algorithm after transforming the key with SHA-256.
