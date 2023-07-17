@@ -32,7 +32,11 @@ OSC 프로그램으로 간편하게 비밀번호를 입력할 수 있습니다.
 
 **<릴툰)Testor컴포넌트로 테스트 했을 때 원래대로 안 돌아오는 경우>**
 
-Assets - liltoon - Refresh Shader을 눌러보거나 유니티를 재실행 해보세요.
+3가지 방법 중 하나를 해보세요.
+
+1. Assets - liltoon - Refresh Shader를 눌러보기
+2. 유니티를 재실행 해보세요.
+3. ShellProtect 폴더 안에 생긴 자기 아바타 폴더를 지우고 다시 암호화 하기
 
 ## 세부 원리
 SHA-256으로 키를 변형 후 XXTEA 알고리즘을 사용하여 메테리얼의 MainTexure를 암호화합니다.
@@ -108,7 +112,11 @@ Please change the texture compression format to either DXT1 or DXT5.
 
 **<liltoon)At testor component, it doesn't come back to normal>**.
 
-Try Assets - liltoon - Refresh Shader. or restart unity.
+Try one of three ways
+
+1. Click Assets - liltoon - Refresh Shader
+2. Try restarting Unity.
+3. Delete your own avatar folder inside the ShellProtect folder and re-encrypt it.
 
 ## How it works
 Encrypt the texture using an XXTEA algorithm after transforming the key with SHA-256.
