@@ -94,7 +94,7 @@ namespace Shell.Protector
 	key[0] = k[0];
 	key[1] = k[1];
 	key[2] = k[2];
-	key[3] = k[3];";
+	key[3] = k[3] ^ (uint)(floor(idx / 2) * 2);";
                     break;
                 case 4:
                     replace = "static const uint k[4] = { " + k0 + ", " + k1 + ", " + k2 + ", 0 };\n";

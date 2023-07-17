@@ -52,15 +52,20 @@ namespace Shell.Protector
 
             byte[] key = new byte[16] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
             byte[] key_bytes = Encoding.ASCII.GetBytes(_key1);
+
             byte[] key_bytes2 = Encoding.ASCII.GetBytes(_key2);
             byte[] hash = sha256.ComputeHash(key_bytes2);
 
             for (int i = 0; i < key_bytes.Length; ++i)
                 key[i] = key_bytes[i];
-            for (int i = 0; i < key_bytes2.Length; ++i)
-                key[i + (16 - key2_length)] = key_bytes2[i];
-            for (int i = 0; i < key2_length; ++i)
-                key[i + (16 - key2_length)] ^= hash[i];
+
+            if (key2_length > 0)
+            {
+                for (int i = 0; i < key_bytes2.Length; ++i)
+                    key[i + (16 - key2_length)] = key_bytes2[i];
+                for (int i = 0; i < key2_length; ++i)
+                    key[i + (16 - key2_length)] ^= hash[i];
+            }
             return key;
         }
         public byte[] GetKeyBytes()

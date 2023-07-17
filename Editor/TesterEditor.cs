@@ -64,9 +64,16 @@ namespace Shell.Protector
             
             GUILayout.Space(10);
 
-            GUILayout.Label(Lang("If it looks like its original appearance when pressed, it's a success."));
-            if (GUILayout.Button(Lang("Check encryption success")))
-                root.CheckEncryption();
+            if (root.user_key_length == 0)
+            {
+                GUILayout.Label(Lang("It's okay for the 0-digit password to be the same as the original."));
+            }
+            else
+            {
+                GUILayout.Label(Lang("If it looks like its original appearance when pressed, it's a success."));
+                if (GUILayout.Button(Lang("Check encryption success")))
+                    root.CheckEncryption();
+            }
             GUILayout.Label(Lang("Press it before uploading."));
             if (GUILayout.Button(Lang("Done & Reset")))
             {

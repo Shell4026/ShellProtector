@@ -48,7 +48,8 @@ public class LanguageManager
             { "16 (Unbreakable security)", "16 (뚫을 수 없는 보안)" },
             { "Parameters to be used:", "사용 예정 파라미터:" },
             { "Free parameter:", "여유 파라미터:" },
-            { "Not enough parameter space!", "파라미터 공간이 부족합니다!" }
+            { "Not enough parameter space!", "파라미터 공간이 부족합니다!" },
+            { "It's okay for the 0-digit password to be the same as the original.", "0자리 비밀번호는 원본과 외형이 같은 것이 정상입니다." }
 
         };
         languageMap.Add("kor", koreanStrings);
