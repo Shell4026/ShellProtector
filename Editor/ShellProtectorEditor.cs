@@ -162,13 +162,13 @@ namespace Shell.Protector
                 GUILayout.Label(Lang("This password should be memorized. (max:") + key_size.intValue + ")", EditorStyles.wordWrappedLabel);
                 GUILayout.EndHorizontal();
             }
-            var parameters = root.GetParameter();
             int free_parameter = -1;
 
             GUIStyle red_style = new GUIStyle(GUI.skin.label);
             red_style.normal.textColor = Color.red;
             red_style.wordWrap = true;
 
+            var parameters = root.GetParameter();
             if (parameters == null)
                 GUILayout.Label(Lang("Cannot find VRCExpressionParameters in your avatar!"), red_style);
             else
