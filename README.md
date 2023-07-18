@@ -50,7 +50,7 @@ SHA-256으로 키를 변형 후 XXTEA 알고리즘을 사용하여 메테리얼�
 MainTexture만 암호화 하기 때문에 메테리얼 내 다른 곳에 MainTexture와 동일한 텍스쳐를 쓴다면 보안을 위해 자동으로 빠집니다. 빠진 곳엔 적절한 텍스쳐를 채워 넣으세요.
 
 ## 성능에 영향은 없나요?
-메모리는 원본보다 조금 더 차지합니다. 2K DXT1 이미지 기준 2mb정도 커집니다.
+메모리는 원본보다 조금 더 차지합니다. 2K DXT1 이미지 기준 1mb정도 커집니다.
 
 같은 메테리얼 50개를 기준으로 평균 0.2ms ~ 0.8ms정도 느려집니다. 포이요미가 릴툰보다 성능이 좋았습니다.
 
@@ -128,7 +128,7 @@ Shaders and Materials are copied, so the original is not affected.
 Only the MainTexture is encrypted, so if you use the same texture elsewhere in the Material as the MainTexture, it will automatically be removed for security purposes. Fill in the gaps with the appropriate texture.
 
 ## Is there any performance impact?
-It takes up a little more memory than the original. It's about 2mb larger for a 2K DXT1 image.
+It takes up a little more memory than the original. It's about 1mb larger for a 2K DXT1 image.
 
 On average, it's about 0.2ms~0.8ms slower based on the same 50 materials. Poiyomi performed better than lilToon.
 
