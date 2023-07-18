@@ -128,39 +128,60 @@ public static class AnimatorManager
 
     public static void AddKeyLayer(AnimatorController anim, string animation_dir, int key_length)
     {
-        for(int i = 0; i < key_length; ++i)
+        anim.AddParameter(new AnimatorControllerParameter() { defaultFloat = 1.0f, name = "key_weight", type = AnimatorControllerParameterType.Float });
+        AnimatorStateMachine stateMachine = new AnimatorStateMachine
+        {
+            name = anim.MakeUniqueLayerName("ShellProtector"),
+            hideFlags = HideFlags.HideInHierarchy
+        };
+
+        anim.AddLayer(new AnimatorControllerLayer { name = stateMachine.name, defaultWeight = 1.0f, stateMachine = stateMachine });
+
+        var layer = anim.layers[anim.layers.Length - 1];
+        var state = layer.stateMachine.AddState("keys");
+
+        BlendTree tree_root = new BlendTree();
+        tree_root.name = "key_root";
+        tree_root.blendType = BlendTreeType.Direct;
+        tree_root.blendParameter = "key_weight";
+
+        state.motion = tree_root;
+
+        AssetDatabase.AddObjectToAsset(stateMachine, anim);
+        AssetDatabase.AddObjectToAsset(state, anim);
+        AssetDatabase.AddObjectToAsset(tree_root, anim);
+        for (int i = 0; i < key_length; ++i)
         {
             anim.AddParameter("key" + i, AnimatorControllerParameterType.Float);
 
-            AnimatorStateMachine stateMachine = new AnimatorStateMachine
-            {
-                name = anim.MakeUniqueLayerName("key" + i),
-                hideFlags = HideFlags.HideInHierarchy
-            };
-
-            anim.AddLayer(new AnimatorControllerLayer { name = stateMachine.name, defaultWeight = 1.0f, stateMachine = stateMachine });
- 
-            var layer = anim.layers[anim.layers.Length - 1];
-
-            var state = layer.stateMachine.AddState("key" + i);
-
-            BlendTree tree_root = new BlendTree();
-            tree_root.name = "key" + i;
-            tree_root.blendType = BlendTreeType.Simple1D;
-            tree_root.blendParameter = "key" + i;
-            tree_root.useAutomaticThresholds = false;
-
+            BlendTree tree_key = new BlendTree();
+            tree_key.name = "key" + i;
+            tree_key.blendType = BlendTreeType.Direct;
+            tree_key.blendParameter = "key_weight";
+            tree_key.blendType = BlendTreeType.Simple1D;
+            tree_key.blendParameter = "key" + i;
+            tree_key.useAutomaticThresholds = false;
+            
             Motion motion0 = AssetDatabase.LoadAssetAtPath(Path.Combine(animation_dir, "key" + i + ".anim"), typeof(AnimationClip)) as AnimationClip;
             Motion motion1 = AssetDatabase.LoadAssetAtPath(Path.Combine(animation_dir, "key" + i + "_2.anim"), typeof(AnimationClip)) as AnimationClip;
 
-            tree_root.AddChild(motion0, -1);
-            tree_root.AddChild(motion1, 1);
+            tree_key.AddChild(motion0, -1);
+            tree_key.AddChild(motion1, 1);
 
-            state.motion = tree_root;
-            AssetDatabase.AddObjectToAsset(stateMachine, anim);
-            AssetDatabase.AddObjectToAsset(state, anim);
-            AssetDatabase.AddObjectToAsset(tree_root, anim);
+            ChildMotion[] motions = tree_key.children;
+            for (int j = 0; j < motions.Length; ++j)
+                motions[j].timeScale = 10;
+            tree_key.children = motions;
+
+            tree_root.AddChild(tree_key);
+
+            AssetDatabase.AddObjectToAsset(tree_key, anim);
         }
+        ChildMotion[] children = tree_root.children;
+        for (int i = 0; i < children.Length; ++i)
+            children[i].directBlendParameter = "key_weight";
+
+        tree_root.children = children;
     }
 }
 #endif
