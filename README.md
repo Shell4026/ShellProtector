@@ -41,6 +41,7 @@ OSC 프로그램으로 간편하게 비밀번호를 입력할 수 있습니다.
 3. Assets - liltoon - Refresh Shader를 눌러보기 (오래 걸림!)
 
 **<특정 부위가 단색으로 보이는 경우>**
+
 릴툰의 경우 메테리얼의 메인 컬러 부분과 custom properties의 Encrypted texture부분에 암호화 된 텍스쳐가 빠져 있는지 확인하고 넣어주세요.
 
 포이요미의 경우 다시 암호화 해보세요.
@@ -128,6 +129,7 @@ Try one of three ways
 3. Click Assets - liltoon - Refresh Shader (It takes a while!)
 
 **<If certain areas look monochromatic>**
+
 For lilToon, check if the encrypted texture is missing from the main color part of the material and the Encrypted texture part of the custom properties and add it.
 
 For Poiyomi, try encrypting it again.
