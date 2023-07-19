@@ -34,9 +34,10 @@ OSC 프로그램으로 간편하게 비밀번호를 입력할 수 있습니다.
 
 3가지 방법 중 하나를 해보세요.
 
-1. Assets - liltoon - Refresh Shader를 눌러보기
+1. ShellProtect 폴더 안에 생긴 자기 아바타 폴더를 지우고 다시 암호화 하기
 2. 유니티를 재실행 해보세요.
-3. ShellProtect 폴더 안에 생긴 자기 아바타 폴더를 지우고 다시 암호화 하기
+3. Assets - liltoon - Refresh Shader를 눌러보기 (오래 걸림!)
+
 
 ## 세부 원리
 SHA-256으로 키를 변형 후 XXTEA 알고리즘을 사용하여 메테리얼의 MainTexure를 암호화합니다.
@@ -114,10 +115,10 @@ Please change the texture compression format to either DXT1 or DXT5.
 
 Try one of three ways
 
-1. Click Assets - liltoon - Refresh Shader
+1. Delete your own avatar folder inside the ShellProtect folder and re-encrypt it.
 2. Try restarting Unity.
-3. Delete your own avatar folder inside the ShellProtect folder and re-encrypt it.
-
+3. Click Assets - liltoon - Refresh Shader (It takes a while!)
+   
 ## How it works
 Encrypt the texture using an XXTEA algorithm after transforming the key with SHA-256.
 
