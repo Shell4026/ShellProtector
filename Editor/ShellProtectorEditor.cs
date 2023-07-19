@@ -241,17 +241,6 @@ namespace Shell.Protector
                 if (GUILayout.Button(Lang("XXTEA test")))
                     root.Test2();
 
-                if (GUILayout.Button("Go"))
-                {
-                    for (int i = 0; i < 16; ++i)
-                    {
-                        string anim = File.ReadAllText(Path.Combine(root.asset_dir, "Animations/key" + i + "_2.anim"));
-                        anim = Regex.Replace(anim, "attribute: material._Key\\d+", "attribute: material._Key" + i);
-                        File.WriteAllText(Path.Combine(root.asset_dir, "Animations/key" + i + "_2.anim"), anim);
-                    }
-                    AssetDatabase.Refresh();
-                }
-
                 GUILayout.Space(10);
 
                 texture_list.DoLayoutList();
