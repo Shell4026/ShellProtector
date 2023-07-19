@@ -1,10 +1,5 @@
 name: Build Repo Listing
 
-env:
-  CurrentPackageName: shell.protector
-  listPublishDirectory: Website
-  pathToCi: ci
-  
 on: 
   workflow_dispatch:
   workflow_run:
@@ -24,6 +19,10 @@ permissions:
 concurrency:
   group: "pages"
   cancel-in-progress: true
+  
+env:
+  listPublishDirectory: Website
+  pathToCi: ci
 
 jobs:
   
@@ -38,12 +37,12 @@ jobs:
       - uses: actions/checkout@v3 # check out this repo
       - uses: actions/checkout@v3 # check out automation repo
         with:
-          repository: vrchat-community/package-list-action
+          repository: orels1/package-list-action
           path: ${{env.pathToCi}}
           clean: false # otherwise the local repo will no longer be checked out
           
       - name: Restore Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v2
         with:
           path: |
             ${{env.pathToCi}}/.nuke/temp
@@ -51,12 +50,12 @@ jobs:
           key: ${{ runner.os }}-${{ hashFiles('**/global.json', '**/*.csproj') }}
           
       - name: Build Package Version Listing
-        run: ${{env.pathToCi}}/build.cmd BuildRepoListing --root ${{env.pathToCi}} --list-publish-directory $GITHUB_WORKSPACE/${{env.listPublishDirectory}} --current-package-name ${{env.CurrentPackageName}}
+        run: ${{env.pathToCi}}/build.cmd BuildRepoListing --root ${{env.pathToCi}} --list-publish-directory $GITHUB_WORKSPACE/${{env.listPublishDirectory}}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
  
       - name: Setup Pages
-        uses: actions/configure-pages@v3
+        uses: actions/configure-pages@v2
         
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
@@ -65,4 +64,4 @@ jobs:
           
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v2
+        uses: actions/deploy-pages@v1
