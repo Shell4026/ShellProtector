@@ -344,7 +344,7 @@ namespace Shell.Protector
             }
             else
             {
-                Debug.LogErrorFormat("{0} is not supported texture format!", tex.name);
+                Debug.LogErrorFormat("{0} is not supported texture format! supported type:DXT1, DXT5, RGB, RGBA", tex.name);
                 tmp[0] = null;
             }
             if (tmp[0])
