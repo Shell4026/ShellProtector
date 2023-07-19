@@ -40,6 +40,10 @@ OSC 프로그램으로 간편하게 비밀번호를 입력할 수 있습니다.
 2. 유니티를 재실행 해보세요.
 3. Assets - liltoon - Refresh Shader를 눌러보기 (오래 걸림!)
 
+**<특정 부위가 단색으로 보이는 경우>**
+릴툰의 경우 메테리얼의 메인 컬러 부분과 custom properties의 Encrypted texture부분에 암호화 된 텍스쳐가 빠져 있는지 확인하고 넣어주세요.
+
+포이요미의 경우 다시 암호화 해보세요.
 
 ## 세부 원리
 SHA-256으로 키를 변형 후 XXTEA 알고리즘을 사용하여 메테리얼의 MainTexure를 암호화합니다.
@@ -122,6 +126,11 @@ Try one of three ways
 1. Delete your own avatar folder inside the ShellProtect folder and re-encrypt it.
 2. Try restarting Unity.
 3. Click Assets - liltoon - Refresh Shader (It takes a while!)
+
+**<If certain areas look monochromatic>**
+For lilToon, check if the encrypted texture is missing from the main color part of the material and the Encrypted texture part of the custom properties and add it.
+
+For Poiyomi, try encrypting it again.
    
 ## How it works
 Encrypt the texture using an XXTEA algorithm after transforming the key with SHA-256.
