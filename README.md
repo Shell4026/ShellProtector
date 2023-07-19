@@ -28,7 +28,9 @@ OSC 프로그램으로 간편하게 비밀번호를 입력할 수 있습니다.
 ## 문제해결
 **<is not supported texture format! 에러>**
 
-텍스쳐 압축 포멧을 DXT1이나 DXT5중 하나로 바꿔주세요.
+텍스쳐를 선택 후 Inspector에서 압축 포멧을 DXT1이나 DXT5중 하나로 바꿔주세요. (투명도가 있는 텍스쳐는 DXT5)
+
+![texture](https://github.com/Shell4026/ShellProtector/assets/104874910/872f9d15-7b89-4381-b940-00514bd60638)
 
 **<릴툰)Testor컴포넌트로 테스트 했을 때 원래대로 안 돌아오는 경우>**
 
@@ -109,7 +111,9 @@ You can easily enter the password with the OSC program.
 ## Troubleshooting
 **<is not supported texture format! Error>**
 
-Please change the texture compression format to either DXT1 or DXT5.
+Select the texture and change the compression format to either DXT1 or DXT5 in the Inspector. (DXT5 for textures with transparency)
+
+![texture](https://github.com/Shell4026/ShellProtector/assets/104874910/872f9d15-7b89-4381-b940-00514bd60638)
 
 **<liltoon)At testor component, it doesn't come back to normal>**.
 
