@@ -1,0 +1,12 @@
+{
+  "name": "shell.protector",
+  "displayName": "Texture encryption for VRChat",
+  "version": "1.7.4",
+  "description": "Texture encryption for VRChat. Save avatars from ripping",
+  "gitDependencies": {},
+  "vpmDependencies": {},
+  "legacyFolders": {},
+  "legacyFiles": {},
+  "type": "tool",
+  "hideInEditor": false
+}
