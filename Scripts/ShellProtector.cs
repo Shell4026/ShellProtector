@@ -147,6 +147,11 @@ namespace Shell.Protector
 #endif
                 }
             }
+            if (mat.mainTexture == null)
+            {
+                Debug.LogErrorFormat("{0} : The mainTexture is empty. it will be skip.", mat.name);
+                return false;
+            }
             if (mat.mainTexture.width % 2 != 0 && mat.mainTexture.height % 2 != 0)
             {
                 Debug.LogErrorFormat("{0} : The texture size must be a multiple of 2!", mat.mainTexture.name);
