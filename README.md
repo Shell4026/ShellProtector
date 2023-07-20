@@ -20,7 +20,7 @@ OSC 프로그램으로 간편하게 비밀번호를 입력할 수 있습니다.
 5. 아바타를 업로드 합니다.
 
 ### 자신의 비밀번호가 4자리 이상인 경우 (OSC)
-1. Release에 있는 ShellProtectorOSC.zip을 다운 후 압축을 풀고 ShellProtectorOSC.exe를 실행시킵니다. (최초 한 번만 실행하거나 리셋 아바타를 사용한다면 계속 켜두세요.)
+1. Release에 있는 ShellProtectorOSC.zip을 다운 후 압축을 풀고 ShellProtectorOSC.exe를 실행시킵니다. (최초 한 번만 실행하면 됩니다. 리셋 아바타를 사용한다면 계속 켜두세요.)
 2. 업로드 한 아바타로 바꾼 후 OSC프로그램에서 사용자 비밀번호를 입력합니다.
 3. 만약 비밀번호가 바뀌어도 아바타의 외형에 변화가 없다면 VRChat에서 액션 메뉴 - Options - OSC - Reset Config를 눌러보세요.
 4. 그래도 문제가 있다면 C:\Users\유저\AppData\LocalLow\VRChat\VRChat\OSC 폴더를 지워보세요.
@@ -108,7 +108,7 @@ You can easily enter the password with the OSC program.
 5. Upload the avatar.
 
 ### If your password is more than 4 digits (OSC)
-1. Download ShellProtectorOSC.zip from the release, unzip it, and run ShellProtectorOSC.exe. (Run it only once, or keep it on if you're using a reset avatar).
+1. Download ShellProtectorOSC.zip from the release, unzip it, and run ShellProtectorOSC.exe. (You only need to run it once the first time. If you use a reset avatar, keep it on.)
 2. Replace your uploaded avatar and enter your user password in the OSC program.
 3. If changing the password doesn't change the appearance of your avatar, try going to the Action menu - Options - OSC - Reset Config in VRChat.
 4. If you're still having trouble, try clearing the C:\Users\UserName\AppData\LocalLow\VRChat\VRChat\OSC folder.
