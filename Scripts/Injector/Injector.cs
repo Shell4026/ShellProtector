@@ -98,47 +98,91 @@ namespace Shell.Protector
                     break;
                 case 4:
                     replace = "static const uint k[4] = { " + k0 + ", " + k1 + ", " + k2 + ", 0 };\n";
-                    replace += "int _Key0, _Key1, _Key2, _Key3;";
+                    replace += "float _Key0, _Key1, _Key2, _Key3;";
 
                     replace2 = @"
+    uint key0 = round(_Key0);
+    uint key1 = round(_Key1);
+    uint key2 = round(_Key2);
+    uint key3 = round(_Key3);
+
 	uint key[4];
 	key[0] = k[0];
 	key[1] = k[1];
 	key[2] = k[2];
-	key[3] = ((uint)(_Key0) | (uint)(_Key1 << 8) | (uint)(_Key2 << 16) | (uint)(_Key3 << 24)) ^ (uint)(floor(idx / 2) * 2);";
+	key[3] = ((uint)(key0) | (uint)(key1 << 8) | (uint)(key2 << 16) | (uint)(key3 << 24)) ^ (uint)(floor(idx / 2) * 2);";
                     break;
                 case 8:
                     replace = "static const uint k[4] = { " + k0 + ", " + k1 + ", 0, 0 };\n";
-                    replace += "int _Key0, _Key1, _Key2, _Key3, _Key4, _Key5, _Key6, _Key7;";
+                    replace += "float _Key0, _Key1, _Key2, _Key3, _Key4, _Key5, _Key6, _Key7;";
 
                     replace2 = @"
+    uint key0 = round(_Key0);
+    uint key1 = round(_Key1);
+    uint key2 = round(_Key2);
+    uint key3 = round(_Key3);
+    uint key4 = round(_Key4);
+    uint key5 = round(_Key5);
+    uint key6 = round(_Key6);
+    uint key7 = round(_Key7);
+
 	uint key[4];
 	key[0] = k[0];
 	key[1] = k[1];
-	key[2] = ((uint)(_Key0) | (uint)(_Key1 << 8) | (uint)(_Key2 << 16) | (uint)(_Key3 << 24));
-	key[3] = ((uint)(_Key4) | (uint)(_Key5 << 8) | (uint)(_Key6 << 16) | (uint)(_Key7 << 24)) ^ (uint)(floor(idx / 2) * 2);";
+	key[2] = ((uint)(key0) | (uint)(key1 << 8) | (uint)(key2 << 16) | (uint)(key3 << 24));
+	key[3] = ((uint)(key4) | (uint)(key5 << 8) | (uint)(key6 << 16) | (uint)(key7 << 24)) ^ (uint)(floor(idx / 2) * 2);";
                     break;
                 case 12:
                     replace = "static const uint k[4] = { " + k0 + ", 0, 0, 0 };\n";
-                    replace += "int _Key0, _Key1, _Key2, _Key3, _Key4, _Key5, _Key6, _Key7, _Key8, _Key9, _Key10, _Key11;";
+                    replace += "float _Key0, _Key1, _Key2, _Key3, _Key4, _Key5, _Key6, _Key7, _Key8, _Key9, _Key10, _Key11;";
 
                     replace2 = @"
+    uint key0 = round(_Key0);
+    uint key1 = round(_Key1);
+    uint key2 = round(_Key2);
+    uint key3 = round(_Key3);
+    uint key4 = round(_Key4);
+    uint key5 = round(_Key5);
+    uint key6 = round(_Key6);
+    uint key7 = round(_Key7);
+    uint key8 = round(_Key8);
+    uint key9 = round(_Key9);
+    uint key10 = round(_Key10);
+    uint key11 = round(_Key11);
+
 	uint key[4];
 	key[0] = k[0];
-	key[1] = ((uint)(_Key0) | (uint)(_Key1 << 8) | (uint)(_Key2 << 16) | (uint)(_Key3 << 24));
-	key[2] = ((uint)(_Key4) | (uint)(_Key5 << 8) | (uint)(_Key6 << 16) | (uint)(_Key7 << 24));
-	key[3] = ((uint)(_Key8) | (uint)(_Key9 << 8) | (uint)(_Key10 << 16) | (uint)(_Key11 << 24)) ^ (uint)(floor(idx / 2) * 2);";
+	key[1] = ((uint)(key0) | (uint)(key1 << 8) | (uint)(key2 << 16) | (uint)(key3 << 24));
+	key[2] = ((uint)(key4) | (uint)(key5 << 8) | (uint)(key6 << 16) | (uint)(key7 << 24));
+	key[3] = ((uint)(key8) | (uint)(key9 << 8) | (uint)(key10 << 16) | (uint)(key11 << 24)) ^ (uint)(floor(idx / 2) * 2);";
                     break;
                 default:
                     replace = "static const uint k[4] = { 0, 0, 0, 0 };\n";
-                    replace += "int _Key0, _Key1, _Key2, _Key3, _Key4, _Key5, _Key6, _Key7, _Key8, _Key9, _Key10, _Key11, _Key12, _Key13, _Key14, _Key15;";
+                    replace += "float _Key0, _Key1, _Key2, _Key3, _Key4, _Key5, _Key6, _Key7, _Key8, _Key9, _Key10, _Key11, _Key12, _Key13, _Key14, _Key15;";
 
                     replace2 = @"
+    uint key0 = round(_Key0);
+    uint key1 = round(_Key1);
+    uint key2 = round(_Key2);
+    uint key3 = round(_Key3);
+    uint key4 = round(_Key4);
+    uint key5 = round(_Key5);
+    uint key6 = round(_Key6);
+    uint key7 = round(_Key7);
+    uint key8 = round(_Key8);
+    uint key9 = round(_Key9);
+    uint key10 = round(_Key10);
+    uint key11 = round(_Key11);
+    uint key12 = round(_Key12);
+    uint key13 = round(_Key13);
+    uint key14 = round(_Key14);
+    uint key15 = round(_Key15);
+
 	uint key[4];
-	key[0] = ((uint)(_Key0) | (uint)(_Key1 << 8) | (uint)(_Key2 << 16) | (uint)(_Key3 << 24));
-	key[1] = ((uint)(_Key4) | (uint)(_Key5 << 8) | (uint)(_Key6 << 16) | (uint)(_Key7 << 24));
-	key[2] = ((uint)(_Key8) | (uint)(_Key9 << 8) | (uint)(_Key10 << 16) | (uint)(_Key11 << 24));
-	key[3] = ((uint)(_Key12) | (uint)(_Key13 << 8) | (uint)(_Key14 << 16) | (uint)(_Key15 << 24)) ^ (uint)(floor(idx / 2) * 2);";
+	key[0] = ((uint)(key0) | (uint)(key1 << 8) | (uint)(key2 << 16) | (uint)(key3 << 24));
+	key[1] = ((uint)(key4) | (uint)(key5 << 8) | (uint)(key6 << 16) | (uint)(key7 << 24));
+	key[2] = ((uint)(key8) | (uint)(key9 << 8) | (uint)(key10 << 16) | (uint)(key11 << 24));
+	key[3] = ((uint)(key12) | (uint)(key13 << 8) | (uint)(key14 << 16) | (uint)(key15 << 24)) ^ (uint)(floor(idx / 2) * 2);";
                     break;
             }
             

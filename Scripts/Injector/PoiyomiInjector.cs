@@ -54,7 +54,7 @@ namespace Shell.Protector
         _EncryptTex (""Encrypted"", 2D) = ""white"" { }";
 
                 for(int i = 0; i < user_key_length; ++i)
-                    properties += "_Key" + i + " (\"key" + i + "\", int) = 0\n";
+                    properties += "_Key" + i + " (\"key" + i + "\", float) = 0\n";
 
                 shader_data = shader_data.Insert(suffix_idx, properties);
             }
