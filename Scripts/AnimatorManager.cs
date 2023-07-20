@@ -126,7 +126,7 @@ public static class AnimatorManager
         AssetDatabase.Refresh();
     }
 
-    public static void AddKeyLayer(AnimatorController anim, string animation_dir, int key_length)
+    public static void AddKeyLayer(AnimatorController anim, string animation_dir, int key_length, float speed = 10.0f)
     {
         anim.AddParameter(new AnimatorControllerParameter() { defaultFloat = 1.0f, name = "key_weight", type = AnimatorControllerParameterType.Float });
         AnimatorStateMachine stateMachine = new AnimatorStateMachine
@@ -170,7 +170,7 @@ public static class AnimatorManager
 
             ChildMotion[] motions = tree_key.children;
             for (int j = 0; j < motions.Length; ++j)
-                motions[j].timeScale = 10;
+                motions[j].timeScale = speed;
             tree_key.children = motions;
 
             tree_root.AddChild(tree_key);

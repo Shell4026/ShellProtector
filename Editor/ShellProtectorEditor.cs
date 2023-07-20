@@ -26,6 +26,7 @@ namespace Shell.Protector
         SerializedProperty algorithm;
         SerializedProperty key_size;
         SerializedProperty key_size_idx;
+        SerializedProperty animation_speed;
 
         bool debug = false;
         bool option = true;
@@ -91,6 +92,7 @@ namespace Shell.Protector
             algorithm = serializedObject.FindProperty("algorithm");
             key_size = serializedObject.FindProperty("key_size");
             key_size_idx = serializedObject.FindProperty("key_size_idx");
+            animation_speed = serializedObject.FindProperty("animation_speed");
 
             filters[0] = "Point";
             filters[1] = "Bilinear";
@@ -220,6 +222,13 @@ namespace Shell.Protector
                         break;
                 }
 
+                GUILayout.Label(Lang("Initial animation speed"), EditorStyles.boldLabel);
+                GUILayout.BeginHorizontal();
+                animation_speed.floatValue = GUILayout.HorizontalSlider(animation_speed.floatValue, 1.0f, 128.0f, GUILayout.Width(100));
+                animation_speed.floatValue = EditorGUILayout.FloatField("", animation_speed.floatValue, GUILayout.Width(50));
+                GUILayout.FlexibleSpace();
+                GUILayout.Label(Lang("Avatar first load animation speed"));
+                GUILayout.EndHorizontal();
                 GUILayout.Space(10);
             }
 

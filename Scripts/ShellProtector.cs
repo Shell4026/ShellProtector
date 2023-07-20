@@ -45,7 +45,8 @@ namespace Shell.Protector
         int key_size_idx = 0;
         [SerializeField]
         int key_size = 4;
-
+        [SerializeField]
+        float animation_speed = 10.0f;
         public static byte[] MakeKeyBytes(string _key1, string _key2, int key2_length = 4)
         {
             SHA256 sha256 = SHA256.Create();
@@ -318,10 +319,12 @@ namespace Shell.Protector
             }
             EditorUtility.ClearProgressBar();
 
+            ///////////////////////parameter////////////////////
             var av3 = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
             av3.expressionParameters = ParameterManager.AddKeyParameter(av3.expressionParameters, key_size);
             AssetDatabase.CreateAsset(av3.expressionParameters, asset_dir + "/" + gameObject.name + "/" + av3.expressionParameters.name + ".asset");
 
+            ///////////////////////animator////////////////////
             var fx = AnimatorManager.DuplicateAnimator(av3.baseAnimationLayers[4].animatorController, Path.Combine(asset_dir, gameObject.name));
             av3.baseAnimationLayers[4].animatorController = fx;
             string animation_dir = Path.Combine(asset_dir, gameObject.name, "animations");
@@ -329,10 +332,11 @@ namespace Shell.Protector
             GameObject[] mesh_array = new GameObject[meshes.Count];
             meshes.CopyTo(mesh_array);
             AnimatorManager.DuplicateAniamtions(Path.Combine(asset_dir, "Animations"), animation_dir, mesh_array);
-            AnimatorManager.AddKeyLayer(fx, animation_dir, key_size);
+            AnimatorManager.AddKeyLayer(fx, animation_dir, key_size, animation_speed);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
+            ////////////////////////////////////////////////////
 
             gameObject.SetActive(false);
             var tester = avatar.AddComponent<ShellProtectorTester>();
