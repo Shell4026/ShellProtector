@@ -53,9 +53,9 @@ public static class AnimatorManager
         inWeight: 0.33333334
         outWeight: 0.33333334
       - serializedVersion: 3
-        time: 2.1166666
-        value: 255
-        inSlope: 60.000004
+        time: 2.1333334
+        value: 256
+        inSlope: 59.999996
         outSlope: 60
         tangentMode: 69
         weightedMode: 0
