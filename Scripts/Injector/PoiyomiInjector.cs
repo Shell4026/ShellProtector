@@ -10,7 +10,7 @@ namespace Shell.Protector
 {
     public class PoiyomiInjector : Injector
     {
-        public override Shader Inject(Material mat, string decode_dir, Texture2D tex)
+        public override Shader Inject(Material mat, string decode_dir, Texture2D tex, bool has_lim_texture = false, bool has_lim_texture2 = false, bool outline_tex = false)
         {
             if (!File.Exists(decode_dir))
             {
@@ -131,6 +131,14 @@ namespace Shell.Protector
                         {
                             shader_data = Regex.Replace(shader_data, "DecryptTextureXXTEA", "DecryptTextureXXTEARGBA");
                         }
+
+                        if (has_lim_texture)
+                            shader_data = Regex.Replace(shader_data, @"float4 rimColor = .*?_RimTex.*?;", "float4 rimColor = mainTexture;");
+                        if(has_lim_texture2)
+                            shader_data = Regex.Replace(shader_data, @"float4 rim2Color = .*?_Rim2Tex.*?;", "float4 rim2Color = mainTexture;");
+                        if(outline_tex)
+                            shader_data = Regex.Replace(shader_data, @"float4 col = .*?_OutlineTexture.*?;", "float4 col = float4(poiFragData.baseColor, poiFragData.alpha);");
+
                         break;
                     }
             }

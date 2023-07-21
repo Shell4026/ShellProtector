@@ -10,7 +10,7 @@ namespace Shell.Protector
 {
     public class LilToonInjector : Injector
     {
-        public override Shader Inject(Material mat, string decode_dir, Texture2D tex)
+        public override Shader Inject(Material mat, string decode_dir, Texture2D tex, bool has_lim_texture = false, bool has_lim_texture2 = false, bool outline_tex = false)
         {
             if (!File.Exists(decode_dir))
             {

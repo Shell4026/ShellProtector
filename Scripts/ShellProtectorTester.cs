@@ -16,6 +16,11 @@ namespace Shell.Protector
 
         public void CheckEncryption()
         {
+            if(protector == null)
+            {
+                Debug.LogWarning("First, you need to set protector");
+                return;
+            }
             byte[] pwd_bytes = protector.GetKeyBytes();
 
             var renderers = GetComponentsInChildren<MeshRenderer>(true);

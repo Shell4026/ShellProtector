@@ -227,17 +227,60 @@ namespace Shell.Protector
                     AssetDatabase.Refresh();
                 }
 
-                Texture2D main_texture = (Texture2D)mat.mainTexture; 
+                Texture2D main_texture = (Texture2D)mat.mainTexture;
                 SetRWEnableTexture(main_texture);
                 SetCrunchCompression(main_texture, false);
+
+                Texture2D lim_texture = null;
+                Texture2D lim_texture2 = null;
+                Texture2D outline_texture = null;
+
+                if (shader_manager.IsPoiyomi(mat.shader))
+                {
+                    var tex_properties = mat.GetTexturePropertyNames();
+                    foreach(var t in tex_properties)
+                    {
+                        if(t == "_RimTex")
+                            lim_texture = (Texture2D)mat.GetTexture(t);
+                        else if(t == "_Rim2Tex")
+                            lim_texture2 = (Texture2D)mat.GetTexture(t);
+                        else if(t == "_OutlineTexture")
+                            outline_texture = (Texture2D)mat.GetTexture(t);
+                    }
+                }
+                else if (shader_manager.IslilToon(mat.shader))
+                {
+                    lim_texture = (Texture2D)mat.GetTexture("");
+                    lim_texture2 = (Texture2D)mat.GetTexture("");
+                    outline_texture = (Texture2D)mat.GetTexture("");
+                }
+                bool has_lim_texture = false;
+                bool has_lim_texture2 = false;
+                bool has_outline_texture = false;
+                if (lim_texture != null)
+                {
+                    if (main_texture.GetInstanceID() == lim_texture.GetInstanceID())
+                        has_lim_texture = true;
+                }
+                if (lim_texture2 != null)
+                {
+                    if (main_texture.GetInstanceID() == lim_texture.GetInstanceID())
+                        has_lim_texture2 = true;
+                }
+                if (outline_texture != null)
+                {
+                    if (main_texture.GetInstanceID() == outline_texture.GetInstanceID())
+                        has_outline_texture = true;
+                }
 
                 Texture2D[] encrypted_tex = encrypt.TextureEncryptXXTEA(main_texture, key_bytes);
                 if (encrypted_tex[0] == null)
                     continue;
+
                 Shader encrypted_shader;
                 try
                 {
-                    encrypted_shader = injector.Inject(mat, asset_dir + "/Decrypt.cginc", encrypted_tex[0]);
+                    encrypted_shader = injector.Inject(mat, asset_dir + "/Decrypt.cginc", encrypted_tex[0], has_lim_texture, has_lim_texture2, has_outline_texture);
                     if (encrypted_shader == null)
                     {
                         Debug.LogWarning("Injection failed");
@@ -287,7 +330,9 @@ namespace Shell.Protector
                 //Remove Duplicate Textures
                 foreach (var name in new_mat.GetTexturePropertyNames()) 
                 {
-                    if (new_mat.GetTexture(name) == original_tex)
+                    if (new_mat.GetTexture(name) == null)
+                        continue;
+                    if (new_mat.GetTexture(name).GetInstanceID() == original_tex.GetInstanceID())
                         new_mat.SetTexture(name, null);
                 }
                 ///////////////////////////
