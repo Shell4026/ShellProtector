@@ -144,6 +144,27 @@
 	LIL_APPLY_MAIN_TONECORRECTION\
 	fd.col *= _Color;
 
+	#if defined(OUTLINE_ENCRYPTED)
+		#define OVERRIDE_OUTLINE_COLOR \
+			LIL_GET_OUTLINE_TEX \
+			fd.col *= 0.0001;\
+			float4 mip_texture = tex2D(_MipTex, fd.uvMain);\
+			float2 uv = fd.uv0;\
+			int mip = round(mip_texture.r * 255 / 10);\
+			int m[13] = { 0, 0, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };\
+			\
+			float4 c00 = DecryptTextureXXTEADXT(uv, m[mip]);\
+			fd.col += c00;\
+			LIL_APPLY_OUTLINE_TONECORRECTION \
+			LIL_APPLY_OUTLINE_COLOR
+	#endif
+	#if defined(LIL_LITE)
+		#define OVERRIDE_RIMLIGHT \
+			lilGetRim(fd);
+	#else
+		#define OVERRIDE_RIMLIGHT \
+			lilGetRim(fd LIL_SAMP_IN(sampler_MainTex));
+	#endif
 //----------------------------------------------------------------------------------------------------------------------
 // Information about variables
 //----------------------------------------------------------------------------------------------------------------------

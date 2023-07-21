@@ -250,9 +250,14 @@ namespace Shell.Protector
                 }
                 else if (shader_manager.IslilToon(mat.shader))
                 {
-                    lim_texture = (Texture2D)mat.GetTexture("");
-                    lim_texture2 = (Texture2D)mat.GetTexture("");
-                    outline_texture = (Texture2D)mat.GetTexture("");
+                    var tex_properties = mat.GetTexturePropertyNames();
+                    foreach (var t in tex_properties)
+                    {
+                        if(t == "_RimColorTex")
+                            lim_texture = (Texture2D)mat.GetTexture(t);
+                        if (t == "_OutlineTex")
+                            outline_texture = (Texture2D)mat.GetTexture(t);
+                    }
                 }
                 bool has_lim_texture = false;
                 bool has_lim_texture2 = false;
@@ -326,6 +331,26 @@ namespace Shell.Protector
 
                 if (encrypted_tex[1] != null)
                     new_mat.SetTexture("_EncryptTex", encrypted_tex[1]);
+
+                if(has_lim_texture)
+                {
+                    if (shader_manager.IsPoiyomi(mat.shader))
+                        new_mat.SetTexture("_RimTex", encrypted_tex[0]);
+                    else if (shader_manager.IslilToon(mat.shader))
+                        new_mat.SetTexture("_RimColorTex", encrypted_tex[0]);
+                }
+                if(has_lim_texture2)
+                {
+                    if (shader_manager.IsPoiyomi(mat.shader))
+                        new_mat.SetTexture("_Rim2Tex", encrypted_tex[0]);
+                }
+                if(has_outline_texture)
+                {
+                    if (shader_manager.IsPoiyomi(mat.shader))
+                        new_mat.SetTexture("_OutlineTexture", encrypted_tex[0]);
+                    else if(shader_manager.IslilToon(mat.shader))
+                        new_mat.SetTexture("_OutlineTex", encrypted_tex[0]);
+                }    
 
                 //Remove Duplicate Textures
                 foreach (var name in new_mat.GetTexturePropertyNames()) 

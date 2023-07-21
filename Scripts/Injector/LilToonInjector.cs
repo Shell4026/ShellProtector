@@ -10,6 +10,7 @@ namespace Shell.Protector
 {
     public class LilToonInjector : Injector
     {
+        string output_dir;
         public override Shader Inject(Material mat, string decode_dir, Texture2D tex, bool has_lim_texture = false, bool has_lim_texture2 = false, bool outline_tex = false)
         {
             if (!File.Exists(decode_dir))
@@ -30,23 +31,64 @@ namespace Shell.Protector
             string shader_folder = Path.GetDirectoryName(shader_dir);
 
             string shader_data;
-            string output_dir = asset_dir + '/' + target.name + "/shader/" + mat.name;
+            output_dir = Path.Combine(asset_dir, target.name, "shader", mat.name);
 
-            string[] files = Directory.GetFiles(asset_dir + "/lilToonCustom/Shaders/");
+            CopyShaderFiles(shader_name);
+
+            ProcessCustom(tex, has_lim_texture, outline_tex);
+
+            ChangeShaderName();
+
+            string decode = GenerateDecoder(decode_dir, tex);
+            File.WriteAllText(output_dir + "/Decrypt.cginc", decode);
+
+            shader_data = File.ReadAllText(Path.Combine(output_dir, shader_name + ".lilcontainer"));
+            shader_data.Insert(0, "//ShellProtect\n");
+            File.WriteAllText(Path.Combine(output_dir, shader_name + ".lilcontainer"), shader_data);
+            AssetDatabase.Refresh();
+
+            Shader new_shader = AssetDatabase.LoadAssetAtPath(output_dir + "/" + shader_name + ".lilcontainer", typeof(Shader)) as Shader;
+            return new_shader;
+        }
+        private void CopyShaderFiles(string original_shader_name)
+        {
+            string[] files = Directory.GetFiles(Path.Combine(asset_dir, "lilToonCustom", "Shaders"));
+            string pass = "qwerty";
+            foreach (string file in files)
+            {
+                string filename = Path.GetFileName(file);
+                if (filename.Contains(original_shader_name))
+                {
+                    string f = File.ReadAllText(file);
+                    Match match = Regex.Match(f, "lilPassShaderName \".*/(.*?)\"");
+                    if (match.Success)
+                        pass = match.Groups[1].Value;
+                    break;
+                }
+            }
             foreach (string file in files)
             {
                 string filename = Path.GetFileName(file);
                 if (filename.Contains(".meta"))
                     continue;
+                if (filename.Contains(".lilcontainer"))
+                {
+                    if (filename != original_shader_name + ".lilcontainer" && filename != pass + ".lilcontainer")
+                        continue;
+                }
                 File.Copy(file, Path.Combine(output_dir, filename), true);
             }
-            shader_data = File.ReadAllText(output_dir + "/lilCustomShaderDatas.lilblock");
-            shader_data = shader_data.Replace("ShaderName \"hidden/ShellProtector\"", "ShaderName \"hidden/ShellProtector_" + target.GetInstanceID() + "\"");
-            File.WriteAllText(output_dir + "/lilCustomShaderDatas.lilblock", shader_data);
+        }
+        private void ProcessCustom(Texture2D tex, bool lim, bool outline)
+        {
+            string path = Path.Combine(output_dir, "custom.hlsl");
+            string custom = File.ReadAllText(path);
+            if(outline)
+            {
+                custom = custom.Insert(0, "#define OUTLINE_ENCRYPTED\n");
+            }
 
-            shader_data = File.ReadAllText(output_dir + "/custom.hlsl");
             int code = 0;
-
             if (filter == 0)
             {
                 if (tex.format == TextureFormat.DXT1 || tex.format == TextureFormat.DXT5)
@@ -69,19 +111,15 @@ namespace Shell.Protector
                         code = 1;
                 }
             }
-            shader_data = Regex.Replace(shader_data, "const int code = 0;", "const int code = " + code + ";");
-            File.WriteAllText(output_dir + "/custom.hlsl", shader_data);
+            custom = Regex.Replace(custom, "const int code = 0;", "const int code = " + code + ";");
 
-            string decode = GenerateDecoder(decode_dir, tex);
-            File.WriteAllText(output_dir + "/Decrypt.cginc", decode);
-
-            shader_data = File.ReadAllText(output_dir + "/" + shader_name + ".lilcontainer");
-            shader_data.Insert(0, "//ShellProtect");
-            File.WriteAllText(output_dir + "/" + shader_name + ".lilcontainer", shader_data);
-            AssetDatabase.Refresh();
-
-            Shader new_shader = AssetDatabase.LoadAssetAtPath(output_dir + "/" + shader_name + ".lilcontainer", typeof(Shader)) as Shader;
-            return new_shader;
+            File.WriteAllText(output_dir + "/custom.hlsl", custom);
+        }
+        private void ChangeShaderName()
+        {
+            string shader_data = File.ReadAllText(Path.Combine(output_dir, "lilCustomShaderDatas.lilblock"));
+            shader_data = shader_data.Replace("ShaderName \"hidden/ShellProtector\"", "ShaderName \"hidden/ShellProtector_" + target.GetInstanceID() + "\"");
+            File.WriteAllText(output_dir + "/lilCustomShaderDatas.lilblock", shader_data);
         }
     }
 }
