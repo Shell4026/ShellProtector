@@ -287,8 +287,12 @@ namespace Shell.Protector
                     for (int i = 0; i < renderers.Length; ++i)
                     {
                         var mats = renderers[i].sharedMaterials;
+                        if (mats == null)
+                            continue;
                         for (int j = 0; j < mats.Length; ++j)
                         {
+                            if (mats[j] == null)
+                                continue;
                             if (mats[j].name == mat.name)
                             {
                                 mats[j] = new_mat;
@@ -304,8 +308,12 @@ namespace Shell.Protector
                     for (int i = 0; i < skinned_renderers.Length; ++i)
                     {
                         var mats = skinned_renderers[i].sharedMaterials;
+                        if (mats == null)
+                            continue;
                         for (int j = 0; j < mats.Length; ++j)
                         {
+                            if (mats[j] == null)
+                                continue;
                             if (mats[j].name == mat.name)
                             {
                                 mats[j] = new_mat;
