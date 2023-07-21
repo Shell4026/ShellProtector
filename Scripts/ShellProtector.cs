@@ -163,6 +163,17 @@ namespace Shell.Protector
                 Debug.LogWarning(mat.name + ": The shader is already encrypted.");
                 return false;
             }
+            var av3 = gameObject.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
+            if (av3 == null)
+            {
+                Debug.LogWarning(gameObject.name + ": can't find VRCAvatarDescriptor!");
+                return false;
+            }
+            if(av3.expressionParameters == null)
+            {
+                Debug.LogWarning(gameObject.name + ": can't find expressionParmeters!");
+                return false;
+            }
             return true;
         }
 

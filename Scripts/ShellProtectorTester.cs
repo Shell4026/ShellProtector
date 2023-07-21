@@ -22,9 +22,16 @@ namespace Shell.Protector
             foreach(var r in renderers)
             {
                 var mats = r.sharedMaterials;
-                foreach(var mat in mats)
+                if (mats == null)
                 {
-                    if(mat.name.Contains("_encrypted"))
+                    Debug.LogWarning(r.gameObject.name + ": can't find sharedMaterials");
+                    continue;
+                }
+                foreach (var mat in mats)
+                {
+                    if (mat == null)
+                        continue;
+                    if (mat.name.Contains("_encrypted"))
                     {
                         for(int i = 0; i < user_key_length; ++i)
                             mat.SetInt("_Key" + i, pwd_bytes[16 - user_key_length + i]);
@@ -35,8 +42,15 @@ namespace Shell.Protector
             foreach (var r in skinned_renderers)
             {
                 var mats = r.sharedMaterials;
+                if (mats == null)
+                {
+                    Debug.LogWarning(r.gameObject.name + ": can't find sharedMaterials");
+                    continue;
+                }
                 foreach (var mat in mats)
                 {
+                    if (mat == null)
+                        continue;
                     if (mat.name.Contains("_encrypted"))
                     {
                         for (int i = 0; i < user_key_length; ++i)
@@ -51,8 +65,15 @@ namespace Shell.Protector
             foreach (var r in renderers)
             {
                 var mats = r.sharedMaterials;
+                if (mats == null)
+                {
+                    Debug.LogWarning(r.gameObject.name + ": can't find sharedMaterials");
+                    continue;
+                }
                 foreach (var mat in mats)
                 {
+                    if (mat == null)
+                        continue;
                     if (mat.name.Contains("_encrypted"))
                     {
                         for (int i = 0; i < 16; ++i)
@@ -64,8 +85,15 @@ namespace Shell.Protector
             foreach (var r in skinned_renderers)
             {
                 var mats = r.sharedMaterials;
+                if (mats == null)
+                {
+                    Debug.LogWarning(r.gameObject.name + ": can't find sharedMaterials");
+                    continue;
+                }
                 foreach (var mat in mats)
                 {
+                    if (mat == null)
+                        continue;
                     if (mat.name.Contains("_encrypted"))
                     {
                         for (int i = 0; i < 16; ++i)
