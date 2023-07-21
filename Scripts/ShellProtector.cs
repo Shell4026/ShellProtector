@@ -193,6 +193,8 @@ namespace Shell.Protector
             int progress = 0;
             foreach (var mat in material_list)
             {
+                if (mat == null)
+                    continue;
                 EditorUtility.DisplayProgressBar("Encrypt...", "Encrypt Progress " + ++progress + " of " + material_list.Count, (float)progress / (float)material_list.Count);
                 injector = InjectorFactory.GetInjector(mat.shader);
                 if (injector == null)
