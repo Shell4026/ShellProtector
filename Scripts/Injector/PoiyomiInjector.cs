@@ -42,27 +42,9 @@ namespace Shell.Protector
             string shader_data = File.ReadAllText(Path.Combine(output_path, shader_name));
             shader_data = shader_data.Insert(0, "//ShellProtect\n");
 
-            shader_data = Regex.Replace(shader_data, "Shader \"(.*?)\"", "Shader \"$1_encrypted\""); //shader name change
-
-            //properties insert
-            Match match = Regex.Match(shader_data, "Properties\\W*{");
-            if (match.Success)
-            {
-                int suffix_idx = match.Index + match.Length;
-                string properties = @"
-        _MipTex (""MipReference"", 2D) = ""white"" { }
-        _EncryptTex (""Encrypted"", 2D) = ""white"" { }";
-
-                for(int i = 0; i < user_key_length; ++i)
-                    properties += "_Key" + i + " (\"key" + i + "\", float) = 0\n";
-
-                shader_data = shader_data.Insert(suffix_idx, properties);
-            }
-            else
-            {
-                Debug.LogError("Wrong shader data!");
+            InsertProperties(ref shader_data);
+            if (shader_data == null)
                 return null;
-            }
 
             string declare = @"
             UNITY_DECLARE_TEX2D(_MainTex);
@@ -153,6 +135,31 @@ namespace Shell.Protector
 
             Shader return_shader = AssetDatabase.LoadAssetAtPath(output_path + '/' + shader_name, typeof(Shader)) as Shader;
             return return_shader;
+        }
+
+        private void InsertProperties(ref string data)
+        {
+            data = Regex.Replace(data, "Shader \"(.*?)\"", "Shader \"$1_encrypted\""); //shader name change
+
+            //properties insert
+            Match match = Regex.Match(data, "Properties\\W*{");
+            if (match.Success)
+            {
+                int suffix_idx = match.Index + match.Length;
+                string properties = @"
+        _MipTex (""MipReference"", 2D) = ""white"" { }
+        _EncryptTex (""Encrypted"", 2D) = ""white"" { }";
+
+                for (int i = 0; i < user_key_length; ++i)
+                    properties += "_Key" + i + " (\"key" + i + "\", float) = 0\n";
+
+                data = data.Insert(suffix_idx, properties);
+            }
+            else
+            {
+                Debug.LogError("Wrong shader data!");
+                data = null;
+            }
         }
     }
 }
