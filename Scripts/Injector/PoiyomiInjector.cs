@@ -20,15 +20,15 @@ namespace Shell.Protector
 
             Shader shader = mat.shader;
 
-            if (!AssetDatabase.IsValidFolder(asset_dir + '/' + target.name + "/shader/" + mat.name))
+            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, target.name, "shader", mat.name)))
             {
-                AssetDatabase.CreateFolder(asset_dir + '/' + target.name + "/shader", mat.name);
+                AssetDatabase.CreateFolder(Path.Combine(asset_dir, target.name, "shader"), mat.name);
                 AssetDatabase.Refresh();
             }
 
             string shader_path = AssetDatabase.GetAssetPath(shader);
             string shader_name = Path.GetFileName(shader_path);
-            string output_path = asset_dir + '/' + target.name + "/shader/" + mat.name;
+            string output_path = Path.Combine(asset_dir, target.name, "shader", mat.name);
 
             string[] files = Directory.GetFiles(Path.GetDirectoryName(shader_path));
             foreach (string file in files)
@@ -39,7 +39,7 @@ namespace Shell.Protector
                 File.Copy(file, Path.Combine(output_path, filename), true);
             }
 
-            string shader_data = File.ReadAllText(output_path + "/" + shader_name);
+            string shader_data = File.ReadAllText(Path.Combine(output_path, shader_name));
             shader_data = shader_data.Insert(0, "//ShellProtect\n");
 
             shader_data = Regex.Replace(shader_data, "Shader \"(.*?)\"", "Shader \"$1_encrypted\""); //shader name change
