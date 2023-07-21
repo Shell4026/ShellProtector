@@ -119,7 +119,7 @@ namespace Shell.Protector
                         if(has_lim_texture2)
                             shader_data = Regex.Replace(shader_data, @"float4 rim2Color = .*?_Rim2Tex.*?;", "float4 rim2Color = mainTexture;");
                         if(outline_tex)
-                            shader_data = Regex.Replace(shader_data, @"float4 col = .*?_OutlineTexture.*?;", "float4 col = float4(poiFragData.baseColor, poiFragData.alpha);");
+                            shader_data = Regex.Replace(shader_data, @"float4 col = .*?_OutlineTexture.*?\* float4(.*?);", "float4 col = float4(poiFragData.baseColor, poiFragData.alpha) * float4$1;");
 
                         break;
                     }
