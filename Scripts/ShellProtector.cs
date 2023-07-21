@@ -350,7 +350,9 @@ namespace Shell.Protector
                         new_mat.SetTexture("_OutlineTexture", encrypted_tex[0]);
                     else if(shader_manager.IslilToon(mat.shader))
                         new_mat.SetTexture("_OutlineTex", encrypted_tex[0]);
-                }    
+                }
+
+                new_mat.renderQueue = mat.renderQueue;
 
                 //Remove Duplicate Textures
                 foreach (var name in new_mat.GetTexturePropertyNames()) 
