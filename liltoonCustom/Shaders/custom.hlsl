@@ -143,6 +143,9 @@
 	\
 	LIL_APPLY_MAIN_TONECORRECTION\
 	fd.col *= _Color;
+	
+#define OVERRIDE_MATCAP \
+	lilGetMatCap(fd, _MipTex);
 
 #if defined(OUTLINE_ENCRYPTED)
 	#define OVERRIDE_OUTLINE_COLOR \
@@ -169,7 +172,7 @@
 				float4 rimColor = _RimColor;\
 				float4 rimIndirColor = _RimIndirColor;
 			#define A2\
-				float4 rimColorTex = float4(fd.albedo, 1.0);\
+				float4 rimColorTex = fd.col;\
 				rimColor *= rimColorTex;\
 				rimIndirColor *= rimColorTex;
 			#define A3 \
