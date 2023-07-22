@@ -67,18 +67,15 @@ namespace Shell.Protector
 
                         string shader_code = shader_code_nofilter_XXTEA;
                         if (filter == 0)
-                        {
                             shader_code = shader_code_nofilter_XXTEA;
-                        }
                         else if (filter == 1)
-                        {
                             shader_code = shader_code_bilinear_XXTEA;
-                        }
+
                         frag = Regex.Replace(frag, "float4 mainTexture = .*?;", shader_code);
                         frag = Regex.Replace(frag, "float4 mip_texture = _MipTex.Sample\\(sampler_MipTex, .*?\\);", "float4 mip_texture = _MipTex.Sample(sampler_MipTex, poiMesh.uv[0]);");
                         if (tex.format == TextureFormat.DXT1)
                         {
-                            frag = Regex.Replace(frag, "DecryptTextureXXTEA", "DecryptTextureXXTEADXT1");
+                            frag = Regex.Replace(frag, "DecryptTextureXXTEA", "DecryptTextureXXTEADXT");
                         }
                         else if (EncryptTexture.HasAlpha(tex))
                         {
@@ -97,13 +94,10 @@ namespace Shell.Protector
                         shader_data = Regex.Replace(shader_data, "float4 frag\\(", "#include \"Decrypt.cginc\"\n\t\t\tfloat4 frag(");
                         string shader_code = shader_code_nofilter_XXTEA;
                         if (filter == 0)
-                        {
                             shader_code = shader_code_nofilter_XXTEA;
-                        }
                         else if (filter == 1)
-                        {
                             shader_code = shader_code_bilinear_XXTEA;
-                        }
+
                         shader_data = Regex.Replace(shader_data, "float4 mainTexture = .*?;", shader_code);
                         if(tex.format == TextureFormat.DXT1 || tex.format == TextureFormat.DXT5)
                         {
