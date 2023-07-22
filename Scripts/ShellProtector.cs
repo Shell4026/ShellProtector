@@ -269,7 +269,7 @@ namespace Shell.Protector
                 }
                 if (lim_texture2 != null)
                 {
-                    if (main_texture.GetInstanceID() == lim_texture.GetInstanceID())
+                    if (main_texture.GetInstanceID() == lim_texture2.GetInstanceID())
                         has_lim_texture2 = true;
                 }
                 if (outline_texture != null)
@@ -364,7 +364,9 @@ namespace Shell.Protector
                 }
                 ///////////////////////////
                 
-                AssetDatabase.CreateAsset(new_mat, asset_dir + '/' + gameObject.name + "/mat/" + mat.name + "_encrypted.mat");
+                AssetDatabase.CreateAsset(new_mat, Path.Combine(asset_dir, gameObject.name, "mat", mat.name + "_encrypted.mat"));
+                AssetDatabase.SaveAssets();
+                AssetDatabase.Refresh();
 
                 var renderers = avatar.GetComponentsInChildren<MeshRenderer>(true);
                 if (renderers != null)
