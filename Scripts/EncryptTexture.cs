@@ -116,8 +116,6 @@ namespace Shell.Protector
                 return null;
             }
 
-            int mip_lv = GetCanMipmapLevel(tex.width, tex.height);
-
             Texture2D[] tmp = new Texture2D[2];
 
             uint[] key_uint = new uint[4];
@@ -128,6 +126,7 @@ namespace Shell.Protector
 
             if (texture.format == TextureFormat.DXT1 || texture.format == TextureFormat.DXT1Crunched)
             {
+                int mip_lv = GetCanMipmapLevel(tex.width, tex.height, true);
                 Texture2D dxt1 = tex;
                 if (texture.format == TextureFormat.DXT1Crunched)
                 {
@@ -203,6 +202,7 @@ namespace Shell.Protector
             }
             else if (texture.format == TextureFormat.DXT5 || texture.format == TextureFormat.DXT5Crunched)
             {
+                int mip_lv = GetCanMipmapLevel(tex.width, tex.height, true);
                 Texture2D dxt5 = tex;
                 if (texture.format == TextureFormat.DXT5Crunched)
                 {
@@ -279,6 +279,7 @@ namespace Shell.Protector
             }
             else if (tex.format == TextureFormat.RGBA32)
             {
+                int mip_lv = GetCanMipmapLevel(tex.width, tex.height, false);
                 tmp[0] = new Texture2D(tex.width, tex.height, TextureFormat.RGBA32, mip_lv - 2, true); //mip_lv-2 is blur trick (like the box filter)
                 for (int m = 0; m < tmp[0].mipmapCount; ++m)
                 {
@@ -309,6 +310,7 @@ namespace Shell.Protector
             }
             else if (tex.format == TextureFormat.RGB24)
             {
+                int mip_lv = GetCanMipmapLevel(tex.width, tex.height, false);
                 tmp[0] = new Texture2D(tex.width, tex.height, TextureFormat.RGB24, mip_lv - 2, true); //mip_lv-2 is blur trick (like the box filter)
                 for (int m = 0; m < tmp[0].mipmapCount; ++m)
                 {
