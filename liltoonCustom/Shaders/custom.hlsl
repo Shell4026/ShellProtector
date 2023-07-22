@@ -144,27 +144,133 @@
 	LIL_APPLY_MAIN_TONECORRECTION\
 	fd.col *= _Color;
 
-	#if defined(OUTLINE_ENCRYPTED)
-		#define OVERRIDE_OUTLINE_COLOR \
-			LIL_GET_OUTLINE_TEX \
-			fd.col *= 0.0001;\
-			float4 mip_texture = tex2D(_MipTex, fd.uvMain);\
-			float2 uv = fd.uv0;\
-			int mip = round(mip_texture.r * 255 / 10);\
-			int m[13] = { 0, 0, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };\
-			\
-			float4 c00 = DecryptTextureXXTEADXT(uv, m[mip]);\
-			fd.col += c00;\
-			LIL_APPLY_OUTLINE_TONECORRECTION \
-			LIL_APPLY_OUTLINE_COLOR
-	#endif
+#if defined(OUTLINE_ENCRYPTED)
+	#define OVERRIDE_OUTLINE_COLOR \
+		LIL_GET_OUTLINE_TEX \
+		fd.col *= 0.0001;\
+		float4 mip_texture = tex2D(_MipTex, fd.uvMain);\
+		float2 uv = fd.uv0;\
+		int mip = round(mip_texture.r * 255 / 10);\
+		int m[13] = { 0, 0, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };\
+		\
+		float4 c00 = DecryptTextureXXTEADXT(uv, m[mip]);\
+		fd.col += c00;\
+		LIL_APPLY_OUTLINE_TONECORRECTION \
+		LIL_APPLY_OUTLINE_COLOR
+#endif
+	
+#if defined(LIMLIGHT_ENCRYPTED)
 	#if defined(LIL_LITE)
 		#define OVERRIDE_RIMLIGHT \
 			lilGetRim(fd);
 	#else
+		#if !defined(LIL_FEATURE_RIMLIGHT_DIRECTION)
+			#define A1\
+				float4 rimColor = _RimColor;\
+				float4 rimIndirColor = _RimIndirColor;
+			#define A2\
+				float4 rimColorTex = float4(fd.albedo, 1.0);\
+				rimColor *= rimColorTex;\
+				rimIndirColor *= rimColorTex;
+			#define A3 \
+				rimColor.rgb = lerp(rimColor.rgb, rimColor.rgb * fd.albedo, _RimMainStrength);\
+				\
+				float3 V = lilBlendVRParallax(fd.headV, fd.V, _RimVRParallaxStrength);\
+				\
+				float3 N = fd.N;
+			#if defined(LIL_FEATURE_NORMAL_1ST) || defined(LIL_FEATURE_NORMAL_2ND)
+				#define A4 \
+					N = lerp(fd.origN, fd.N, _RimNormalStrength);
+			#else
+				#define A4 true;
+			#endif
+			#define A5 \
+				float nvabs = abs(dot(N,V));\
+				float lnRaw = dot(fd.L, N) * 0.5 + 0.5;\
+				float lnDir = saturate((lnRaw + _RimDirRange) / (1.0 + _RimDirRange));\
+				float lnIndir = saturate((1.0-lnRaw + _RimIndirRange) / (1.0 + _RimIndirRange));\
+				float rim = pow(saturate(1.0 - nvabs), _RimFresnelPower);\
+				rim = fd.facing < (_RimBackfaceMask-1.0) ? 0.0 : rim;\
+				float rimDir = lerp(rim, rim*lnDir, _RimDirStrength);\
+				float rimIndir = rim * lnIndir * _RimDirStrength;\
+				rimDir = lilTooningScale(_AAStrength, rimDir, _RimBorder, _RimBlur);\
+				rimIndir = lilTooningScale(_AAStrength, rimIndir, _RimIndirBorder, _RimIndirBlur);\
+				rimDir = lerp(rimDir, rimDir * fd.shadowmix, _RimShadowMask);\
+				rimIndir = lerp(rimIndir, rimIndir * fd.shadowmix, _RimShadowMask);
+			#if LIL_RENDER == 2 && !defined(LIL_REFRACTION)
+				#define A6 \
+					if(_RimApplyTransparency)\
+					{\
+						rimDir *= fd.col.a;\
+						rimIndir *= fd.col.a;\
+					}
+			#else
+				#define A6 true;
+			#endif
+			#if !defined(LIL_PASS_FORWARDADD)
+				#define A7 \
+					float3 rimLightMul = 1 - _RimEnableLighting + fd.lightColor * _RimEnableLighting;
+			#else
+				#define A7 \
+					float3 rimLightMul = _RimBlendMode < 3 ? fd.lightColor * _RimEnableLighting : 1;
+			#endif
+			#define A8 \
+				fd.col.rgb = lilBlendColor(fd.col.rgb, rimColor.rgb * rimLightMul, rimDir * rimColor.a, _RimBlendMode);\
+				fd.col.rgb = lilBlendColor(fd.col.rgb, rimIndirColor.rgb * rimLightMul, rimIndir * rimIndirColor.a, _RimBlendMode);
+			#define A9 true;
+		#else
+			#define A1\
+				float4 rimColor = _RimColor;
+			#define A2 \
+				rimColor *= fd.col;
+			#define A3 \
+				rimColor.rgb = lerp(rimColor.rgb, rimColor.rgb * fd.albedo, _RimMainStrength);\
+				float3 N = fd.N;
+			#if defined(LIL_FEATURE_NORMAL_1ST) || defined(LIL_FEATURE_NORMAL_2ND)
+				#define A4 \
+					N = lerp(fd.origN, fd.N, _RimNormalStrength);
+			#else
+				#define A4 true;
+			#endif
+			#define A5 \
+				float nvabs = abs(dot(N,fd.V));\
+				float rim = pow(saturate(1.0 - nvabs), _RimFresnelPower);\
+				rim = fd.facing < (_RimBackfaceMask-1.0) ? 0.0 : rim;\
+				rim = lilTooningScale(_AAStrength, rim, _RimBorder, _RimBlur);
+			#if LIL_RENDER == 2 && !defined(LIL_REFRACTION)
+				#define A6 \
+					if(_RimApplyTransparency) rim *= fd.col.a;
+			#else
+				#define A6 true;
+			#endif
+			#define A7 \
+				rim = lerp(rim, rim * fd.shadowmix, _RimShadowMask);
+			#if !defined(LIL_PASS_FORWARDADD)
+				#define A8 \
+					rimColor.rgb = lerp(rimColor.rgb, rimColor.rgb * fd.lightColor, _RimEnableLighting);
+			#else
+				#define A8 \
+					if(_RimBlendMode < 3) rimColor.rgb *= fd.lightColor * _RimEnableLighting;
+			#endif
+			#define A9 \
+				fd.col.rgb = lilBlendColor(fd.col.rgb, rimColor.rgb, rim * rimColor.a, _RimBlendMode);
+		#endif
+	
 		#define OVERRIDE_RIMLIGHT \
-			lilGetRim(fd LIL_SAMP_IN(sampler_MainTex));
+			if(_UseRim) {\
+				A1\
+				A2\
+				A3\
+				A4\
+				A5\
+				A6\
+				A7\
+				A8\
+				A9\
+			}
 	#endif
+#endif
+	
 //----------------------------------------------------------------------------------------------------------------------
 // Information about variables
 //----------------------------------------------------------------------------------------------------------------------

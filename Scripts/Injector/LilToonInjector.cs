@@ -84,9 +84,9 @@ namespace Shell.Protector
             string path = Path.Combine(output_dir, "custom.hlsl");
             string custom = File.ReadAllText(path);
             if(outline)
-            {
                 custom = custom.Insert(0, "#define OUTLINE_ENCRYPTED\n");
-            }
+            if(lim)
+                custom = custom.Insert(0, "#define LIMLIGHT_ENCRYPTED\n");
 
             int code = 0;
             if (filter == 0)
