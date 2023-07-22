@@ -24,42 +24,48 @@ namespace Shell.Protector
             byte[] pwd_bytes = protector.GetKeyBytes();
 
             var renderers = GetComponentsInChildren<MeshRenderer>(true);
-            foreach(var r in renderers)
+            if (renderers != null)
             {
-                var mats = r.sharedMaterials;
-                if (mats == null)
+                foreach (var r in renderers)
                 {
-                    Debug.LogWarning(r.gameObject.name + ": can't find sharedMaterials");
-                    continue;
-                }
-                foreach (var mat in mats)
-                {
-                    if (mat == null)
-                        continue;
-                    if (mat.name.Contains("_encrypted"))
+                    var mats = r.sharedMaterials;
+                    if (mats == null)
                     {
-                        for(int i = 0; i < user_key_length; ++i)
-                            mat.SetInt("_Key" + i, pwd_bytes[16 - user_key_length + i]);
+                        Debug.LogWarning(r.gameObject.name + ": can't find sharedMaterials");
+                        continue;
+                    }
+                    foreach (var mat in mats)
+                    {
+                        if (mat == null)
+                            continue;
+                        if (mat.name.Contains("_encrypted"))
+                        {
+                            for (int i = 0; i < user_key_length; ++i)
+                                mat.SetInt("_Key" + i, pwd_bytes[16 - user_key_length + i]);
+                        }
                     }
                 }
             }
             var skinned_renderers = GetComponentsInChildren<SkinnedMeshRenderer>(true);
-            foreach (var r in skinned_renderers)
+            if (skinned_renderers != null)
             {
-                var mats = r.sharedMaterials;
-                if (mats == null)
+                foreach (var r in skinned_renderers)
                 {
-                    Debug.LogWarning(r.gameObject.name + ": can't find sharedMaterials");
-                    continue;
-                }
-                foreach (var mat in mats)
-                {
-                    if (mat == null)
-                        continue;
-                    if (mat.name.Contains("_encrypted"))
+                    var mats = r.sharedMaterials;
+                    if (mats == null)
                     {
-                        for (int i = 0; i < user_key_length; ++i)
-                            mat.SetInt("_Key" + i, pwd_bytes[16 - user_key_length + i]);
+                        Debug.LogWarning(r.gameObject.name + ": can't find sharedMaterials");
+                        continue;
+                    }
+                    foreach (var mat in mats)
+                    {
+                        if (mat == null)
+                            continue;
+                        if (mat.name.Contains("_encrypted"))
+                        {
+                            for (int i = 0; i < user_key_length; ++i)
+                                mat.SetInt("_Key" + i, pwd_bytes[16 - user_key_length + i]);
+                        }
                     }
                 }
             }
