@@ -57,6 +57,8 @@ SHA-256으로 키를 변형 후 XXTEA 알고리즘을 사용하여 메테리얼�
 
 MainTexture만 암호화 하기 때문에 메테리얼 내 다른 곳에 MainTexture와 동일한 텍스쳐를 쓴다면 보안을 위해 자동으로 빠집니다. 빠진 곳엔 적절한 텍스쳐를 채워 넣으세요.
 
+예외로 림라이트 텍스쳐와 아웃라인 텍스쳐가 메인 텍스쳐와 같은 텍스쳐일 경우 MainTexture와 같은 암호화된 텍스쳐를 사용합니다.
+
 ## 성능에 영향은 없나요?
 메모리는 원본보다 조금 더 차지합니다. 2K DXT1 이미지 기준 1mb정도 커집니다.
 
@@ -142,6 +144,8 @@ After encrypting the texture itself, it is uploaded to the VRChat server. The te
 Shaders and Materials are copied, so the original is not affected.
 
 Only the MainTexture is encrypted, so if you use the same texture elsewhere in the Material as the MainTexture, it will automatically be removed for security purposes. Fill in the gaps with the appropriate texture.
+
+The exception to this is when the Rimlight texture and Outline texture are the same texture as the MainTexture, they use the same encrypted texture as the MainTexture.
 
 ## Is there any performance impact?
 It takes up a little more memory than the original. It's about 1mb larger for a 2K DXT1 image.
