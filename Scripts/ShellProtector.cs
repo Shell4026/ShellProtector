@@ -33,20 +33,13 @@ namespace Shell.Protector
         public string pwd2 = "pass";
         public int lang_idx = 0;
         public string lang = "kor";
-        
 
-        [SerializeField]
-        int rounds = 32;
-        [SerializeField]
-        int filter = 1;
-        [SerializeField]
-        int algorithm = 0;
-        [SerializeField]
-        int key_size_idx = 0;
-        [SerializeField]
-        int key_size = 4;
-        [SerializeField]
-        float animation_speed = 10.0f;
+        [SerializeField] int rounds = 32;
+        [SerializeField] int filter = 1;
+        [SerializeField] int algorithm = 0;
+        [SerializeField] int key_size_idx = 0;
+        [SerializeField] int key_size = 4;
+        [SerializeField] float animation_speed = 10.0f;
         public static byte[] MakeKeyBytes(string _key1, string _key2, int key2_length = 4)
         {
             SHA256 sha256 = SHA256.Create();
