@@ -42,6 +42,8 @@ namespace Shell.Protector
 
         Texture2D tex;
 
+        string github_version;
+
         private string Lang(string word)
         {
             if (root == null)
@@ -109,11 +111,20 @@ namespace Shell.Protector
             key_lengths[4] = Lang("16 (Unbreakable security)");
 
             shaders = ShaderManager.GetInstance().CheckShader();
+
+            VersionManager.GetInstance().Refresh();
         }
 
         public override void OnInspectorGUI()
         {
             root = target as ShellProtector;
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(Lang("Current version: ") + VersionManager.GetInstance().GetVersion());
+            GUILayout.FlexibleSpace();
+            GUILayout.Label(Lang("Lastest version: ") + VersionManager.GetInstance().GetGithubVersion(), EditorStyles.boldLabel);
+            GUILayout.EndHorizontal();
+            EditorGUILayout.Separator();
 
             GUILayout.BeginHorizontal();
             GUILayout.Label(Lang("Languages: "));

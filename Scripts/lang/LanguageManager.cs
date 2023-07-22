@@ -52,7 +52,9 @@ public class LanguageManager
             { "It's okay for the 0-digit password to be the same as the original.", "0자리 비밀번호는 원본과 외형이 같은 것이 정상입니다." },
             { "Show", "보기" },
             { "Initial animation speed", "초기 애니메이션 속도" },
-            { "Avatar first load animation speed", "아바타 로드시 나오는 애니메이션 속도" }
+            { "Avatar first load animation speed", "아바타 로드시 나오는 애니메이션 속도" },
+            { "Current version: ", "현재 버전: " },
+            { "Lastest version: ", "최신 버전: " }
 
         };
 
