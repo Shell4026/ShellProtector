@@ -195,12 +195,19 @@ namespace Shell.Protector
 
             if (!AssetDatabase.IsValidFolder(asset_dir + '/' + gameObject.name))
                 AssetDatabase.CreateFolder(asset_dir, gameObject.name);
-            if (!AssetDatabase.IsValidFolder(asset_dir + '/' + gameObject.name + "/mat"))
-                AssetDatabase.CreateFolder(asset_dir + '/' + gameObject.name, "mat");
-            if (!AssetDatabase.IsValidFolder(asset_dir + '/' + gameObject.name + "/shader"))
-                AssetDatabase.CreateFolder(asset_dir + '/' + gameObject.name, "shader");
-            if (!AssetDatabase.IsValidFolder(asset_dir + '/' + gameObject.name + "/animations"))
-                AssetDatabase.CreateFolder(asset_dir + '/' + gameObject.name, "animations");
+            else
+            {
+                AssetDatabase.DeleteAsset(Path.Combine(asset_dir, gameObject.name));
+                AssetDatabase.CreateFolder(asset_dir, gameObject.name);
+            }
+            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, gameObject.name, "tex")))
+                AssetDatabase.CreateFolder(Path.Combine(asset_dir, gameObject.name), "tex");
+            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, gameObject.name, "mat")))
+                AssetDatabase.CreateFolder(Path.Combine(asset_dir, gameObject.name), "mat");
+            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, gameObject.name, "shader")))
+                AssetDatabase.CreateFolder(Path.Combine(asset_dir, gameObject.name), "shader");
+            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, gameObject.name, "animations")))
+                AssetDatabase.CreateFolder(Path.Combine(asset_dir, gameObject.name), "animations");
             int progress = 0;
             foreach (var mat in material_list)
             {
@@ -223,7 +230,8 @@ namespace Shell.Protector
                 {
                     var mip = encrypt.GenerateRefMipmap(size, size);
                     mips.Add(size, mip);
-                    AssetDatabase.CreateAsset(mip, asset_dir + '/' + gameObject.name + "/mip_" + size + ".asset");
+                    AssetDatabase.CreateAsset(mip, Path.Combine(asset_dir, gameObject.name, "tex", "mip_" + size + ".asset"));
+                    AssetDatabase.SaveAssets();
                     AssetDatabase.Refresh();
                 }
 
@@ -298,9 +306,12 @@ namespace Shell.Protector
                     continue;
                 }
 
-                AssetDatabase.CreateAsset(encrypted_tex[0], asset_dir + '/' + gameObject.name + '/' + main_texture.name + "_encrypt.asset");
+                AssetDatabase.CreateAsset(encrypted_tex[0], Path.Combine(asset_dir, gameObject.name, "tex", main_texture.name + "_encrypt.asset"));
                 if(encrypted_tex[1] != null)
-                    AssetDatabase.CreateAsset(encrypted_tex[1], asset_dir + '/' + gameObject.name + '/' + main_texture.name + "_encrypt2.asset");
+                    AssetDatabase.CreateAsset(encrypted_tex[1], Path.Combine(asset_dir, gameObject.name, "tex", main_texture.name + "_encrypt2.asset"));
+
+                AssetDatabase.SaveAssets();
+                AssetDatabase.Refresh();
                 /////////////////Materials///////////////////////
                 Material new_mat = new Material(mat.shader);
                 new_mat.CopyPropertiesFromMaterial(mat);
@@ -323,10 +334,8 @@ namespace Shell.Protector
                     }
                 }
                 if(!has_property)
-                {
-                    AssetDatabase.Refresh();
                     Debug.LogWarningFormat("_MipTex property is not exsist!", max);
-                }
+
                 new_mat.SetTexture("_MipTex", mip_tex);
 
                 if (encrypted_tex[1] != null)

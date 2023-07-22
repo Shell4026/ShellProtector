@@ -20,9 +20,9 @@ namespace Shell.Protector
             }
             Shader shader = mat.shader;
 
-            if (!AssetDatabase.IsValidFolder(asset_dir + '/' + target.name + "/shader/" + mat.name))
+            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, target.name, "shader", mat.name)))
             {
-                AssetDatabase.CreateFolder(asset_dir + '/' + target.name + "/shader", mat.name);
+                AssetDatabase.CreateFolder(Path.Combine(asset_dir, target.name, "shader"), mat.name);
                 AssetDatabase.Refresh();
             }
 
@@ -45,6 +45,8 @@ namespace Shell.Protector
             shader_data = File.ReadAllText(Path.Combine(output_dir, shader_name + ".lilcontainer"));
             shader_data.Insert(0, "//ShellProtect\n");
             File.WriteAllText(Path.Combine(output_dir, shader_name + ".lilcontainer"), shader_data);
+
+            AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
             Shader new_shader = AssetDatabase.LoadAssetAtPath(output_dir + "/" + shader_name + ".lilcontainer", typeof(Shader)) as Shader;
