@@ -170,6 +170,21 @@ namespace Shell.Protector
             return true;
         }
 
+        public void CreateFolders()
+        {
+            if (!AssetDatabase.IsValidFolder(asset_dir + '/' + gameObject.name))
+                AssetDatabase.CreateFolder(asset_dir, gameObject.name);
+            //AssetDatabase.DeleteAsset(Path.Combine(asset_dir, gameObject.name));
+            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, gameObject.name, "tex")))
+                AssetDatabase.CreateFolder(Path.Combine(asset_dir, gameObject.name), "tex");
+            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, gameObject.name, "mat")))
+                AssetDatabase.CreateFolder(Path.Combine(asset_dir, gameObject.name), "mat");
+            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, gameObject.name, "shader")))
+                AssetDatabase.CreateFolder(Path.Combine(asset_dir, gameObject.name), "shader");
+            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, gameObject.name, "animations")))
+                AssetDatabase.CreateFolder(Path.Combine(asset_dir, gameObject.name), "animations");
+        }
+
         public void Encrypt()
         {
             gameObject.SetActive(true);
@@ -181,31 +196,23 @@ namespace Shell.Protector
                 Debug.LogError("Cannot create duplicated avatar!");
                 return;
             }
+
             var mips = new Dictionary<int, Texture2D>();
             HashSet<GameObject> meshes = new HashSet<GameObject>();
 
             byte[] key_bytes = GetKeyBytes();
 
-            if (!AssetDatabase.IsValidFolder(asset_dir + '/' + gameObject.name))
-                AssetDatabase.CreateFolder(asset_dir, gameObject.name);
-            else
-            {
-                AssetDatabase.DeleteAsset(Path.Combine(asset_dir, gameObject.name));
-                AssetDatabase.CreateFolder(asset_dir, gameObject.name);
-            }
-            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, gameObject.name, "tex")))
-                AssetDatabase.CreateFolder(Path.Combine(asset_dir, gameObject.name), "tex");
-            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, gameObject.name, "mat")))
-                AssetDatabase.CreateFolder(Path.Combine(asset_dir, gameObject.name), "mat");
-            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, gameObject.name, "shader")))
-                AssetDatabase.CreateFolder(Path.Combine(asset_dir, gameObject.name), "shader");
-            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, gameObject.name, "animations")))
-                AssetDatabase.CreateFolder(Path.Combine(asset_dir, gameObject.name), "animations");
+            CreateFolders();
+
             int progress = 0;
             foreach (var mat in material_list)
             {
                 if (mat == null)
+                {
+                    ++progress;
+                    Debug.LogErrorFormat("mat is null!");
                     continue;
+                }
                 EditorUtility.DisplayProgressBar("Encrypt...", "Encrypt Progress " + ++progress + " of " + material_list.Count, (float)progress / (float)material_list.Count);
                 injector = InjectorFactory.GetInjector(mat.shader);
                 if (injector == null)
@@ -216,18 +223,25 @@ namespace Shell.Protector
                 if (!ConditionCheck(mat))
                     continue;
 
+                Debug.LogFormat("{0} : start encrypt...", mat.name);
                 injector.Init(gameObject, key_bytes, key_size, filter, asset_dir);
 
+                #region Generate mip_tex
                 int size = Math.Max(mat.mainTexture.width, mat.mainTexture.height);
                 if (!mips.ContainsKey(size))
                 {
                     var mip = encrypt.GenerateRefMipmap(size, size);
-                    mips.Add(size, mip);
-                    AssetDatabase.CreateAsset(mip, Path.Combine(asset_dir, gameObject.name, "tex", "mip_" + size + ".asset"));
-                    AssetDatabase.SaveAssets();
-                    AssetDatabase.Refresh();
+                    if (mip == null)
+                        Debug.LogErrorFormat("{0} : Can't generate mip tex{1}.", mat.name, size);
+                    else
+                    {
+                        mips.Add(size, mip);
+                        AssetDatabase.CreateAsset(mip, Path.Combine(asset_dir, gameObject.name, "tex", "mip_" + size + ".asset"));
+                        AssetDatabase.SaveAssets();
+                        AssetDatabase.Refresh();
+                    }
                 }
-
+                #endregion
                 Texture2D main_texture = (Texture2D)mat.mainTexture;
                 SetRWEnableTexture(main_texture);
                 SetCrunchCompression(main_texture, false);
@@ -235,7 +249,10 @@ namespace Shell.Protector
                 Texture2D lim_texture = null;
                 Texture2D lim_texture2 = null;
                 Texture2D outline_texture = null;
-
+                bool has_lim_texture = false;
+                bool has_lim_texture2 = false;
+                bool has_outline_texture = false;
+                #region Get lim, outline tex
                 if (shader_manager.IsPoiyomi(mat.shader))
                 {
                     var tex_properties = mat.GetTexturePropertyNames();
@@ -260,9 +277,6 @@ namespace Shell.Protector
                             outline_texture = (Texture2D)mat.GetTexture(t);
                     }
                 }
-                bool has_lim_texture = false;
-                bool has_lim_texture2 = false;
-                bool has_outline_texture = false;
                 if (lim_texture != null)
                 {
                     if (main_texture.GetInstanceID() == lim_texture.GetInstanceID())
@@ -278,15 +292,96 @@ namespace Shell.Protector
                     if (main_texture.GetInstanceID() == outline_texture.GetInstanceID())
                         has_outline_texture = true;
                 }
+                #endregion
+                string encrypt_tex_path = Path.Combine(asset_dir, gameObject.name, "tex", main_texture.name + "_encrypt.asset");
+                string encrypt_tex2_path = Path.Combine(asset_dir, gameObject.name, "tex", main_texture.name + "_encrypt2.asset");
+                string encrypted_mat_path = Path.Combine(asset_dir, gameObject.name, "mat", mat.name + "_encrypted.mat");
+                Texture2D[] encrypted_tex = new Texture2D[2] { null, null };
 
-                Texture2D[] encrypted_tex = encrypt.TextureEncryptXXTEA(main_texture, key_bytes);
-                if (encrypted_tex[0] == null)
-                    continue;
+                #region Textures Duplicate Check
+                bool has_exist_encrypt_tex = false;
+                bool has_exist_encrypt_tex2 = false;
+                foreach (var mat_tmp in material_list)
+                {
+                    Texture2D main_tex = mat_tmp.mainTexture as Texture2D;
+                    if (main_tex == null)
+                        continue;
+                    if(main_texture.GetInstanceID() == main_tex.GetInstanceID())
+                    {
+                        encrypted_tex[0] = AssetDatabase.LoadAssetAtPath(encrypt_tex_path, typeof(Texture2D)) as Texture2D;
+                        encrypted_tex[1] = AssetDatabase.LoadAssetAtPath(encrypt_tex2_path, typeof(Texture2D)) as Texture2D;
+                        if (encrypted_tex[0] != null)
+                            has_exist_encrypt_tex = true;
+                        if (encrypted_tex[1] != null)
+                            has_exist_encrypt_tex2 = true;
+                        break;
+                    }
+                    else
+                    {
+                        if(main_texture.name == main_tex.name)
+                        {
+                            encrypted_tex[0] = AssetDatabase.LoadAssetAtPath(encrypt_tex_path, typeof(Texture2D)) as Texture2D;
+                            int idx = 0;
+                            while (encrypted_tex[0] != null)
+                            {
+                                encrypt_tex_path = Path.Combine(asset_dir, gameObject.name, "tex", main_texture.name + idx + "_encrypt.asset");
+                                encrypt_tex2_path = Path.Combine(asset_dir, gameObject.name, "tex", main_texture.name + idx + "_encrypt2.asset");
+
+                                encrypted_tex[0] = AssetDatabase.LoadAssetAtPath(encrypt_tex_path, typeof(Texture2D)) as Texture2D;
+                                ++idx;
+                            }
+                        }
+                    }
+                }
+                #endregion
+
+                #region Materials Duplicate Check
+                foreach (var mat_tmp in material_list)
+                {
+                    if (mat_tmp == null)
+                        continue;
+                    if (mat.GetInstanceID() == mat_tmp.GetInstanceID())
+                        continue;
+                    else
+                    {
+                        if(mat.name == mat_tmp.name)
+                        {
+                            Material m = AssetDatabase.LoadAssetAtPath(encrypted_mat_path, typeof(Material)) as Material;
+                            int idx = 0;
+                            while(m != null)
+                            {
+                                encrypted_mat_path = Path.Combine(asset_dir, gameObject.name, "mat", mat.name + idx + "_encrypted.mat");
+                                m = AssetDatabase.LoadAssetAtPath(encrypted_mat_path, typeof(Material)) as Material;
+                                ++idx;
+                            }
+                        }
+                    }    
+                }
+                #endregion
+
+                #region Make encrypted textures
+                if (has_exist_encrypt_tex == false)
+                {
+                    encrypted_tex = encrypt.TextureEncryptXXTEA(main_texture, key_bytes);
+                    if (encrypted_tex[0] == null)
+                    {
+                        Debug.LogErrorFormat("{0} : encrypt failed.", main_texture.name);
+                        continue;
+                    }
+                    AssetDatabase.CreateAsset(encrypted_tex[0], encrypt_tex_path);
+                    Debug.Log(encrypted_tex[0].name + ": " + AssetDatabase.GetAssetPath(encrypted_tex[0]));
+                }
+                if (has_exist_encrypt_tex2 == false)
+                {
+                    if (encrypted_tex[1] != null)
+                        AssetDatabase.CreateAsset(encrypted_tex[1], encrypt_tex2_path);
+                }
+                #endregion
 
                 Shader encrypted_shader;
                 try
                 {
-                    encrypted_shader = injector.Inject(mat, asset_dir + "/Decrypt.cginc", encrypted_tex[0], has_lim_texture, has_lim_texture2, has_outline_texture);
+                    encrypted_shader = injector.Inject(mat, Path.Combine(asset_dir, "Decrypt.cginc"), encrypted_tex[0], has_lim_texture, has_lim_texture2, has_outline_texture);
                     if (encrypted_shader == null)
                     {
                         Debug.LogWarning("Injection failed");
@@ -299,40 +394,25 @@ namespace Shell.Protector
                     continue;
                 }
 
-                AssetDatabase.CreateAsset(encrypted_tex[0], Path.Combine(asset_dir, gameObject.name, "tex", main_texture.name + "_encrypt.asset"));
-                if(encrypted_tex[1] != null)
-                    AssetDatabase.CreateAsset(encrypted_tex[1], Path.Combine(asset_dir, gameObject.name, "tex", main_texture.name + "_encrypt2.asset"));
-
                 AssetDatabase.SaveAssets();
                 AssetDatabase.Refresh();
-                /////////////////Materials///////////////////////
+
+                #region Material
                 Material new_mat = new Material(mat.shader);
                 new_mat.CopyPropertiesFromMaterial(mat);
                 new_mat.shader = encrypted_shader;
                 var original_tex = new_mat.mainTexture;
-                new_mat.mainTexture = AssetDatabase.LoadAssetAtPath(Path.Combine(asset_dir, gameObject.name, "tex", main_texture.name + "_encrypt.asset"), typeof(Texture2D)) as Texture2D;
+                new_mat.mainTexture = encrypted_tex[0];
 
                 int max = Math.Max(encrypted_tex[0].width, encrypted_tex[0].height);
                 var mip_tex = mips[max];
                 if(mip_tex == null)
                     Debug.LogWarningFormat("mip_{0} is not exsist", max);
-                string[] properties = new_mat.GetTexturePropertyNames();
-                bool has_property = false;
-                foreach(var p in properties)
-                {
-                    if (p == "_MipTex")
-                    {
-                        has_property = true;
-                        break;
-                    }
-                }
-                if(!has_property)
-                    Debug.LogWarningFormat("_MipTex property is not exsist!", max);
 
                 new_mat.SetTexture("_MipTex", mip_tex);
 
                 if (encrypted_tex[1] != null)
-                    new_mat.SetTexture("_EncryptTex", (Texture2D)AssetDatabase.LoadAssetAtPath(Path.Combine(asset_dir, gameObject.name, "tex", main_texture.name + "_encrypt2.asset"), typeof(Texture2D)));
+                    new_mat.SetTexture("_EncryptTex", encrypted_tex[1]);
 
                 if(has_lim_texture)
                 {
@@ -355,8 +435,9 @@ namespace Shell.Protector
                 }
 
                 new_mat.renderQueue = mat.renderQueue;
+                #endregion
 
-                //Remove Duplicate Textures
+                #region Remove Duplicate Textures
                 foreach (var name in new_mat.GetTexturePropertyNames()) 
                 {
                     if (new_mat.GetTexture(name) == null)
@@ -364,9 +445,10 @@ namespace Shell.Protector
                     if (new_mat.GetTexture(name).GetInstanceID() == original_tex.GetInstanceID())
                         new_mat.SetTexture(name, null);
                 }
-                ///////////////////////////
-                
-                AssetDatabase.CreateAsset(new_mat, Path.Combine(asset_dir, gameObject.name, "mat", mat.name + "_encrypted.mat"));
+                #endregion
+
+                AssetDatabase.CreateAsset(new_mat, encrypted_mat_path);
+                Debug.LogFormat("{0} : create encrypted material : {1}", mat.name, AssetDatabase.GetAssetPath(new_mat));
                 AssetDatabase.SaveAssets();
                 AssetDatabase.Refresh();
 
