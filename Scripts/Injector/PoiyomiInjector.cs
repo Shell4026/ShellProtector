@@ -10,7 +10,7 @@ namespace Shell.Protector
 {
     public class PoiyomiInjector : Injector
     {
-        public override Shader Inject(Material mat, string decode_dir, Texture2D tex, bool has_lim_texture = false, bool has_lim_texture2 = false, bool outline_tex = false)
+        public override Shader Inject(Material mat, string decode_dir, string output_path, Texture2D tex, bool has_lim_texture = false, bool has_lim_texture2 = false, bool outline_tex = false)
         {
             if (!File.Exists(decode_dir))
             {
@@ -20,15 +20,15 @@ namespace Shell.Protector
 
             Shader shader = mat.shader;
 
-            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, target.name, "shader", mat.name)))
+            if (!AssetDatabase.IsValidFolder(output_path))
             {
-                AssetDatabase.CreateFolder(Path.Combine(asset_dir, target.name, "shader"), mat.name);
+                AssetDatabase.CreateFolder(Path.GetDirectoryName(output_path), Path.GetFileName(output_path));
                 AssetDatabase.Refresh();
             }
 
             string shader_path = AssetDatabase.GetAssetPath(shader);
             string shader_name = Path.GetFileName(shader_path);
-            string output_path = Path.Combine(asset_dir, target.name, "shader", mat.name);
+            
 
             string[] files = Directory.GetFiles(Path.GetDirectoryName(shader_path));
             foreach (string file in files)

@@ -174,7 +174,13 @@ namespace Shell.Protector
         {
             if (!AssetDatabase.IsValidFolder(asset_dir + '/' + gameObject.name))
                 AssetDatabase.CreateFolder(asset_dir, gameObject.name);
-            //AssetDatabase.DeleteAsset(Path.Combine(asset_dir, gameObject.name));
+            else
+            {
+                AssetDatabase.DeleteAsset(Path.Combine(asset_dir, gameObject.name, "animations"));
+                AssetDatabase.DeleteAsset(Path.Combine(asset_dir, gameObject.name, "mat"));
+                AssetDatabase.DeleteAsset(Path.Combine(asset_dir, gameObject.name, "shader"));
+                AssetDatabase.DeleteAsset(Path.Combine(asset_dir, gameObject.name, "tex"));
+            }
             if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, gameObject.name, "tex")))
                 AssetDatabase.CreateFolder(Path.Combine(asset_dir, gameObject.name), "tex");
             if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, gameObject.name, "mat")))
@@ -296,6 +302,7 @@ namespace Shell.Protector
                 string encrypt_tex_path = Path.Combine(asset_dir, gameObject.name, "tex", main_texture.name + "_encrypt.asset");
                 string encrypt_tex2_path = Path.Combine(asset_dir, gameObject.name, "tex", main_texture.name + "_encrypt2.asset");
                 string encrypted_mat_path = Path.Combine(asset_dir, gameObject.name, "mat", mat.name + "_encrypted.mat");
+                string encrypted_shader_path = Path.Combine(asset_dir, gameObject.name, "shader", mat.name);
                 Texture2D[] encrypted_tex = new Texture2D[2] { null, null };
 
                 #region Textures Duplicate Check
@@ -303,9 +310,13 @@ namespace Shell.Protector
                 bool has_exist_encrypt_tex2 = false;
                 foreach (var mat_tmp in material_list)
                 {
+                    if (mat_tmp == mat)
+                        continue;
+
                     Texture2D main_tex = mat_tmp.mainTexture as Texture2D;
                     if (main_tex == null)
                         continue;
+
                     if(main_texture.GetInstanceID() == main_tex.GetInstanceID())
                     {
                         encrypted_tex[0] = AssetDatabase.LoadAssetAtPath(encrypt_tex_path, typeof(Texture2D)) as Texture2D;
@@ -336,21 +347,22 @@ namespace Shell.Protector
                 #endregion
 
                 #region Materials Duplicate Check
-                foreach (var mat_tmp in material_list)
+                for (int i = 0; i < material_list.Count; ++i)
                 {
-                    if (mat_tmp == null)
+                    if (material_list[i] == null)
                         continue;
-                    if (mat.GetInstanceID() == mat_tmp.GetInstanceID())
+                    if (mat.GetInstanceID() == material_list[i].GetInstanceID())
                         continue;
                     else
                     {
-                        if(mat.name == mat_tmp.name)
+                        if(mat.name == material_list[i].name)
                         {
                             Material m = AssetDatabase.LoadAssetAtPath(encrypted_mat_path, typeof(Material)) as Material;
                             int idx = 0;
                             while(m != null)
                             {
                                 encrypted_mat_path = Path.Combine(asset_dir, gameObject.name, "mat", mat.name + idx + "_encrypted.mat");
+                                encrypted_shader_path = Path.Combine(asset_dir, gameObject.name, "shader", mat.name + idx);
                                 m = AssetDatabase.LoadAssetAtPath(encrypted_mat_path, typeof(Material)) as Material;
                                 ++idx;
                             }
@@ -381,7 +393,7 @@ namespace Shell.Protector
                 Shader encrypted_shader;
                 try
                 {
-                    encrypted_shader = injector.Inject(mat, Path.Combine(asset_dir, "Decrypt.cginc"), encrypted_tex[0], has_lim_texture, has_lim_texture2, has_outline_texture);
+                    encrypted_shader = injector.Inject(mat, Path.Combine(asset_dir, "Decrypt.cginc"), encrypted_shader_path, encrypted_tex[0], has_lim_texture, has_lim_texture2, has_outline_texture);
                     if (encrypted_shader == null)
                     {
                         Debug.LogWarning("Injection failed");
@@ -464,7 +476,7 @@ namespace Shell.Protector
                         {
                             if (mats[j] == null)
                                 continue;
-                            if (mats[j].name == mat.name)
+                            if (mats[j].GetInstanceID() == mat.GetInstanceID())
                             {
                                 mats[j] = new_mat;
                                 meshes.Add(renderers[i].gameObject);
@@ -485,7 +497,7 @@ namespace Shell.Protector
                         {
                             if (mats[j] == null)
                                 continue;
-                            if (mats[j].name == mat.name)
+                            if (mats[j].GetInstanceID() == mat.GetInstanceID())
                             {
                                 mats[j] = new_mat;
                                 meshes.Add(skinned_renderers[i].gameObject);

@@ -11,7 +11,7 @@ namespace Shell.Protector
     public class LilToonInjector : Injector
     {
         string output_dir;
-        public override Shader Inject(Material mat, string decode_dir, Texture2D tex, bool has_lim_texture = false, bool has_lim_texture2 = false, bool outline_tex = false)
+        public override Shader Inject(Material mat, string decode_dir, string output_path, Texture2D tex, bool has_lim_texture = false, bool has_lim_texture2 = false, bool outline_tex = false)
         {
             if (!File.Exists(decode_dir))
             {
@@ -20,9 +20,9 @@ namespace Shell.Protector
             }
             Shader shader = mat.shader;
 
-            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, target.name, "shader", mat.name)))
+            if (!AssetDatabase.IsValidFolder(output_path))
             {
-                AssetDatabase.CreateFolder(Path.Combine(asset_dir, target.name, "shader"), mat.name);
+                AssetDatabase.CreateFolder(Path.GetDirectoryName(output_path), Path.GetFileName(output_path));
                 AssetDatabase.Refresh();
             }
 
@@ -31,7 +31,7 @@ namespace Shell.Protector
             string shader_folder = Path.GetDirectoryName(shader_dir);
 
             string shader_data;
-            output_dir = Path.Combine(asset_dir, target.name, "shader", mat.name);
+            output_dir = output_path;
 
             CopyShaderFiles(shader_name);
 

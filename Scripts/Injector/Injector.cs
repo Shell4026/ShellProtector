@@ -202,7 +202,7 @@ namespace Shell.Protector
             return false;
         }
 
-        abstract public Shader Inject(Material mat, string decode_dir, Texture2D tex, bool has_lim_texture = false, bool has_lim_texture2 = false, bool outline_tex = false);
+        abstract public Shader Inject(Material mat, string decode_dir, string output_dir, Texture2D tex, bool has_lim_texture = false, bool has_lim_texture2 = false, bool outline_tex = false);
     }
 }
 #endif
