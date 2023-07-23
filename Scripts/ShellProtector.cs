@@ -310,7 +310,7 @@ namespace Shell.Protector
                 new_mat.CopyPropertiesFromMaterial(mat);
                 new_mat.shader = encrypted_shader;
                 var original_tex = new_mat.mainTexture;
-                new_mat.mainTexture = encrypted_tex[0];
+                new_mat.mainTexture = AssetDatabase.LoadAssetAtPath(Path.Combine(asset_dir, gameObject.name, "tex", main_texture.name + "_encrypt.asset"), typeof(Texture2D)) as Texture2D;
 
                 int max = Math.Max(encrypted_tex[0].width, encrypted_tex[0].height);
                 var mip_tex = mips[max];
@@ -332,7 +332,7 @@ namespace Shell.Protector
                 new_mat.SetTexture("_MipTex", mip_tex);
 
                 if (encrypted_tex[1] != null)
-                    new_mat.SetTexture("_EncryptTex", encrypted_tex[1]);
+                    new_mat.SetTexture("_EncryptTex", (Texture2D)AssetDatabase.LoadAssetAtPath(Path.Combine(asset_dir, gameObject.name, "tex", main_texture.name + "_encrypt2.asset"), typeof(Texture2D)));
 
                 if(has_lim_texture)
                 {
