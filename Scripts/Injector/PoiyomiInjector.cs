@@ -51,72 +51,77 @@ namespace Shell.Protector
             UNITY_DECLARE_TEX2D(_MipTex);
             Texture2D _EncryptTex;
 ";
-
-            switch (ShaderManager.GetInstance().GetShaderType(shader))
+            int version = ShaderManager.GetInstance().GetShaderType(shader);
+            if(version == 73)
             {
-                case 7:
-                    {
-                        string path = output_path + "/CGI_Poicludes.cginc";
-                        string poicludes = File.ReadAllText(path);
-                        poicludes = Regex.Replace(poicludes, "UNITY_DECLARE_TEX2D\\(_MainTex\\);(.*?)", declare);
-                        File.WriteAllText(path, poicludes);
+                string path = output_path + "/CGI_Poicludes.cginc";
+                string poicludes = File.ReadAllText(path);
+                poicludes = Regex.Replace(poicludes, "UNITY_DECLARE_TEX2D\\(_MainTex\\);(.*?)", declare);
+                File.WriteAllText(path, poicludes);
 
-                        path = output_path + "/CGI_PoiFrag.cginc";
-                        string frag = File.ReadAllText(path);
-                        frag = Regex.Replace(frag, "float4 frag\\(", "#include \"Decrypt.cginc\"\nfloat4 frag(");
+                path = output_path + "/CGI_PoiFrag.cginc";
+                string frag = File.ReadAllText(path);
+                frag = Regex.Replace(frag, "float4 frag\\(", "#include \"Decrypt.cginc\"\nfloat4 frag(");
 
-                        string shader_code = shader_code_nofilter_XXTEA;
-                        if (filter == 0)
-                            shader_code = shader_code_nofilter_XXTEA;
-                        else if (filter == 1)
-                            shader_code = shader_code_bilinear_XXTEA;
+                string shader_code = shader_code_nofilter_XXTEA;
+                if (filter == 0)
+                    shader_code = shader_code_nofilter_XXTEA;
+                else if (filter == 1)
+                    shader_code = shader_code_bilinear_XXTEA;
 
-                        frag = Regex.Replace(frag, "float4 mainTexture = .*?;", shader_code);
-                        frag = Regex.Replace(frag, "float4 mip_texture = _MipTex.Sample\\(sampler_MipTex, .*?\\);", "float4 mip_texture = _MipTex.Sample(sampler_MipTex, poiMesh.uv[0]);");
-                        if (tex.format == TextureFormat.DXT1)
-                        {
-                            frag = Regex.Replace(frag, "DecryptTextureXXTEA", "DecryptTextureXXTEADXT");
-                        }
-                        else if (EncryptTexture.HasAlpha(tex))
-                        {
-                            frag = Regex.Replace(frag, "DecryptTextureXXTEA", "DecryptTextureXXTEARGBA");
-                        }
-                        File.WriteAllText(path, frag);
-                        break;
-                    }
-                case 8:
-                    {
-                        shader_data = Regex.Replace(shader_data, "UNITY_DECLARE_TEX2D\\(_MainTex\\);", declare);
+                frag = Regex.Replace(frag, "float4 mainTexture = .*?;", shader_code);
+                frag = Regex.Replace(frag, "float4 mip_texture = _MipTex.Sample\\(sampler_MipTex, .*?\\);", "float4 mip_texture = _MipTex.Sample(sampler_MipTex, poiMesh.uv[0]);");
+                if (tex.format == TextureFormat.DXT1)
+                {
+                    frag = Regex.Replace(frag, "DecryptTextureXXTEA", "DecryptTextureXXTEADXT");
+                }
+                else if (EncryptTexture.HasAlpha(tex))
+                {
+                    frag = Regex.Replace(frag, "DecryptTextureXXTEA", "DecryptTextureXXTEARGBA");
+                }
+                File.WriteAllText(path, frag);
+            }
+            else if(version >= 80)
+            {
+                shader_data = Regex.Replace(shader_data, "UNITY_DECLARE_TEX2D\\(_MainTex\\);", declare);
 
-                        shader_data = Regex.Replace(shader_data, "POI2D_SAMPLER_PAN\\((.*?), _MainTex", "POI2D_SAMPLER_PAN($1, _MipTex");
-                        shader_data = Regex.Replace(shader_data, "UNITY_SAMPLE_TEX2D_SAMPLER_LOD\\((.*?), _MainTex", "UNITY_SAMPLE_TEX2D_SAMPLER_LOD($1, _MipTex");
-                        shader_data = Regex.Replace(shader_data, "UNITY_SAMPLE_TEX2D_SAMPLER\\((.*?), _MainTex", "UNITY_SAMPLE_TEX2D_SAMPLER($1, _MipTex");
-                        shader_data = Regex.Replace(shader_data, "float4 frag\\(", "#include \"Decrypt.cginc\"\n\t\t\tfloat4 frag(");
-                        string shader_code = shader_code_nofilter_XXTEA;
-                        if (filter == 0)
-                            shader_code = shader_code_nofilter_XXTEA;
-                        else if (filter == 1)
-                            shader_code = shader_code_bilinear_XXTEA;
+                shader_data = Regex.Replace(shader_data, "POI2D_SAMPLER_PAN\\((.*?), _MainTex", "POI2D_SAMPLER_PAN($1, _MipTex");
+                shader_data = Regex.Replace(shader_data, "UNITY_SAMPLE_TEX2D_SAMPLER_LOD\\((.*?), _MainTex", "UNITY_SAMPLE_TEX2D_SAMPLER_LOD($1, _MipTex");
+                shader_data = Regex.Replace(shader_data, "UNITY_SAMPLE_TEX2D_SAMPLER\\((.*?), _MainTex", "UNITY_SAMPLE_TEX2D_SAMPLER($1, _MipTex");
+                shader_data = Regex.Replace(shader_data, "float4 frag\\(", "#include \"Decrypt.cginc\"\n\t\t\tfloat4 frag(");
+                string shader_code = shader_code_nofilter_XXTEA;
+                if (filter == 0)
+                    shader_code = shader_code_nofilter_XXTEA;
+                else if (filter == 1)
+                    shader_code = shader_code_bilinear_XXTEA;
 
-                        shader_data = Regex.Replace(shader_data, "float4 mainTexture = .*?;", shader_code);
-                        if(tex.format == TextureFormat.DXT1 || tex.format == TextureFormat.DXT5)
-                        {
-                            shader_data = Regex.Replace(shader_data, "DecryptTextureXXTEA", "DecryptTextureXXTEADXT");
-                        }
-                        else if (EncryptTexture.HasAlpha(tex))
-                        {
-                            shader_data = Regex.Replace(shader_data, "DecryptTextureXXTEA", "DecryptTextureXXTEARGBA");
-                        }
+                shader_data = Regex.Replace(shader_data, "float4 mainTexture = .*?;", shader_code);
+                if (tex.format == TextureFormat.DXT1 || tex.format == TextureFormat.DXT5)
+                {
+                    shader_data = Regex.Replace(shader_data, "DecryptTextureXXTEA", "DecryptTextureXXTEADXT");
+                }
+                else if (EncryptTexture.HasAlpha(tex))
+                {
+                    shader_data = Regex.Replace(shader_data, "DecryptTextureXXTEA", "DecryptTextureXXTEARGBA");
+                }
 
-                        if (has_lim_texture)
-                            shader_data = Regex.Replace(shader_data, @"float4 rimColor = .*?_RimTex.*?;", "float4 rimColor = mainTexture;");
-                        if(has_lim_texture2)
-                            shader_data = Regex.Replace(shader_data, @"float4 rim2Color = .*?_Rim2Tex.*?;", "float4 rim2Color = mainTexture;");
-                        if(outline_tex)
-                            shader_data = Regex.Replace(shader_data, @"float4 col = .*?_OutlineTexture.*?\* float4(.*?);", "float4 col = float4(poiFragData.baseColor, poiFragData.alpha) * float4$1;");
+                if (has_lim_texture)
+                {
+                    if(version == 80)
+                        shader_data = Regex.Replace(shader_data, @"float4 rimColor = .*?_RimTex.*?;", "float4 rimColor = float4(poiFragData.baseColor, poiFragData.alpha);");
+                    else
+                        shader_data = Regex.Replace(shader_data, @"float4 rimColor = .*?_RimTex.*?;", "float4 rimColor = mainTexture;");
+                }
+                if (has_lim_texture2)
+                {
+                    if(version == 80)
+                        shader_data = Regex.Replace(shader_data, @"float4 rim2Color = .*?_Rim2Tex.*?;", "float4 rim2Color = float4(poiFragData.baseColor, poiFragData.alpha);");
+                    else
+                        shader_data = Regex.Replace(shader_data, @"float4 rim2Color = .*?_Rim2Tex.*?;", "float4 rim2Color = mainTexture;");
+                }
+                if (outline_tex)
+                    shader_data = Regex.Replace(shader_data, @"float4 col = .*?_OutlineTexture.*?\* float4(.*?);", "float4 col = float4(poiFragData.baseColor, poiFragData.alpha) * float4$1;");
 
-                        break;
-                    }
             }
             File.WriteAllText(output_path + '/' + shader_name, shader_data);
 

@@ -23,10 +23,10 @@ namespace Shell.Protector
         }
         ShaderManager()
         {
-            support_version.Add("Poiyomi 7.3", 7);
-            support_version.Add("Poiyomi 8.0", 8);
-            support_version.Add("Poiyomi 8.1", 8);
-            support_version.Add("Poiyomi 8.2", 8);
+            support_version.Add("Poiyomi 7.3", 73);
+            support_version.Add("Poiyomi 8.0", 80);
+            support_version.Add("Poiyomi 8.1", 81);
+            support_version.Add("Poiyomi 8.2", 82);
             support_version.Add("lilToon", 0);
         }
         public bool IsPoiyomi(Shader shader)
