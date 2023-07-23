@@ -46,6 +46,12 @@ OSC 프로그램으로 간편하게 비밀번호를 입력할 수 있습니다.
 
 포이요미의 경우 다시 암호화 해보세요.
 
+**<인게임에서 남이 봤을 때 암호화가 안 풀리는 경우>**
+
+남이 셰이더와 애니메이션 세이프티를 끄거나 당신을 Show Avatar해야합니다.
+
+그랬는데도 그러면 VRChat동기화 버그로, 비밀번호를 변경 후 다시 업로드 하길 바랍니다.
+
 ## 세부 원리
 SHA-256으로 키를 변형 후 XXTEA 알고리즘을 사용하여 메테리얼의 MainTexure를 암호화합니다.
 
@@ -135,6 +141,12 @@ It's a bug in lilToon, so ignore it and upload it, or try one of three ways
 For lilToon, check if the encrypted texture is missing from the main color part of the material and the Encrypted texture part of the custom properties and add it.
 
 For Poiyomi, try encrypting it again.
+
+**<If not decryption when viewed by others in-game>**
+
+The other person needs to turn off shaders and animation safety or Show Avatar to you.
+
+If they do, this is a VRChat synchronization bug, please change your password and re-upload.
    
 ## How it works
 Encrypt the texture using an XXTEA algorithm after transforming the key with SHA-256.
