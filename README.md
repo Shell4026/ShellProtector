@@ -122,13 +122,13 @@ You can easily enter the password with the OSC program.
 4. If you're still having trouble, try clearing the C:\Users\UserName\AppData\LocalLow\VRChat\VRChat\OSC folder.
 
 ## Troubleshooting
-**<is not supported texture format! Error>**
+**[is not supported texture format! Error]**
 
 Select the texture and change the compression format to either DXT1 or DXT5 in the Inspector. (DXT5 for textures with transparency)
 
 ![texture](https://github.com/Shell4026/ShellProtector/assets/104874910/872f9d15-7b89-4381-b940-00514bd60638)
 
-**<liltoon)At testor component, it doesn't come back to normal>**.
+**[liltoon)At testor component, it doesn't come back to normal]**.
 
 It's a bug in lilToon, so ignore it and upload it, or try one of three ways
 
@@ -136,13 +136,13 @@ It's a bug in lilToon, so ignore it and upload it, or try one of three ways
 2. Try restarting Unity.
 3. Click Assets - liltoon - Refresh Shader (It takes a while!)
 
-**<If certain areas look monochromatic>**
+**[If certain areas look monochromatic]**
 
 For lilToon, check if the encrypted texture is missing from the main color part of the material and the Encrypted texture part of the custom properties and add it.
 
 For Poiyomi, try encrypting it again.
 
-**<If not decryption when viewed by others in-game>**
+**[If not decryption when viewed by others in-game]**
 
 The other person needs to turn off shaders and animation safety or Show Avatar to you.
 
