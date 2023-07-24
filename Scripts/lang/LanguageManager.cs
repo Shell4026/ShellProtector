@@ -54,7 +54,8 @@ public class LanguageManager
             { "Initial animation speed", "초기 애니메이션 속도" },
             { "Avatar first load animation speed", "아바타 로드시 나오는 애니메이션 속도" },
             { "Current version: ", "현재 버전: " },
-            { "Lastest version: ", "최신 버전: " }
+            { "Lastest version: ", "최신 버전: " },
+            { "Delete folders that already exists when at creation time", "생성시 이미 존재하는 폴더 삭제" }
 
         };
 

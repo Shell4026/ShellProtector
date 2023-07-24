@@ -40,6 +40,7 @@ namespace Shell.Protector
         [SerializeField] int key_size_idx = 0;
         [SerializeField] int key_size = 4;
         [SerializeField] float animation_speed = 10.0f;
+        [SerializeField] bool delete_folders = true;
         public static byte[] MakeKeyBytes(string _key1, string _key2, int key2_length = 4)
         {
             SHA256 sha256 = SHA256.Create();
@@ -176,10 +177,13 @@ namespace Shell.Protector
                 AssetDatabase.CreateFolder(asset_dir, gameObject.name);
             else
             {
-                AssetDatabase.DeleteAsset(Path.Combine(asset_dir, gameObject.name, "animations"));
-                AssetDatabase.DeleteAsset(Path.Combine(asset_dir, gameObject.name, "mat"));
-                AssetDatabase.DeleteAsset(Path.Combine(asset_dir, gameObject.name, "shader"));
-                AssetDatabase.DeleteAsset(Path.Combine(asset_dir, gameObject.name, "tex"));
+                if (delete_folders)
+                {
+                    AssetDatabase.DeleteAsset(Path.Combine(asset_dir, gameObject.name, "animations"));
+                    AssetDatabase.DeleteAsset(Path.Combine(asset_dir, gameObject.name, "mat"));
+                    AssetDatabase.DeleteAsset(Path.Combine(asset_dir, gameObject.name, "shader"));
+                    AssetDatabase.DeleteAsset(Path.Combine(asset_dir, gameObject.name, "tex"));
+                }
             }
             if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, gameObject.name, "tex")))
                 AssetDatabase.CreateFolder(Path.Combine(asset_dir, gameObject.name), "tex");

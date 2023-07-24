@@ -27,6 +27,7 @@ namespace Shell.Protector
         SerializedProperty key_size;
         SerializedProperty key_size_idx;
         SerializedProperty animation_speed;
+        SerializedProperty delete_folders;
 
         bool debug = false;
         bool option = true;
@@ -89,12 +90,15 @@ namespace Shell.Protector
                 EditorGUI.PropertyField(new Rect(rect.x, rect.y, rect.width, EditorGUIUtility.singleLineHeight), element, GUIContent.none);
             };
 
+            #region SerializedObject
             rounds = serializedObject.FindProperty("rounds");
             filter = serializedObject.FindProperty("filter");
             algorithm = serializedObject.FindProperty("algorithm");
             key_size = serializedObject.FindProperty("key_size");
             key_size_idx = serializedObject.FindProperty("key_size_idx");
             animation_speed = serializedObject.FindProperty("animation_speed");
+            delete_folders = serializedObject.FindProperty("delete_folders");
+            #endregion
 
             filters[0] = "Point";
             filters[1] = "Bilinear";
@@ -250,6 +254,12 @@ namespace Shell.Protector
             }
             if (material_list.count == 0)
                 GUI.enabled = false;
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(Lang("Delete folders that already exists when at creation time"));
+            GUILayout.FlexibleSpace();
+            delete_folders.boolValue = EditorGUILayout.Toggle(delete_folders.boolValue);
+            GUILayout.EndHorizontal();
 
             if (GUILayout.Button(Lang("Encrypt!")))
                 root.Encrypt();
