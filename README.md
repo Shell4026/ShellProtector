@@ -95,6 +95,7 @@ MainTexture만 암호화 하기 때문에 메테리얼 내 다른 곳에 MainTex
 - Crunch Compression 포멧은 자동으로 DXT1이나 DXT5로 변환 됩니다.
  
 ## 예정
+- 파라미터 절약
 - BC7 지원
 
 ## English
@@ -188,4 +189,5 @@ A 0-byte user key is a minimal defense, and should be effective against toolkidd
 - DXT1, DXT5
 - The Crunch Compression format will auto-convert to DXT1 or DXT5.
 ## feature
+- Save parameter space
 - Support BC7
