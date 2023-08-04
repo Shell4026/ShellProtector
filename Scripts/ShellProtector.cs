@@ -140,7 +140,8 @@ namespace Shell.Protector
         public GameObject DuplicateAvatar(GameObject avatar)
         {
             GameObject cpy = Instantiate(avatar);
-            cpy.name = avatar.name + "_encrypted";
+            if(!avatar.name.Contains("_encrypted"))
+                cpy.name = avatar.name + "_encrypted";
             return cpy;
         }
 
