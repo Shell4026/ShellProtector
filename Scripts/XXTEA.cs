@@ -4,7 +4,7 @@ using UnityEngine;
 public class XXTEA
 {
     const uint Delta = 0x9E3779B9;
-    public static uint[] Encrypt(uint[] data, uint[] key) {
+    public static uint[] Encrypt(uint[] data, uint[] key, uint _rounds = 0) {
         uint n = (uint)data.Length;
 
         uint[] result = new uint[n];
@@ -21,8 +21,11 @@ public class XXTEA
         }
         uint y, z, sum;
         uint p, rounds, e;
-        
-        rounds = 6 + 52 / n;
+
+        if (_rounds == 0)
+            rounds = 6 + 52 / n;
+        else
+            rounds = _rounds;
         sum = 0;
         z = result[n - 1];
         do
@@ -39,7 +42,7 @@ public class XXTEA
         } while (--rounds > 0);
         return result;
     }
-    public static uint[] Decrypt(uint[] data, uint[] key)
+    public static uint[] Decrypt(uint[] data, uint[] key, uint _rounds = 0)
     {
         uint n = (uint)data.Length;
 
@@ -54,7 +57,10 @@ public class XXTEA
         uint y, z, sum;
         uint p, rounds, e;
 
-        rounds = 6 + 52 / n;
+        if (_rounds == 0)
+            rounds = 6 + 52 / n;
+        else
+            rounds = _rounds;
         sum = rounds * Delta;
 
         y = result[0];
