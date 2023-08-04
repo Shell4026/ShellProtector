@@ -7,6 +7,9 @@ static const uint Delta = 0x9e3779b9;
 
 static const uint k[4] = { 0, 0, 0, 0 };
 
+static const uint WOFFSET = 0;
+static const uint HOFFSET = 0;
+
 float3 InverseGammaCorrection(float3 rgb)
 {
 	float3 result = pow(rgb, 0.454545);
@@ -24,7 +27,7 @@ void XXTEADecrypt(float3 pixel[4], out uint data[3], uint key[4])
 	data[1] = ((uint)round(pixel[1].g * 255.0f) | ((uint)round(pixel[1].b * 255.0f) << 8) + ((uint)round(pixel[2].r * 255.0f) << 16) | ((uint)round(pixel[2].g * 255.0f) << 24));
 	data[2] = ((uint)round(pixel[2].b * 255.0f) | ((uint)round(pixel[3].r * 255.0f) << 8) + ((uint)round(pixel[3].g * 255.0f) << 16) | ((uint)round(pixel[3].b * 255.0f) << 24));
 	
-	const uint n = 3;
+	const uint n = 4;
 	uint v0, v1, sum;
 	uint p, rounds, e;
 
@@ -52,11 +55,12 @@ void XXTEADecrypt(float4 pixel[2], out uint data[2], uint key[4])
 	data[0] = ((uint)round(pixel[0].r * 255.0f) | ((uint)round(pixel[0].g * 255.0f) << 8) | ((uint)round(pixel[0].b * 255.0f) << 16) | ((uint)round(pixel[0].a * 255.0f) << 24));
 	data[1] = ((uint)round(pixel[1].r * 255.0f) | ((uint)round(pixel[1].g * 255.0f) << 8) | ((uint)round(pixel[1].b * 255.0f) << 16) | ((uint)round(pixel[1].a * 255.0f) << 24));
 
-	const uint n = 2;
 	uint v0, v1, sum;
 	uint p, rounds, e;
 
-	rounds = 6 + floor(52 / n);
+	const uint n = 2;
+	//rounds = 6 + floor(52 / n);
+	rounds = 25;
 	sum = rounds * Delta;
 
 	v0 = data[0];
@@ -88,9 +92,7 @@ float4 DecryptTextureXXTEA(float2 uv, int m)
 	float x = frac(uv.x);
 	float y = frac(uv.y);
 
-	int w = 13 - log2(_MainTex_TexelSize.z) - 1;
-	int h = 13 - log2(_MainTex_TexelSize.w) - 1;
-	int idx = (mw[m + w] * floor(y * mh[m + h])) + floor(x * mw[m + w]);
+	int idx = (mw[m + WOFFSET] * floor(y * mh[m + HOFFSET])) + floor(x * mw[m + WOFFSET]);
 	
 	//key make
 	uint key[4];
@@ -105,10 +107,10 @@ float4 DecryptTextureXXTEA(float2 uv, int m)
 	
 	int pos[4] = { 0, -1, -2, -3 };
 	int offset = pos[idx % 4];
-	pixels[0] = _MainTex.SampleLevel(sampler_MainTex, GetUV(idx + 0 + offset, m, w, h), m);
-	pixels[1] = _MainTex.SampleLevel(sampler_MainTex, GetUV(idx + 1 + offset, m, w, h), m);
-	pixels[2] = _MainTex.SampleLevel(sampler_MainTex, GetUV(idx + 2 + offset, m, w, h), m);
-	pixels[3] = _MainTex.SampleLevel(sampler_MainTex, GetUV(idx + 3 + offset, m, w, h), m);
+	pixels[0] = _MainTex.SampleLevel(sampler_MainTex, GetUV(idx + 0 + offset, m, WOFFSET, HOFFSET), m);
+	pixels[1] = _MainTex.SampleLevel(sampler_MainTex, GetUV(idx + 1 + offset, m, WOFFSET, HOFFSET), m);
+	pixels[2] = _MainTex.SampleLevel(sampler_MainTex, GetUV(idx + 2 + offset, m, WOFFSET, HOFFSET), m);
+	pixels[3] = _MainTex.SampleLevel(sampler_MainTex, GetUV(idx + 3 + offset, m, WOFFSET, HOFFSET), m);
 
 	uint data[3] = { 0, 0, 0 };
 	data[0] = ((uint)round(pixels[0].r * 255.0f) | ((uint)round(pixels[0].g * 255.0f) << 8) | ((uint)round(pixels[0].b * 255.0f) << 16) | ((uint)round(pixels[1].r * 255.0f) << 24));
@@ -129,9 +131,7 @@ float4 DecryptTextureXXTEARGBA(float2 uv, int m)
 	float x = frac(uv.x);
 	float y = frac(uv.y);
 
-	int w = 13 - log2(_MainTex_TexelSize.z) - 1;
-	int h = 13 - log2(_MainTex_TexelSize.w) - 1;
-	int idx = (mw[m + w] * floor(y * mh[m + h])) + floor(x * mw[m + w]);
+	int idx = (mw[m + WOFFSET] * floor(y * mh[m + HOFFSET])) + floor(x * mw[m + WOFFSET]);
 	
 	//key make
 	uint key[4];
@@ -145,8 +145,8 @@ float4 DecryptTextureXXTEARGBA(float2 uv, int m)
 	
 	int pos[2] = { 0, -1 };
 	int offset = pos[idx % 2];
-	pixels[0] = _MainTex.SampleLevel(sampler_MainTex, GetUV(idx + 0 + offset, m, w, h), m);
-	pixels[1] = _MainTex.SampleLevel(sampler_MainTex, GetUV(idx + 1 + offset, m, w, h), m);
+	pixels[0] = _MainTex.SampleLevel(sampler_MainTex, GetUV(idx + 0 + offset, m, WOFFSET, HOFFSET), m);
+	pixels[1] = _MainTex.SampleLevel(sampler_MainTex, GetUV(idx + 1 + offset, m, WOFFSET, HOFFSET), m);
 
 	uint data[2] = { 0, 0 };
 	data[0] = ((uint)round(pixels[0].r * 255.0f) | ((uint)round(pixels[0].g * 255.0f) << 8) | ((uint)round(pixels[0].b * 255.0f) << 16) | ((uint)round(pixels[0].a * 255.0f) << 24));
@@ -167,13 +167,12 @@ float4 DecryptTextureXXTEADXT(float2 uv, int m)
 	float x = frac(uv.x);
 	float y = frac(uv.y);
 
-	uint woffset = 13 - log2(_MainTex_TexelSize.z) - 1 + 2;
-	uint hoffset = 13 - log2(_MainTex_TexelSize.w) - 1 + 2;
+	int miplv = 0;
 	
 	float4 col = _MainTex.SampleLevel(sampler_MainTex, uv, m);
 	
-	uint w = mw[m + woffset];
-	uint h = mh[m + hoffset];
+	uint w = mw[m + WOFFSET];
+	uint h = mh[m + HOFFSET];
 	
 	int idx = (w * floor(y * h)) + floor(x * w);
 	
@@ -189,8 +188,8 @@ float4 DecryptTextureXXTEADXT(float2 uv, int m)
 	int offset = pos[idx % 2];
 	
 	float4 pixels[2];
-	pixels[0] = _EncryptTex.SampleLevel(sampler_MainTex, GetUV(idx + 0 + offset, m, woffset, hoffset), m);
-	pixels[1] = _EncryptTex.SampleLevel(sampler_MainTex, GetUV(idx + 1 + offset, m, woffset, hoffset), m);
+	pixels[0] = _EncryptTex.SampleLevel(sampler_MainTex, GetUV(idx + 0 + offset, m, WOFFSET, HOFFSET), m);
+	pixels[1] = _EncryptTex.SampleLevel(sampler_MainTex, GetUV(idx + 1 + offset, m, WOFFSET, HOFFSET), m);
 	
 	uint data[2];
 	data[0] = ((uint)round(pixels[0].r * 255.0f) | ((uint)round(pixels[0].g * 255.0f) << 8) | ((uint)round(pixels[0].b * 255.0f) << 16) | ((uint)round(pixels[0].a * 255.0f) << 24));
