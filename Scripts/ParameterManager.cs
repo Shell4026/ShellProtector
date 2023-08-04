@@ -18,26 +18,75 @@ public static class ParameterManager
         return tmp;
     }
 
-    public static VRCExpressionParameters AddKeyParameter(VRCExpressionParameters vrc_parameters, int key_length)
+    public static VRCExpressionParameters AddKeyParameter(VRCExpressionParameters vrc_parameters, int key_length, bool optimize = false)
     {
         var parameters = vrc_parameters.parameters;
-        
-        VRCExpressionParameters.Parameter[] tmp = new VRCExpressionParameters.Parameter[parameters.Length + key_length];
+
+        int size = key_length;
+
+        if (optimize == true)
+        {
+            if (key_length == 4)
+                size = 4;
+            else if (key_length == 8)
+                size = 5;
+            else
+                size = 6;
+        }
+
+        VRCExpressionParameters.Parameter[] tmp = new VRCExpressionParameters.Parameter[parameters.Length + size];
         int idx;
         for(idx = 0; idx < parameters.Length; ++idx)
             tmp[idx] = CloneParameter(parameters[idx]);
-        for(int i = 0; i < key_length; ++i)
+        if (optimize == false)
         {
-            var para = new VRCExpressionParameters.Parameter();
-            para.name = "key" + i;
-            para.saved = true;
-            para.networkSynced = true;
-            para.valueType = VRCExpressionParameters.ValueType.Float;
-            para.defaultValue = 0.0f;
+            for (int i = 0; i < size; ++i)
+            {
+                var para = new VRCExpressionParameters.Parameter
+                {
+                    name = "pkey" + i,
+                    saved = true,
+                    networkSynced = true,
+                    valueType = VRCExpressionParameters.ValueType.Float,
+                    defaultValue = 0.0f
+                };
 
-            tmp[idx + i] = para;
+                tmp[idx + i] = para;
+            }
         }
-
+        else
+        {
+            var pkey = new VRCExpressionParameters.Parameter
+            {
+                name = "pkey",
+                saved = true,
+                networkSynced = true,
+                valueType = VRCExpressionParameters.ValueType.Float,
+                defaultValue = 0.0f
+            };
+            tmp[idx++] = pkey;
+            var plock = new VRCExpressionParameters.Parameter
+            {
+                name = "encrypt_lock",
+                saved = true,
+                networkSynced = true,
+                valueType = VRCExpressionParameters.ValueType.Bool,
+                defaultValue = 0.0f
+            };
+            tmp[idx++] = plock;
+            for (int i = 0; i < size - 2; ++i)
+            {
+                var para = new VRCExpressionParameters.Parameter
+                {
+                    name = "encrypt_switch" + i,
+                    saved = true,
+                    networkSynced = true,
+                    valueType = VRCExpressionParameters.ValueType.Bool,
+                    defaultValue = 0.0f
+                };
+                tmp[idx + i] = para;
+            }
+        }
         VRCExpressionParameters result = new VRCExpressionParameters();
         result.name = vrc_parameters.name + "_encrypted";
         result.parameters = tmp;

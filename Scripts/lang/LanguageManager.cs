@@ -55,7 +55,9 @@ public class LanguageManager
             { "Avatar first load animation speed", "아바타 로드시 나오는 애니메이션 속도" },
             { "Current version: ", "현재 버전: " },
             { "Lastest version: ", "최신 버전: " },
-            { "Delete folders that already exists when at creation time", "생성시 이미 존재하는 폴더 삭제" }
+            { "Delete folders that already exists when at creation time", "생성시 이미 존재하는 폴더 삭제" },
+            { "parameter-multiplexing", "파라미터 멀티플렉싱"},
+            { "The OSC program must always be on, but it consumes fewer parameters.", "OSC프로그램을 상시로 켜둬야하지만, 더 적은 파라미터만 사용합니다."}
 
         };
 
