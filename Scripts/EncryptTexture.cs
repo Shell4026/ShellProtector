@@ -106,7 +106,7 @@ namespace Shell.Protector
             mip.Compress(false);
             return mip;
         }
-        public Texture2D[] TextureEncryptXXTEA(Texture2D texture, byte[] key)
+        public Texture2D[] TextureEncryptXXTEA(Texture2D texture, byte[] key, uint rounds = 25)
         {
             Texture2D tex = texture;
 
@@ -174,7 +174,7 @@ namespace Shell.Protector
                         data[0] = (uint)(tex_data[i + 0] + (tex_data[i + 1] << 8) + (tex_data[i + 2] << 16) + (tex_data[i + 3] << 24));
                         data[1] = (uint)(tex_data[(i + 8) + 0] + (tex_data[(i + 8) + 1] << 8) + (tex_data[(i + 8) + 2] << 16) + (tex_data[(i + 8) + 3] << 24));
 
-                        uint[] data_enc = XXTEA.Encrypt(data, key_uint);
+                        uint[] data_enc = XXTEA.Encrypt(data, key_uint, rounds);
 
                         for (int j = 0; j < 2; ++j)
                         {
@@ -251,7 +251,7 @@ namespace Shell.Protector
                         data[0] = (uint)(tex_data[i + 8] + (tex_data[i + 9] << 8) + (tex_data[i + 10] << 16) + (tex_data[i + 11] << 24));
                         data[1] = (uint)(tex_data[i + 16 + 8] + (tex_data[i + 16 + 9] << 8) + (tex_data[i + 16 + 10] << 16) + (tex_data[i + 16 + 11] << 24));
 
-                        uint[] data_enc = XXTEA.Encrypt(data, key_uint);
+                        uint[] data_enc = XXTEA.Encrypt(data, key_uint, rounds);
 
                         for (int j = 0; j < 2; ++j)
                         {
@@ -294,7 +294,7 @@ namespace Shell.Protector
                         data[0] = (uint)(pixels[i + 0].r + (pixels[i + 0].g << 8) + (pixels[i + 0].b << 16) + (pixels[i + 0].a << 24));
                         data[1] = (uint)(pixels[i + 1].r + (pixels[i + 1].g << 8) + (pixels[i + 1].b << 16) + (pixels[i + 1].a << 24));
 
-                        uint[] data_enc = XXTEA.Encrypt(data, key_uint);
+                        uint[] data_enc = XXTEA.Encrypt(data, key_uint, rounds);
 
                         pixels[i + 0].r = (byte)((data_enc[0] & 0x000000FF) >> 0);
                         pixels[i + 0].g = (byte)((data_enc[0] & 0x0000FF00) >> 8);
@@ -326,7 +326,7 @@ namespace Shell.Protector
                         data[1] = (uint)(pixels[i + 1].g + (pixels[i + 1].b << 8) + (pixels[i + 2].r << 16) + (pixels[i + 2].g << 24));
                         data[2] = (uint)(pixels[i + 2].b + (pixels[i + 3].r << 8) + (pixels[i + 3].g << 16) + (pixels[i + 3].b << 24));
 
-                        uint[] data_enc = XXTEA.Encrypt(data, key_uint);
+                        uint[] data_enc = XXTEA.Encrypt(data, key_uint, rounds);
 
                         pixels[i + 0].r = (byte)((data_enc[0] & 0x000000FF) >> 0);
                         pixels[i + 0].g = (byte)((data_enc[0] & 0x0000FF00) >> 8);
