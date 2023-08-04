@@ -13,6 +13,15 @@ This prevents your avatar from being copied and prevents people from modifying y
 
 You can easily enter the password with the OSC program.
 
+## Supported shaders
+- Poiyomi 7.3(Unstable), 8.0, 8.1, 8.2
+- lilToon
+
+## Supported texture formats
+- RGB24, RGBA32
+- DXT1, DXT5
+- The Crunch Compression format will auto-convert to DXT1 or DXT5.
+  
 ## Usage
 
 1. Add an 'Shell Protector' Component to your avatar.
@@ -85,14 +94,6 @@ It is safe to increase the number of user keys by using a minimum of 96 paramete
 
 A 0-byte user key is a minimal defense, and should be effective against toolkiddies using simple tools.
 
-## Supported shaders
-- Poiyomi 7.3, 8.0, 8.1, 8.2
-- lilToon
-
-## Supported texture formats
-- RGB24, RGBA32
-- DXT1, DXT5
-- The Crunch Compression format will auto-convert to DXT1 or DXT5.
 ## feature
 - Save parameter space
 - Support BC7
