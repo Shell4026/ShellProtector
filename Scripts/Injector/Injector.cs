@@ -51,8 +51,9 @@ namespace Shell.Protector
         ";
 
         protected GameObject target;
+        protected Texture2D main_tex;
 
-        public void Init(GameObject target, byte[] key, int user_key_length, int filter, string asset_dir)
+        public void Init(GameObject target, Texture2D main_tex, byte[] key, int user_key_length, int filter, string asset_dir)
         {
             if (key.Length != 16)
             {
@@ -64,6 +65,7 @@ namespace Shell.Protector
             {
                 keys[i] = (ushort)(key[j] | key[j + 1] << 8);
             }
+            this.main_tex = main_tex;
             this.filter = filter;
             this.asset_dir = asset_dir;
             this.user_key_length = user_key_length;
@@ -185,7 +187,26 @@ namespace Shell.Protector
 	key[3] = ((uint)(key12) | (uint)(key13 << 8) | (uint)(key14 << 16) | (uint)(key15 << 24)) ^ (uint)(floor(idx / 2) * 2);";
                     break;
             }
-            
+
+            if(main_tex != null)
+            {
+                if(main_tex.format == TextureFormat.DXT1 || main_tex.format == TextureFormat.DXT5)
+                {
+                    int woffset = 13 - (int)Mathf.Log(main_tex.width, 2) -1 + 2;
+                    int hoffset = 13 - (int)Mathf.Log(main_tex.height, 2) - 1 + 2;
+                    data = Regex.Replace(data, "static const uint WOFFSET = 0;", "static const uint WOFFSET = " + woffset + ";");
+                    data = Regex.Replace(data, "static const uint HOFFSET = 0;", "static const uint HOFFSET = " + hoffset + ";");
+                }
+                else
+                {
+                    int woffset = 13 - (int)Mathf.Log(main_tex.width, 2) - 1;
+                    int hoffset = 13 - (int)Mathf.Log(main_tex.height, 2) - 1;
+                    data = Regex.Replace(data, "static const uint WOFFSET = 0;", "static const uint WOFFSET = " + woffset + ";");
+                    data = Regex.Replace(data, "static const uint HOFFSET = 0;", "static const uint HOFFSET = " + hoffset + ";");
+                }
+            }
+                
+
             data = Regex.Replace(data, "static const uint k\\[4\\] = { 0, 0, 0, 0 };", replace);
             data = Regex.Replace(data, "//key make[\\w\\W]*?//key make end", replace2);
             data = Regex.Replace(data, @"key\[3\] = (.*?)\(uint\)\(floor\(idx / 2\) \* 2\);[\w\W]*?//4idx", "key[3] = $1(uint)(floor(idx / 4) * 4);"); //DecryptRGB

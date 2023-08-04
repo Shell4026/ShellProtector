@@ -248,7 +248,9 @@ namespace Shell.Protector
                     continue;
 
                 Debug.LogFormat("{0} : start encrypt...", mat.name);
-                injector.Init(gameObject, key_bytes, key_size, filter, asset_dir);
+
+                Texture2D main_texture = (Texture2D)mat.mainTexture;
+                injector.Init(gameObject, main_texture, key_bytes, key_size, filter, asset_dir);
 
                 #region Generate mip_tex
                 int size = Math.Max(mat.mainTexture.width, mat.mainTexture.height);
@@ -266,7 +268,6 @@ namespace Shell.Protector
                     }
                 }
                 #endregion
-                Texture2D main_texture = (Texture2D)mat.mainTexture;
                 SetRWEnableTexture(main_texture);
                 SetCrunchCompression(main_texture, false);
 
