@@ -118,6 +118,19 @@ namespace Shell.Protector
             string path = AssetDatabase.GetAssetPath(texture);
             string meta = File.ReadAllText(path + ".meta");
 
+            if (crunch == false)
+            {
+                if (texture.format == TextureFormat.DXT1Crunched)
+                {
+                    int format = 10;
+                    meta = Regex.Replace(meta, "textureFormat: \\d", "textureFormat: " + format);
+                }
+                else if (texture.format == TextureFormat.DXT5Crunched)
+                {
+                    int format = 12;
+                    meta = Regex.Replace(meta, "textureFormat: \\d", "textureFormat: " + format);
+                }
+            }
             int enable = crunch ? 1 : 0;
             meta = Regex.Replace(meta, "crunchedCompression: \\d", "crunchedCompression: " + enable);
             File.WriteAllText(path + ".meta", meta);
