@@ -15,7 +15,7 @@ You can easily enter the password with the OSC program.
 
 ## Supported shaders
 - Poiyomi 7.3(Unstable), 8.0, 8.1, 8.2
-- lilToon
+- lilToon (1.3.8 ~ 1.4.0)
 
 ## Supported texture formats
 - RGB24, RGBA32
