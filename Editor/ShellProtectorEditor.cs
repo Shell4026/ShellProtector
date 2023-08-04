@@ -206,6 +206,7 @@ namespace Shell.Protector
             serializedObject.Update();
             material_list.DoLayoutList();
 
+            #region Options
             option = EditorGUILayout.Foldout(option, Lang("Options"));
             if(option)
             {
@@ -242,10 +243,14 @@ namespace Shell.Protector
                 animation_speed.floatValue = GUILayout.HorizontalSlider(animation_speed.floatValue, 1.0f, 128.0f, GUILayout.Width(100));
                 animation_speed.floatValue = EditorGUILayout.FloatField("", animation_speed.floatValue, GUILayout.Width(50));
                 GUILayout.FlexibleSpace();
-                GUILayout.Label(Lang("Avatar first load animation speed"));
+                GUILayout.Label(Lang("Avatar first load animation speed"), EditorStyles.wordWrappedLabel);
                 GUILayout.EndHorizontal();
+
+                GUILayout.Label(Lang("Delete folders that already exists when at creation time"), EditorStyles.boldLabel);
+                delete_folders.boolValue = EditorGUILayout.Toggle(delete_folders.boolValue);
                 GUILayout.Space(10);
             }
+            #endregion
 
             if (free_parameter - using_parameter < 0)
             {
@@ -254,12 +259,6 @@ namespace Shell.Protector
             }
             if (material_list.count == 0)
                 GUI.enabled = false;
-
-            GUILayout.BeginHorizontal();
-            GUILayout.Label(Lang("Delete folders that already exists when at creation time"));
-            GUILayout.FlexibleSpace();
-            delete_folders.boolValue = EditorGUILayout.Toggle(delete_folders.boolValue);
-            GUILayout.EndHorizontal();
 
             if (GUILayout.Button(Lang("Encrypt!")))
                 root.Encrypt();
