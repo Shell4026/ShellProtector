@@ -20,27 +20,42 @@ public static class ParameterManager
 
     public static VRCExpressionParameters AddKeyParameter(VRCExpressionParameters vrc_parameters, int key_length, bool optimize = false)
     {
+        VRCExpressionParameters result = new VRCExpressionParameters();
+        result.name = vrc_parameters.name + "_encrypted";
+
         var parameters = vrc_parameters.parameters;
 
-        int size = key_length;
-
+        int switch_size = 0;
+        int etc = 0;
         if (optimize == true)
         {
-            if (key_length == 4)
-                size = 4;
-            else if (key_length == 8)
-                size = 5;
-            else
-                size = 6;
+            etc = 2; //lock + pkey(sync)
+            switch(key_length)
+            {
+                case 4:
+                    switch_size = 2;
+                    break;
+                case 8:
+                    switch_size = 3;
+                    break;
+                case 12:
+                case 16:
+                    switch_size = 4;
+                    break;
+                default:
+                    Debug.LogErrorFormat("ParameterManager: key_length = {} is wrong!", key_length);
+                    return result;
+            }  
         }
 
-        VRCExpressionParameters.Parameter[] tmp = new VRCExpressionParameters.Parameter[parameters.Length + size];
+        VRCExpressionParameters.Parameter[] tmp = new VRCExpressionParameters.Parameter[parameters.Length + switch_size + key_length + etc];
         int idx;
         for(idx = 0; idx < parameters.Length; ++idx)
             tmp[idx] = CloneParameter(parameters[idx]);
+
         if (optimize == false)
         {
-            for (int i = 0; i < size; ++i)
+            for (int i = 0; i < key_length; ++i)
             {
                 var para = new VRCExpressionParameters.Parameter
                 {
@@ -51,7 +66,7 @@ public static class ParameterManager
                     defaultValue = 0.0f
                 };
 
-                tmp[idx + i] = para;
+                tmp[idx++] = para;
             }
         }
         else
@@ -65,6 +80,19 @@ public static class ParameterManager
                 defaultValue = 0.0f
             };
             tmp[idx++] = pkey;
+            for (int i = 0; i < key_length; ++i)
+            {
+                var para = new VRCExpressionParameters.Parameter
+                {
+                    name = "pkey" + i,
+                    saved = true,
+                    networkSynced = false,
+                    valueType = VRCExpressionParameters.ValueType.Float,
+                    defaultValue = 0.0f
+                };
+
+                tmp[idx++] = para;
+            }
             var plock = new VRCExpressionParameters.Parameter
             {
                 name = "encrypt_lock",
@@ -74,7 +102,7 @@ public static class ParameterManager
                 defaultValue = 0.0f
             };
             tmp[idx++] = plock;
-            for (int i = 0; i < size - 2; ++i)
+            for (int i = 0; i < switch_size; ++i)
             {
                 var para = new VRCExpressionParameters.Parameter
                 {
@@ -84,11 +112,9 @@ public static class ParameterManager
                     valueType = VRCExpressionParameters.ValueType.Bool,
                     defaultValue = 0.0f
                 };
-                tmp[idx + i] = para;
+                tmp[idx++] = para;
             }
         }
-        VRCExpressionParameters result = new VRCExpressionParameters();
-        result.name = vrc_parameters.name + "_encrypted";
         result.parameters = tmp;
         return result;
     }
