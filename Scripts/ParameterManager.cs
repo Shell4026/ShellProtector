@@ -85,7 +85,7 @@ public static class ParameterManager
                 var para = new VRCExpressionParameters.Parameter
                 {
                     name = "pkey" + i,
-                    saved = true,
+                    saved = false,
                     networkSynced = false,
                     valueType = VRCExpressionParameters.ValueType.Float,
                     defaultValue = 0.0f

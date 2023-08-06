@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
+using VRC.SDK3.Avatars.Components;
 
 public static class AnimatorManager
 {
@@ -157,7 +158,8 @@ public static class AnimatorManager
 
     private static void AddTransition(AnimatorStateTransition transition, int key_length, int idx)
     {
-        if(key_length == 4)
+        transition.AddCondition(AnimatorConditionMode.IfNot, 0, "encrypt_lock");
+        if (key_length == 4)
         {
             int n = 2;
             AnimatorConditionMode[] mode = new AnimatorConditionMode[n];
@@ -203,102 +205,144 @@ public static class AnimatorManager
                 transition.AddCondition(mode[i], 0, "encrypt_switch" + i);
         }
     }
-    public static void AddKeyLayer(AnimatorController anim, string animation_dir, int key_length, float speed = 10.0f, bool optimize = false)
+    public static void AddParameter(AnimatorController anim, int key_length, bool optimize)
     {
-        #region parameter
-        anim.AddParameter(new AnimatorControllerParameter() { defaultFloat = 1.0f, name = "key_weight", type = AnimatorControllerParameterType.Float });
-        if (optimize == false)
+        var paramters = anim.parameters;
+        for(int i = 0; i < paramters.Length; ++i)
         {
-            for (int i = 0; i < key_length; ++i)
-                anim.AddParameter("pkey" + i, AnimatorControllerParameterType.Float);
+            string name = paramters[i].name;
+            if (name == "key_weight")
+                return;
         }
-        else
+        anim.AddParameter(new AnimatorControllerParameter() { defaultFloat = 1.0f, name = "key_weight", type = AnimatorControllerParameterType.Float });
+        
+        for (int i = 0; i < key_length; ++i)
+            anim.AddParameter("pkey" + i, AnimatorControllerParameterType.Float);
+
+        if(optimize)
         {
             anim.AddParameter("pkey", AnimatorControllerParameterType.Float);
             anim.AddParameter("encrypt_lock", AnimatorControllerParameterType.Bool);
             int switch_count = 1;
-            if (key_length == 4)
-                switch_count = 2;
-            else if (key_length == 8)
-                switch_count = 3;
-            else
-                switch_count = 4;
+            switch(key_length)
+            {
+                case 4:
+                    switch_count = 2;
+                    break;
+                case 8:
+                    switch_count = 3;
+                    break;
+                case 12:
+                case 16:
+                    switch_count = 4;
+                    break;
+                default:
+                    Debug.LogErrorFormat("AnimatorManager-AddParameter: key_length = {} is wrong!", key_length);
+                    return;
+            }
+
             for (int i = 0; i < switch_count; ++i)
                 anim.AddParameter("encrypt_switch" + i, AnimatorControllerParameterType.Bool);
         }
-        #endregion
+    }
+    public static void AddKeyLayer(AnimatorController anim, string animation_dir, int key_length, float speed = 10.0f, bool optimize = false)
+    {
+        AddParameter(anim, key_length, optimize);
+
+        if (optimize)
+        {
+            AddKeyLayerMultiplexing(anim, animation_dir, key_length, speed);
+            return;
+        }
+
+        var layers = anim.layers;
+        foreach (var _layer in layers)
+        {
+            if (_layer.name == "ShellProtector")
+                return;
+        }
 
         AnimatorStateMachine stateMachine = new AnimatorStateMachine
         {
             name = anim.MakeUniqueLayerName("ShellProtector"),
             hideFlags = HideFlags.HideInHierarchy
         };
-
+        AssetDatabase.AddObjectToAsset(stateMachine, anim);
         anim.AddLayer(new AnimatorControllerLayer { name = stateMachine.name, defaultWeight = 1.0f, stateMachine = stateMachine });
 
         var layer = anim.layers[anim.layers.Length - 1];
         var state = layer.stateMachine.AddState("keys");
-        if (optimize == false)
+
+        BlendTree tree_root = new BlendTree
         {
-            BlendTree tree_root = new BlendTree();
-            tree_root.name = "key_root";
-            tree_root.blendType = BlendTreeType.Direct;
-            tree_root.blendParameter = "key_weight";
+            name = "key_root",
+            blendType = BlendTreeType.Direct,
+            blendParameter = "key_weight"
+        };
+        AssetDatabase.AddObjectToAsset(tree_root, anim);
+        state.motion = tree_root;
 
-            state.motion = tree_root;
-
-            var key_tree = CreateKeyTree(animation_dir, key_length, speed);
-            for (int i = 0; i < key_length; ++i)
-            {
-                tree_root.AddChild(key_tree[i]);
-
-                AssetDatabase.AddObjectToAsset(key_tree[i], anim);
-            }
-            ChildMotion[] children = tree_root.children;
-            for (int i = 0; i < children.Length; ++i)
-                children[i].directBlendParameter = "key_weight";
-
-            tree_root.children = children;
-            AssetDatabase.AddObjectToAsset(tree_root, anim);
-        }
-        else
+        var key_tree = CreateKeyTree(animation_dir, key_length, speed);
+        for (int i = 0; i < key_length; ++i)
         {
-            state.name = "empty";
-
-            for (int i = 0; i < key_length; ++i)
-            {
-                BlendTree tree_key = new BlendTree
-                {
-                    name = "key" + i,
-                    blendType = BlendTreeType.Direct,
-                    blendParameter = "key_weight"
-                };
-                tree_key.blendType = BlendTreeType.Simple1D;
-                tree_key.blendParameter = "pkey";
-                tree_key.useAutomaticThresholds = false;
-
-                Motion motion0 = AssetDatabase.LoadAssetAtPath(Path.Combine(animation_dir, "key" + i + ".anim"), typeof(AnimationClip)) as AnimationClip;
-                Motion motion1 = AssetDatabase.LoadAssetAtPath(Path.Combine(animation_dir, "key" + i + "_2.anim"), typeof(AnimationClip)) as AnimationClip;
-
-                tree_key.AddChild(motion0, -1);
-                tree_key.AddChild(motion1, 1);
-
-                var key_state = layer.stateMachine.AddState("key" + i);
-                key_state.motion = tree_key;
-
-                var transition = layer.stateMachine.AddAnyStateTransition(key_state);
-                transition.canTransitionToSelf = false;
-                transition.exitTime = 0;
-                transition.duration = 0;
-                transition.hasExitTime = false;
-                transition.AddCondition(AnimatorConditionMode.IfNot, 0, "encrypt_lock");
-                AddTransition(transition, key_length, i);
-                AssetDatabase.AddObjectToAsset(tree_key, anim);
-                AssetDatabase.AddObjectToAsset(key_state, anim);
-            }
+            tree_root.AddChild(key_tree[i]);
+            AssetDatabase.AddObjectToAsset(key_tree[i], anim);
         }
+        ChildMotion[] children = tree_root.children;
+        for (int i = 0; i < children.Length; ++i)
+            children[i].directBlendParameter = "key_weight";
+
+        tree_root.children = children;
+    }
+    public static void AddKeyLayerMultiplexing(AnimatorController anim, string animation_dir, int key_length, float speed = 10.0f)
+    {
+        var layers = anim.layers;
+        foreach (var _layer in layers)
+        {
+            if (_layer.name == "ShellProtectorDriver")
+                return;
+        }
+
+        AnimatorStateMachine stateMachine = new AnimatorStateMachine
+        {
+            name = anim.MakeUniqueLayerName("ShellProtectorDriver"),
+            hideFlags = HideFlags.HideInHierarchy
+        };
         AssetDatabase.AddObjectToAsset(stateMachine, anim);
-        AssetDatabase.AddObjectToAsset(state, anim);
+        anim.AddLayer(new AnimatorControllerLayer { name = stateMachine.name, defaultWeight = 1.0f, stateMachine = stateMachine });
+
+        var layer = anim.layers[anim.layers.Length - 1];
+        var state = layer.stateMachine.AddState("empty");
+
+        var transition = layer.stateMachine.AddAnyStateTransition(state);
+        transition.canTransitionToSelf = false;
+        transition.exitTime = 0;
+        transition.duration = 0;
+        transition.hasExitTime = false;
+        transition.AddCondition(AnimatorConditionMode.If, 0, "encrypt_lock");
+
+        for (int i = 0; i < key_length; ++i)
+        {
+            var key_state = layer.stateMachine.AddState("key" + i);
+
+            var behaviour = key_state.AddStateMachineBehaviour<VRCAvatarParameterDriver>();
+            var behaviour_param = new VRCAvatarParameterDriver.Parameter
+            {
+                type = VRC.SDKBase.VRC_AvatarParameterDriver.ChangeType.Copy,
+                name = "pkey" + i,
+                source = "pkey",
+            };
+            behaviour.parameters.Add(behaviour_param);
+
+            transition = layer.stateMachine.AddAnyStateTransition(key_state);
+            transition.canTransitionToSelf = false;
+            transition.exitTime = 0;
+            transition.duration = 0;
+            transition.hasExitTime = false;
+            AddTransition(transition, key_length, i);
+        }
+
+        AddKeyLayer(anim, animation_dir, key_length, speed, false);
     }
 }
 #endif
