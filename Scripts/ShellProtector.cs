@@ -29,8 +29,8 @@ namespace Shell.Protector
         ShaderManager shader_manager = ShaderManager.GetInstance();
 
         public string asset_dir = "Assets/ShellProtect";
-        public string pwd = "password";
-        public string pwd2 = "pass";
+        public string pwd = "password"; // fixed password
+        public string pwd2 = "pass"; // user password
         public int lang_idx = 0;
         public string lang = "kor";
 
@@ -41,13 +41,13 @@ namespace Shell.Protector
         [SerializeField] int key_size = 4;
         [SerializeField] float animation_speed = 10.0f;
         [SerializeField] bool delete_folders = true;
+        [SerializeField] bool parameter_multiplexing = false;
         public static byte[] MakeKeyBytes(string _key1, string _key2, int key2_length = 4)
         {
             SHA256 sha256 = SHA256.Create();
 
             byte[] key = new byte[16] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
             byte[] key_bytes = Encoding.ASCII.GetBytes(_key1);
-
             byte[] key_bytes2 = Encoding.ASCII.GetBytes(_key2);
             byte[] hash = sha256.ComputeHash(key_bytes2);
 
@@ -56,8 +56,18 @@ namespace Shell.Protector
 
             if (key2_length > 0)
             {
-                for (int i = 0; i < key_bytes2.Length; ++i)
-                    key[i + (16 - key2_length)] = key_bytes2[i];
+                if (key2_length == 16)
+                {
+                    for (int i = 0; i < 16; ++i)
+                        key[i] = 0;
+                    for (int i = 0; i < key_bytes2.Length; ++i)
+                        key[i] = key_bytes2[i];
+                }
+                else
+                {
+                    for (int i = 0; i < key_bytes2.Length; ++i)
+                        key[i + (16 - key2_length)] = key_bytes2[i];
+                }
                 for (int i = 0; i < key2_length; ++i)
                     key[i + (16 - key2_length)] ^= hash[i];
             }
@@ -70,10 +80,6 @@ namespace Shell.Protector
         public EncryptTexture GetEncryptTexture()
         {
             return encrypt;
-        }
-        public void Test()
-        {
-            Debug.Log("Test");
         }
         public void Test2()
         {
@@ -123,16 +129,16 @@ namespace Shell.Protector
                 if (texture.format == TextureFormat.DXT1Crunched)
                 {
                     int format = 10;
-                    meta = Regex.Replace(meta, "textureFormat: \\d", "textureFormat: " + format);
+                    meta = Regex.Replace(meta, "textureFormat: \\d+", "textureFormat: " + format);
                 }
                 else if (texture.format == TextureFormat.DXT5Crunched)
                 {
                     int format = 12;
-                    meta = Regex.Replace(meta, "textureFormat: \\d", "textureFormat: " + format);
+                    meta = Regex.Replace(meta, "textureFormat: \\d+", "textureFormat: " + format);
                 }
             }
             int enable = crunch ? 1 : 0;
-            meta = Regex.Replace(meta, "crunchedCompression: \\d", "crunchedCompression: " + enable);
+            meta = Regex.Replace(meta, "crunchedCompression: \\d+", "crunchedCompression: " + enable);
             File.WriteAllText(path + ".meta", meta);
 
             AssetDatabase.Refresh();
@@ -531,7 +537,7 @@ namespace Shell.Protector
 
             ///////////////////////parameter////////////////////
             var av3 = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
-            av3.expressionParameters = ParameterManager.AddKeyParameter(av3.expressionParameters, key_size);
+            av3.expressionParameters = ParameterManager.AddKeyParameter(av3.expressionParameters, key_size, parameter_multiplexing);
             AssetDatabase.CreateAsset(av3.expressionParameters, asset_dir + "/" + gameObject.name + "/" + av3.expressionParameters.name + ".asset");
 
             ///////////////////////animator////////////////////
@@ -542,7 +548,7 @@ namespace Shell.Protector
             GameObject[] mesh_array = new GameObject[meshes.Count];
             meshes.CopyTo(mesh_array);
             AnimatorManager.DuplicateAniamtions(Path.Combine(asset_dir, "Animations"), animation_dir, mesh_array);
-            AnimatorManager.AddKeyLayer(fx, animation_dir, key_size, animation_speed);
+            AnimatorManager.AddKeyLayer(fx, animation_dir, key_size, animation_speed, parameter_multiplexing);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();

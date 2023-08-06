@@ -28,6 +28,7 @@ namespace Shell.Protector
         SerializedProperty key_size_idx;
         SerializedProperty animation_speed;
         SerializedProperty delete_folders;
+        SerializedProperty parameter_multiplexing;
 
         bool debug = false;
         bool option = true;
@@ -97,7 +98,8 @@ namespace Shell.Protector
             key_size = serializedObject.FindProperty("key_size");
             key_size_idx = serializedObject.FindProperty("key_size_idx");
             animation_speed = serializedObject.FindProperty("animation_speed");
-            delete_folders = serializedObject.FindProperty("delete_folders");
+            delete_folders = serializedObject.FindProperty("delete_folders"); 
+            parameter_multiplexing = serializedObject.FindProperty("parameter_multiplexing");
             #endregion
 
             filters[0] = "Point";
@@ -201,6 +203,25 @@ namespace Shell.Protector
                 GUILayout.Label(Lang("Free parameter:") + free_parameter, EditorStyles.wordWrappedLabel);
             }
             int using_parameter = (key_size.intValue * 8);
+            if(parameter_multiplexing.boolValue == true)
+            {
+                int keys = key_size.intValue;
+                switch(keys)
+                {
+                    case 4:
+                        using_parameter = 8 + 3;
+                        break;
+                    case 8:
+                        using_parameter = 8 + 4;
+                        break;
+                    case 12:
+                        using_parameter = 8 + 5;
+                        break;
+                    case 16:
+                        using_parameter = 8 + 5;
+                        break;
+                }
+            }
             GUILayout.Label(Lang("Parameters to be used:") + using_parameter, EditorStyles.wordWrappedLabel);
 
             serializedObject.Update();
@@ -248,6 +269,12 @@ namespace Shell.Protector
 
                 GUILayout.Label(Lang("Delete folders that already exists when at creation time"), EditorStyles.boldLabel);
                 delete_folders.boolValue = EditorGUILayout.Toggle(delete_folders.boolValue);
+
+                
+                GUILayout.Label(Lang("parameter-multiplexing"), EditorStyles.boldLabel);
+                GUILayout.Label(Lang("The OSC program must always be on, but it consumes fewer parameters."), EditorStyles.wordWrappedLabel);
+                parameter_multiplexing.boolValue = EditorGUILayout.Toggle(parameter_multiplexing.boolValue);
+
                 GUILayout.Space(10);
             }
             #endregion
