@@ -29,8 +29,8 @@ namespace Shell.Protector
         ShaderManager shader_manager = ShaderManager.GetInstance();
 
         public string asset_dir = "Assets/ShellProtect";
-        public string pwd = "password";
-        public string pwd2 = "pass";
+        public string pwd = "password"; // fixed password
+        public string pwd2 = "pass"; // user password
         public int lang_idx = 0;
         public string lang = "kor";
 
@@ -48,7 +48,6 @@ namespace Shell.Protector
 
             byte[] key = new byte[16] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
             byte[] key_bytes = Encoding.ASCII.GetBytes(_key1);
-
             byte[] key_bytes2 = Encoding.ASCII.GetBytes(_key2);
             byte[] hash = sha256.ComputeHash(key_bytes2);
 
@@ -57,8 +56,18 @@ namespace Shell.Protector
 
             if (key2_length > 0)
             {
-                for (int i = 0; i < key_bytes2.Length; ++i)
-                    key[i + (16 - key2_length)] = key_bytes2[i];
+                if (key2_length == 16)
+                {
+                    for (int i = 0; i < 16; ++i)
+                        key[i] = 0;
+                    for (int i = 0; i < key_bytes2.Length; ++i)
+                        key[i] = key_bytes2[i];
+                }
+                else
+                {
+                    for (int i = 0; i < key_bytes2.Length; ++i)
+                        key[i + (16 - key2_length)] = key_bytes2[i];
+                }
                 for (int i = 0; i < key2_length; ++i)
                     key[i + (16 - key2_length)] ^= hash[i];
             }
@@ -71,10 +80,6 @@ namespace Shell.Protector
         public EncryptTexture GetEncryptTexture()
         {
             return encrypt;
-        }
-        public void Test()
-        {
-            Debug.Log("Test");
         }
         public void Test2()
         {
