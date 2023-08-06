@@ -36,6 +36,13 @@ You can easily enter the password with the OSC program.
 3. If changing the password doesn't change the appearance of your avatar, try going to the Action menu - Options - OSC - Reset Config in VRChat.
 4. If you're still having trouble, try clearing the C:\Users\UserName\AppData\LocalLow\VRChat\VRChat\OSC folder.
 
+### Parameter-multiplexing
+Detailed principle:https://github.com/seanedwards/vrc-worldobject/blob/main/docs/parameter-multiplexing.md
+
+This is a parameter-saving technique. After checking, OSC must always be turned on and Parameter-multiplexing must be checked in the OSC program.
+
+16 digits are not recommended because there may be VRChat security issues related to parameters, so 12 digits are recommended.
+
 ## Troubleshooting
 **[is not supported texture format! Error]**
 
@@ -84,13 +91,13 @@ By default, it has 16 bytes of keys, split between keys stored inside the shader
 
 A user key of 0 bytes can be figured out by simply turning the compiled shader into an assembler and analyzing it.
 
-A 4-byte user key can be figured out if someone takes the time to do so. (A 4-byte key = 32 lines of parameters.)
+A 4-byte user key can be figured out if someone takes the time to do so. (4-byte key = 32 parameters / 11 parameters(using parameter-multiplexing))
 
-An 8-byte user key would take a long time to crack on a personal computer. (8-byte key = 64 parameters)
+An 8-byte user key would take a long time to crack on a personal computer. (8-byte key = 64 parameters / 12 parameters)
 
-User keys starting at 12 bytes are impossible to crack on a modern computer. (12-byte key = 96 parameter fields)
+User keys starting at 12 bytes are impossible to crack on a modern computer. (12-byte key = 96 parameter / 13 parameters)
 
-It is safe to increase the number of user keys by using a minimum of 96 parameter spaces. Please be mindful of your parameter space when setting your keys.
+It is safe to increase the number of user keys by using a minimum of 96 parameter spaces(13 when using parameter multiplexing). Please be mindful of your parameter space when setting your keys.
 
 A 0-byte user key is a minimal defense, and should be effective against toolkiddies using simple tools.
 
