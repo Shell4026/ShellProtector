@@ -41,6 +41,8 @@ Detailed principle:https://github.com/seanedwards/vrc-worldobject/blob/main/docs
 
 This is a parameter-saving technique. After checking, OSC must always be turned on and Parameter-multiplexing must be checked in the OSC program.
 
+This will slightly increase the time it takes to get back to your original avatar appearance in-game.
+
 16 digits are not recommended because there may be VRChat security issues related to parameters, so 12 digits are recommended.
 
 ## Troubleshooting
