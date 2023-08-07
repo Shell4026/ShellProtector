@@ -120,7 +120,7 @@ namespace Shell.Protector
         private void ChangeShaderName()
         {
             string shader_data = File.ReadAllText(Path.Combine(output_dir, "lilCustomShaderDatas.lilblock"));
-            shader_data = shader_data.Replace("ShaderName \"hidden/ShellProtector\"", "ShaderName \"hidden/ShellProtector_" + target.GetInstanceID() + "\"");
+            shader_data = shader_data.Replace("ShaderName \"hidden/ShellProtector\"", "ShaderName \"hidden/ShellProtector_" + main_tex.GetInstanceID() + "\"");
             File.WriteAllText(output_dir + "/lilCustomShaderDatas.lilblock", shader_data);
         }
     }
