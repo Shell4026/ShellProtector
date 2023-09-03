@@ -71,6 +71,12 @@ For Poiyomi, try encrypting it again.
 The other person needs to turn off shaders and animation safety or Show Avatar to you.
 
 If they do, this is a VRChat synchronization bug, please change your password and re-upload.
+
+**[When a Texture that was present in a Material is missing]**
+
+When using a texture such as a main color/texture, it will be stripped for security reasons.
+
+The exceptions are the limlight and outline textures, which will not be removed and will still use the encrypted texture.
    
 ## How it works
 Encrypt the texture using an XXTEA algorithm after transforming the key with SHA-256.
