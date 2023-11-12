@@ -3,11 +3,10 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
+
 using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
-using System.Security.Cryptography;
 using VRC.SDK3.Avatars.ScriptableObjects;
 using VRC.SDK3.Avatars.Components;
 
@@ -42,40 +41,10 @@ namespace Shell.Protector
         [SerializeField] float animation_speed = 10.0f;
         [SerializeField] bool delete_folders = true;
         [SerializeField] bool parameter_multiplexing = false;
-        public static byte[] MakeKeyBytes(string _key1, string _key2, int key2_length = 4)
-        {
-            SHA256 sha256 = SHA256.Create();
-
-            byte[] key = new byte[16] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-            byte[] key_bytes = Encoding.ASCII.GetBytes(_key1);
-            byte[] key_bytes2 = Encoding.ASCII.GetBytes(_key2);
-            byte[] hash = sha256.ComputeHash(key_bytes2);
-
-            for (int i = 0; i < key_bytes.Length; ++i)
-                key[i] = key_bytes[i];
-
-            if (key2_length > 0)
-            {
-                if (key2_length == 16)
-                {
-                    for (int i = 0; i < 16; ++i)
-                        key[i] = 0;
-                    for (int i = 0; i < key_bytes2.Length; ++i)
-                        key[i] = key_bytes2[i];
-                }
-                else
-                {
-                    for (int i = 0; i < key_bytes2.Length; ++i)
-                        key[i + (16 - key2_length)] = key_bytes2[i];
-                }
-                for (int i = 0; i < key2_length; ++i)
-                    key[i + (16 - key2_length)] ^= hash[i];
-            }
-            return key;
-        }
+        
         public byte[] GetKeyBytes()
         {
-            return MakeKeyBytes(pwd, pwd2, key_size);
+            return KeyGenerator.MakeKeyBytes(pwd, pwd2, key_size);
         }
         public EncryptTexture GetEncryptTexture()
         {
@@ -84,7 +53,7 @@ namespace Shell.Protector
         public void Test2()
         {
             byte[] data_byte = new byte[12] { 255, 250, 245, 240, 235, 230, 225, 220, 215, 210, 205, 200 };
-            byte[] key_byte = MakeKeyBytes(pwd, pwd2, key_size);
+            byte[] key_byte = KeyGenerator.MakeKeyBytes(pwd, pwd2, key_size);
 
             uint[] data = new uint[3];
             data[0] = (uint)(data_byte[0] | (data_byte[1] << 8) | (data_byte[2] << 16) | (data_byte[3] << 24));
