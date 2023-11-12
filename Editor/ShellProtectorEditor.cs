@@ -311,7 +311,7 @@ namespace Shell.Protector
 
                         ShellProtector.SetRWEnableTexture(texture);
 
-                        Texture2D[] encrypted_texture = root.GetEncryptTexture().TextureEncryptXXTEA(texture, ShellProtector.MakeKeyBytes(root.pwd, root.pwd2, key_size.intValue));
+                        Texture2D[] encrypted_texture = root.GetEncryptTexture().TextureEncryptXXTEA(texture, KeyGenerator.MakeKeyBytes(root.pwd, root.pwd2, key_size.intValue));
 
                         last = encrypted_texture[0];
 
