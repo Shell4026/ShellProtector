@@ -13,6 +13,8 @@ This prevents your avatar from being copied and prevents people from modifying y
 
 You can easily enter the password with the OSC program.
 
+Source code of OSC: https://github.com/Shell4026/ShellProtectorOSC
+
 ## Supported shaders
 - Poiyomi 7.3(Unstable), 8.0, 8.1, 8.2
 - lilToon (1.3.8 ~ 1.4.0)
@@ -70,7 +72,7 @@ For Poiyomi, try encrypting it again.
 
 The other person needs to turn off shaders and animation safety or Show Avatar to you.
 
-If they do, this is a VRChat synchronization bug, please change your password and re-upload.
+If they do, this is a VRChat synchronization of parameters bug, **please change your password and re-upload.**
 
 **[When a Texture that was present in a Material is missing]**
 
