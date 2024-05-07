@@ -19,7 +19,7 @@ OSCのソースコード： https://github.com/Shell4026/ShellProtectorOSC
 
 ## 対応シェーダー
 - Poiyomi 8.0, 8.1, 8.2
-- lilToon (1.3.8 ~ 1.4.0)
+- lilToon (1.3.8 ~ 1.7.3)
 
 ## 対応テクスチャ形式
 - RGB24, RGBA32
