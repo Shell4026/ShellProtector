@@ -113,3 +113,4 @@ A 0-byte user key is a minimal defense, and should be effective against toolkidd
 
 ## feature
 - Support BC7
+- Poiyomi 9.0
