@@ -78,5 +78,36 @@ public class VersionManager : MonoBehaviour
             }
         }
     }
+    private IEnumerator DownloadNewVersion()
+    {
+        if (download_uri == null)
+        {
+            yield return StartCoroutine(LoadData());
+        }
+
+        while (true)
+        {
+            if (download_uri != null)
+            {
+                using (UnityWebRequest www = UnityWebRequest.Get(version_uri))
+                {
+                    yield return www.SendWebRequest();
+
+                    if (!www.isNetworkError)
+                    {
+                        string json_data = www.downloadHandler.text;
+                        string[] parse = ParseVersionJson(json_data);
+
+                        github_version = parse[0];
+                        download_uri = parse[1];
+                    }
+                    else
+                    {
+                        Debug.Log("[ShellProtector]version checking error: " + www.error);
+                    }
+                }
+            }
+        }
+    }
 }
 #endif

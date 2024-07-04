@@ -15,6 +15,7 @@ namespace Shell.Protector
         protected int filter = 1;
         protected string asset_dir;
         protected int user_key_length = 4;
+        protected uint rounds = 25;
 
         protected string shader_code_nofilter_XXTEA = @"
 				float4 mip_texture = _MipTex.Sample(sampler_MipTex, mainUV);
@@ -53,7 +54,7 @@ namespace Shell.Protector
         protected GameObject target;
         protected Texture2D main_tex;
 
-        public void Init(GameObject target, Texture2D main_tex, byte[] key, int user_key_length, int filter, string asset_dir)
+        public void Init(GameObject target, Texture2D main_tex, byte[] key, int user_key_length, int filter, string asset_dir, uint rounds)
         {
             if (key.Length != 16)
             {
@@ -69,6 +70,7 @@ namespace Shell.Protector
             this.filter = filter;
             this.asset_dir = asset_dir;
             this.user_key_length = user_key_length;
+            this.rounds = rounds;
         }
 
         protected string GenerateDecoder(string decode_dir, Texture2D tex)
@@ -132,7 +134,7 @@ namespace Shell.Protector
 	key[0] = k[0];
 	key[1] = k[1];
 	key[2] = ((uint)(key0) | (uint)(key1 << 8) | (uint)(key2 << 16) | (uint)(key3 << 24));
-	key[3] = ((uint)(key4) | (uint)(key5 << 8) | (uint)(key6 << 16) | (uint)(key7 << 24)) ^ (uint)(floor(idx / 2) * 2);";
+	key[3] = ((uint)(key4) | (uint)(key5 << 8) | (uint)(key6 << 16) | (uint)(key7 << 24)) ^ (uint)((idx >> 1) << 1);";
                     break;
                 case 12:
                     replace = "static const uint k[4] = { " + k0 + ", 0, 0, 0 };\n";
@@ -156,7 +158,7 @@ namespace Shell.Protector
 	key[0] = k[0];
 	key[1] = ((uint)(key0) | (uint)(key1 << 8) | (uint)(key2 << 16) | (uint)(key3 << 24));
 	key[2] = ((uint)(key4) | (uint)(key5 << 8) | (uint)(key6 << 16) | (uint)(key7 << 24));
-	key[3] = ((uint)(key8) | (uint)(key9 << 8) | (uint)(key10 << 16) | (uint)(key11 << 24)) ^ (uint)(floor(idx / 2) * 2);";
+	key[3] = ((uint)(key8) | (uint)(key9 << 8) | (uint)(key10 << 16) | (uint)(key11 << 24)) ^ (uint)((idx >> 1) << 1);";
                     break;
                 default:
                     replace = "static const uint k[4] = { 0, 0, 0, 0 };\n";
@@ -184,7 +186,7 @@ namespace Shell.Protector
 	key[0] = ((uint)(key0) | (uint)(key1 << 8) | (uint)(key2 << 16) | (uint)(key3 << 24));
 	key[1] = ((uint)(key4) | (uint)(key5 << 8) | (uint)(key6 << 16) | (uint)(key7 << 24));
 	key[2] = ((uint)(key8) | (uint)(key9 << 8) | (uint)(key10 << 16) | (uint)(key11 << 24));
-	key[3] = ((uint)(key12) | (uint)(key13 << 8) | (uint)(key14 << 16) | (uint)(key15 << 24)) ^ (uint)(floor(idx / 2) * 2);";
+	key[3] = ((uint)(key12) | (uint)(key13 << 8) | (uint)(key14 << 16) | (uint)(key15 << 24)) ^ (uint)((idx >> 1) << 1);";
                     break;
             }
 
@@ -208,8 +210,9 @@ namespace Shell.Protector
                 
 
             data = Regex.Replace(data, "static const uint k\\[4\\] = { 0, 0, 0, 0 };", replace);
+            data = Regex.Replace(data, "static const uint ROUNDS = 6;", "static const uint ROUNDS = " + rounds + ";");
             data = Regex.Replace(data, "//key make[\\w\\W]*?//key make end", replace2);
-            data = Regex.Replace(data, @"key\[3\] = (.*?)\(uint\)\(floor\(idx / 2\) \* 2\);[\w\W]*?//4idx", "key[3] = $1(uint)(floor(idx / 4) * 4);"); //DecryptRGB
+            data = Regex.Replace(data, @"key\[3\] = (.*?)\(uint\)\(floor\(idx / 2\) \* 2\);[\w\W]*?//4idx", "key[3] = $1(uint)((idx >> 2) << 2);"); //DecryptRGB
             return data;
         }
 

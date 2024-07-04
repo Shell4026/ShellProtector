@@ -6,6 +6,7 @@ static const uint mh[13] = { 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 
 static const uint Delta = 0x9e3779b9;
 
 static const uint k[4] = { 0, 0, 0, 0 };
+static const uint ROUNDS = 6;
 
 static const uint WOFFSET = 0;
 static const uint HOFFSET = 0;
@@ -30,9 +31,8 @@ void XXTEADecrypt(float3 pixel[4], out uint data[3], uint key[4])
 	const uint n = 3;
 	uint v0, v1, sum;
 	uint p, rounds, e;
-
-	//rounds = 6 + floor(52 / n);
-	rounds = 25;
+	rounds = ROUNDS;
+	
 	sum = rounds * Delta;
 
 	v0 = data[0];
@@ -58,10 +58,9 @@ void XXTEADecrypt(float4 pixel[2], out uint data[2], uint key[4])
 
 	uint v0, v1, sum;
 	uint p, rounds, e;
+	rounds = ROUNDS;
 
 	const uint n = 2;
-	//rounds = 6 + floor(52 / n);
-	rounds = 25;
 	sum = rounds * Delta;
 
 	v0 = data[0];
@@ -144,8 +143,7 @@ float4 DecryptTextureXXTEARGBA(float2 uv, int m)
 	
 	float4 pixels[2];
 	
-	int pos[2] = { 0, -1 };
-	int offset = pos[idx % 2];
+	int offset = (idx & 1) == 0 ? 0 : -1;
 	pixels[0] = _MainTex.SampleLevel(sampler_MainTex, GetUV(idx + 0 + offset, m, WOFFSET, HOFFSET), m);
 	pixels[1] = _MainTex.SampleLevel(sampler_MainTex, GetUV(idx + 1 + offset, m, WOFFSET, HOFFSET), m);
 
@@ -155,18 +153,19 @@ float4 DecryptTextureXXTEARGBA(float2 uv, int m)
 
 	XXTEADecrypt(pixels, data, key);
 
-	float r[2] = { (data[0] & 0x000000FF)/255.0f, ((data[1] & 0x000000FF))/255.0f };
-	float g[2] = { ((data[0] & 0x0000FF00) >>  8)/255.0f, ((data[1] & 0x0000FF00) >>  8)/255.0f };
-	float b[2] = { ((data[0] & 0x00FF0000) >> 16)/255.0f, ((data[1] & 0x00FF0000) >> 16)/255.0f };
-	float a[2] = { ((data[0] & 0xFF000000) >> 24)/255.0f, ((data[1] & 0xFF000000) >> 24)/255.0f };
-	float4 decrypt = float4(r[idx % 2], g[idx % 2], b[idx % 2], a[idx % 2]);
+	float r = ((data[idx & 1] & 0x000000FF) >>  0)/255.0f;
+	float g = ((data[idx & 1] & 0x0000FF00) >>  8)/255.0f;
+	float b = ((data[idx & 1] & 0x00FF0000) >> 16)/255.0f;
+	float a = ((data[idx & 1] & 0xFF000000) >> 24)/255.0f;
+	float4 decrypt = float4(r, g, b, a);
 
 	return float4(GammaCorrection(decrypt.rgb), decrypt.a);
 }
 float4 DecryptTextureXXTEADXT(float2 uv, int m)
 {
-	float x = frac(uv.x);
-	float y = frac(uv.y);
+	float2 frac_uv = frac(uv.xy);
+	float x = frac_uv.x;
+	float y = frac_uv.y;
 
 	int miplv = 0;
 	
@@ -185,8 +184,7 @@ float4 DecryptTextureXXTEADXT(float2 uv, int m)
 	key[3] = k[3];
 	//key make end
 	
-	int pos[2] = { 0, -1 };
-	int offset = pos[idx % 2];
+	int offset = (idx & 1) == 0 ? 0 : -1;
 	
 	float4 pixels[2];
 	pixels[0] = _EncryptTex.SampleLevel(sampler_MainTex, GetUV(idx + 0 + offset, m, WOFFSET, HOFFSET), m);
@@ -198,13 +196,13 @@ float4 DecryptTextureXXTEADXT(float2 uv, int m)
 	
 	XXTEADecrypt(pixels, data, key);
 	
-	uint r[2] = { (data[0] & 0x000000FF), ((data[1] & 0x000000FF)) };
-	uint g[2] = { ((data[0] & 0x0000FF00) >>  8), ((data[1] & 0x0000FF00) >>  8) };
-	uint b[2] = { ((data[0] & 0x00FF0000) >> 16), ((data[1] & 0x00FF0000) >> 16) };
-	uint a[2] = { ((data[0] & 0xFF000000) >> 24), ((data[1] & 0xFF000000) >> 24) };
+	uint r = (data[idx & 1] & 0x000000FF) >> 0;
+	uint g = (data[idx & 1] & 0x0000FF00) >> 8;
+	uint b = (data[idx & 1] & 0x00FF0000) >> 16;
+	uint a = (data[idx & 1] & 0xFF000000) >> 24;
 	
-	uint color1 = (r[idx % 2] | g[idx % 2] << 8);
-	uint color2 = (b[idx % 2] | a[idx % 2] << 8);
+	uint color1 = (r | g << 8);
+	uint color2 = (b | a << 8);
 	
 	uint color1_r = (color1 & 0xF800) >> 11;
 	color1_r = color1_r << 3 | color1_r >> 2;
@@ -224,12 +222,7 @@ float4 DecryptTextureXXTEADXT(float2 uv, int m)
 	float3 col2 = float3(color2_r / 255.0f, color2_g / 255.0f, color2_b / 255.0f);
 	
 	float3 result;
-	result = lerp(col2, col1, col);
-	if(color1 <= color2)
-	{
-		if(col.r > 0.1 && col.r < 0.9)
-			result = lerp(col2, col1, 0.5);
-	}
+	result = lerp(col2, col1, color1 > color2 ? col.rgb : 0.5);
 		
 	return float4(GammaCorrection(result), col.a);
 }
