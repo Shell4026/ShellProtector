@@ -114,3 +114,4 @@ MainTexture만 암호화 하기 때문에 메테리얼 내 다른 곳에 MainTex
  
 ## 예정
 - BC7 지원
+- Poiyomi 9.0
