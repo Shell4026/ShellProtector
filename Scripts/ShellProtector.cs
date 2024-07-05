@@ -3,10 +3,11 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-
+using System.Text;
 using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
+using System.Security.Cryptography;
 using VRC.SDK3.Avatars.ScriptableObjects;
 using VRC.SDK3.Avatars.Components;
 
@@ -33,12 +34,12 @@ namespace Shell.Protector
         public int lang_idx = 0;
         public string lang = "kor";
 
-        [SerializeField] int rounds = 32;
+        [SerializeField] uint rounds = 20;
         [SerializeField] int filter = 1;
         [SerializeField] int algorithm = 0;
         [SerializeField] int key_size_idx = 0;
         [SerializeField] int key_size = 4;
-        [SerializeField] float animation_speed = 10.0f;
+        [SerializeField] float animation_speed = 128.0f;
         [SerializeField] bool delete_folders = true;
         [SerializeField] bool parameter_multiplexing = false;
         
@@ -225,7 +226,7 @@ namespace Shell.Protector
                 Debug.LogFormat("{0} : start encrypt...", mat.name);
 
                 Texture2D main_texture = (Texture2D)mat.mainTexture;
-                injector.Init(gameObject, main_texture, key_bytes, key_size, filter, asset_dir);
+                injector.Init(gameObject, main_texture, key_bytes, key_size, filter, asset_dir, rounds);
 
                 #region Generate mip_tex
                 int size = Math.Max(mat.mainTexture.width, mat.mainTexture.height);
@@ -368,7 +369,7 @@ namespace Shell.Protector
                 #region Make encrypted textures
                 if (has_exist_encrypt_tex == false)
                 {
-                    encrypted_tex = encrypt.TextureEncryptXXTEA(main_texture, key_bytes);
+                    encrypted_tex = encrypt.TextureEncryptXXTEA(main_texture, key_bytes, rounds);
                     if (encrypted_tex[0] == null)
                     {
                         Debug.LogErrorFormat("{0} : encrypt failed.", main_texture.name);
