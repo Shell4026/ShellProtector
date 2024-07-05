@@ -57,10 +57,8 @@ public class LanguageManager
             { "Lastest version: ", "최신 버전: " },
             { "Delete folders that already exists when at creation time", "생성시 이미 존재하는 폴더 삭제" },
             { "parameter-multiplexing", "파라미터 멀티플렉싱"},
-            { "The OSC program must always be on, but it consumes fewer parameters.", "OSC프로그램을 상시로 켜둬야하지만, 더 적은 파라미터만 사용합니다." },
-            { "Rounds", "라운드 수"},
-            { "Number of encryption iterations. Higher values provide better security, but at the expense of performance.", "암호화 반복 횟수. 값이 높을 수록 보안이 좋아지나 성능이 저하 됩니다." },
-            { "Setting it to 'Point' may result in aliasing, but performance is better.", "Point로 설정시 계단현상이 생길 수 있으나 성능이 좋아집니다." }
+            { "The OSC program must always be on, but it consumes fewer parameters.", "OSC프로그램을 상시로 켜둬야하지만, 더 적은 파라미터만 사용합니다."}
+
         };
 
         languageMap.Add("kor", koreanStrings);

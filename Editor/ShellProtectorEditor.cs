@@ -8,7 +8,6 @@ using System.Text;
 using System;
 using System.IO;
 using System.Text.RegularExpressions;
-using static VRC.SDK3.Dynamics.PhysBone.PhysBoneMigration.DynamicBoneColliderData;
 
 namespace Shell.Protector
 {
@@ -235,20 +234,8 @@ namespace Shell.Protector
                 GUILayout.Label(Lang("Encrytion algorithm"), EditorStyles.boldLabel);
                 algorithm.intValue = EditorGUILayout.Popup(algorithm.intValue, enc_funcs, GUILayout.Width(120));
 
-                GUILayout.Label(Lang("Rounds"), EditorStyles.boldLabel);
-                GUILayout.BeginHorizontal();
-                rounds.uintValue = (uint)Mathf.RoundToInt(GUILayout.HorizontalSlider(rounds.uintValue, 6, 32, GUILayout.Width(100)));
-                rounds.uintValue = (uint)EditorGUILayout.IntField("", (int)rounds.uintValue, GUILayout.Width(50));
-                rounds.uintValue = Math.Clamp(rounds.uintValue, 6, 32);
-                GUILayout.FlexibleSpace();
-                GUILayout.EndHorizontal();
-                GUILayout.Label(Lang("Number of encryption iterations. Higher values provide better security, but at the expense of performance."), EditorStyles.wordWrappedLabel);
-
-                GUILayout.Space(10);
-
                 GUILayout.Label(Lang("Texture filter"), EditorStyles.boldLabel);
                 filter.intValue = EditorGUILayout.Popup(filter.intValue, filters, GUILayout.Width(100));
-                GUILayout.Label(Lang("Setting it to 'Point' may result in aliasing, but performance is better."), EditorStyles.wordWrappedLabel);
 
                 GUILayout.Label(Lang("Max password length"), EditorStyles.boldLabel);
                 key_size_idx.intValue = EditorGUILayout.Popup(key_size_idx.intValue, key_lengths, GUILayout.Width(150));
@@ -324,7 +311,7 @@ namespace Shell.Protector
 
                         ShellProtector.SetRWEnableTexture(texture);
 
-                        Texture2D[] encrypted_texture = root.GetEncryptTexture().TextureEncryptXXTEA(texture, ShellProtector.MakeKeyBytes(root.pwd, root.pwd2, key_size.intValue), rounds.uintValue);
+                        Texture2D[] encrypted_texture = root.GetEncryptTexture().TextureEncryptXXTEA(texture, KeyGenerator.MakeKeyBytes(root.pwd, root.pwd2, key_size.intValue));
 
                         last = encrypted_texture[0];
 
