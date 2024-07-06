@@ -47,6 +47,10 @@ This will slightly increase the time it takes to get back to your original avata
 
 16 digits are not recommended because there may be VRChat security issues related to parameters, so 12 digits are recommended.
 
+When using parameter multiplexing, depending on the server or network conditions, OSC values may not be delivered to other users and decryption may not work.
+
+In this case, try increasing the refresh rate slightly, which was added in OSC 1.5.0.
+
 ## Troubleshooting
 **[is not supported texture format! Error]**
 
@@ -73,6 +77,10 @@ For Poiyomi, try encrypting it again.
 The other person needs to turn off shaders and animation safety or Show Avatar to you.
 
 If they do, this is a VRChat synchronization of parameters bug, **please change your password and re-upload.**
+
+When using parameter multiplexing, depending on the server or network conditions, OSC values may not be delivered to other users and decryption may not work.
+
+In this case, try increasing the refresh rate slightly, which was added in OSC 1.5.0.
 
 **[When a Texture that was present in a Material is missing]**
 
