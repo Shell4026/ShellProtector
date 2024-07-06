@@ -46,6 +46,10 @@ OSC 소스 코드: https://github.com/Shell4026/ShellProtectorOSC
 
 16자리는 혹시 모를 파라미터 관련 VRChat보안 이슈가 있을 수 있으니 12자리를 권장합니다.
 
+파라미터 멀티플렉싱 사용시 서버나 네트워크 상황에 따라 다른 유저에게 OSC값이 전달이 안 돼어 복호화가 안 될 수 있습니다.
+
+이 경우 OSC 1.5.0에 추가된 Refresh rate를 조금 올려보시길 바랍니다.
+
 ## 문제해결
 **<is not supported texture format! 에러>**
 
