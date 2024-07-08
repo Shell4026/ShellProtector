@@ -29,6 +29,7 @@ namespace Shell.Protector
         SerializedProperty animation_speed;
         SerializedProperty delete_folders;
         SerializedProperty parameter_multiplexing;
+        SerializedProperty bUseSmallMipTexture;
 
         bool debug = false;
         bool option = true;
@@ -100,6 +101,7 @@ namespace Shell.Protector
             animation_speed = serializedObject.FindProperty("animation_speed");
             delete_folders = serializedObject.FindProperty("delete_folders"); 
             parameter_multiplexing = serializedObject.FindProperty("parameter_multiplexing");
+            bUseSmallMipTexture = serializedObject.FindProperty("bUseSmallMipTexture");
             #endregion
 
             filters[0] = "Point";
@@ -231,28 +233,10 @@ namespace Shell.Protector
             option = EditorGUILayout.Foldout(option, Lang("Options"));
             if(option)
             {
-                GUILayout.Label(Lang("Encrytion algorithm"), EditorStyles.boldLabel);
-                algorithm.intValue = EditorGUILayout.Popup(algorithm.intValue, enc_funcs, GUILayout.Width(120));
-
-                GUILayout.Label(Lang("Rounds"), EditorStyles.boldLabel);
-                GUILayout.BeginHorizontal();
-                rounds.uintValue = (uint)Mathf.RoundToInt(GUILayout.HorizontalSlider(rounds.uintValue, 6, 32, GUILayout.Width(100)));
-                rounds.uintValue = (uint)EditorGUILayout.IntField("", (int)rounds.uintValue, GUILayout.Width(50));
-                rounds.uintValue = Math.Clamp(rounds.uintValue, 6, 32);
-                GUILayout.FlexibleSpace();
-                GUILayout.EndHorizontal();
-                GUILayout.Label(Lang("Number of encryption iterations. Higher values provide better security, but at the expense of performance."), EditorStyles.wordWrappedLabel);
-
-                GUILayout.Space(10);
-
-                GUILayout.Label(Lang("Texture filter"), EditorStyles.boldLabel);
-                filter.intValue = EditorGUILayout.Popup(filter.intValue, filters, GUILayout.Width(100));
-                GUILayout.Label(Lang("Setting it to 'Point' may result in aliasing, but performance is better."), EditorStyles.wordWrappedLabel);
-
                 GUILayout.Label(Lang("Max password length"), EditorStyles.boldLabel);
                 key_size_idx.intValue = EditorGUILayout.Popup(key_size_idx.intValue, key_lengths, GUILayout.Width(150));
 
-                switch(key_size_idx.intValue)
+                switch (key_size_idx.intValue)
                 {
                     case 0:
                         key_size.intValue = 0;
@@ -271,6 +255,24 @@ namespace Shell.Protector
                         break;
                 }
 
+                GUILayout.Label(Lang("Encrytion algorithm"), EditorStyles.boldLabel);
+                algorithm.intValue = EditorGUILayout.Popup(algorithm.intValue, enc_funcs, GUILayout.Width(120));
+
+                GUILayout.Label(Lang("Rounds"), EditorStyles.boldLabel);
+                GUILayout.BeginHorizontal();
+                rounds.uintValue = (uint)Mathf.RoundToInt(GUILayout.HorizontalSlider(rounds.uintValue, 6, 32, GUILayout.Width(100)));
+                rounds.uintValue = (uint)EditorGUILayout.IntField("", (int)rounds.uintValue, GUILayout.Width(50));
+                rounds.uintValue = Math.Clamp(rounds.uintValue, 6, 32);
+                GUILayout.FlexibleSpace();
+                GUILayout.EndHorizontal();
+                GUILayout.Label(Lang("Number of encryption iterations. Higher values provide better security, but at the expense of performance."), EditorStyles.wordWrappedLabel);
+
+                GUILayout.Space(10);
+
+                GUILayout.Label(Lang("Texture filter"), EditorStyles.boldLabel);
+                filter.intValue = EditorGUILayout.Popup(filter.intValue, filters, GUILayout.Width(100));
+                GUILayout.Label(Lang("Setting it to 'Point' may result in aliasing, but performance is better."), EditorStyles.wordWrappedLabel);
+
                 GUILayout.Label(Lang("Initial animation speed"), EditorStyles.boldLabel);
                 GUILayout.BeginHorizontal();
                 animation_speed.floatValue = GUILayout.HorizontalSlider(animation_speed.floatValue, 1.0f, 128.0f, GUILayout.Width(100));
@@ -279,13 +281,31 @@ namespace Shell.Protector
                 GUILayout.Label(Lang("Avatar first load animation speed"), EditorStyles.wordWrappedLabel);
                 GUILayout.EndHorizontal();
 
+                GUILayout.Space(10);
+
+                GUILayout.BeginHorizontal();
                 GUILayout.Label(Lang("Delete folders that already exists when at creation time"), EditorStyles.boldLabel);
                 delete_folders.boolValue = EditorGUILayout.Toggle(delete_folders.boolValue);
+                GUILayout.FlexibleSpace();
+                GUILayout.EndHorizontal();
 
-                
+                GUILayout.Space(10);
+
+                GUILayout.BeginHorizontal();
                 GUILayout.Label(Lang("parameter-multiplexing"), EditorStyles.boldLabel);
-                GUILayout.Label(Lang("The OSC program must always be on, but it consumes fewer parameters."), EditorStyles.wordWrappedLabel);
                 parameter_multiplexing.boolValue = EditorGUILayout.Toggle(parameter_multiplexing.boolValue);
+                GUILayout.FlexibleSpace();
+                GUILayout.EndHorizontal();
+                GUILayout.Label(Lang("The OSC program must always be on, but it consumes fewer parameters."), EditorStyles.wordWrappedLabel);
+
+                GUILayout.Space(10);
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(Lang("Small mip texture"), EditorStyles.boldLabel);
+                bUseSmallMipTexture.boolValue = EditorGUILayout.Toggle(bUseSmallMipTexture.boolValue);
+                GUILayout.FlexibleSpace();
+                GUILayout.EndHorizontal();
+                GUILayout.Label(Lang("It uses a smaller mipTexture to reduce memory usage and improve performance. It may look slightly different from the original when viewed from the side."), EditorStyles.wordWrappedLabel);
 
                 GUILayout.Space(10);
             }
@@ -300,7 +320,7 @@ namespace Shell.Protector
                 GUI.enabled = false;
 
             if (GUILayout.Button(Lang("Encrypt!")))
-                root.Encrypt();
+                root.Encrypt(bUseSmallMipTexture.boolValue);
             GUI.enabled = true;
             debug = EditorGUILayout.Foldout(debug, Lang("Debug"));
             if(debug)

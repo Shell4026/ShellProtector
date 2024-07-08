@@ -42,7 +42,8 @@ namespace Shell.Protector
         [SerializeField] float animation_speed = 128.0f;
         [SerializeField] bool delete_folders = true;
         [SerializeField] bool parameter_multiplexing = false;
-        
+        [SerializeField] bool bUseSmallMipTexture = true;
+
         public byte[] GetKeyBytes()
         {
             return KeyGenerator.MakeKeyBytes(pwd, pwd2, key_size);
@@ -185,7 +186,7 @@ namespace Shell.Protector
                 AssetDatabase.CreateFolder(Path.Combine(asset_dir, gameObject.name), "animations");
         }
 
-        public void Encrypt()
+        public void Encrypt(bool bUseSmallMip = false)
         {
             gameObject.SetActive(true);
             Debug.Log("Key bytes: " + string.Join(", ", GetKeyBytes()));
@@ -232,7 +233,7 @@ namespace Shell.Protector
                 int size = Math.Max(mat.mainTexture.width, mat.mainTexture.height);
                 if (!mips.ContainsKey(size))
                 {
-                    var mip = encrypt.GenerateRefMipmap(size, size);
+                    var mip = encrypt.GenerateRefMipmap(size, size, bUseSmallMip);
                     if (mip == null)
                         Debug.LogErrorFormat("{0} : Can't generate mip tex{1}.", mat.name, size);
                     else

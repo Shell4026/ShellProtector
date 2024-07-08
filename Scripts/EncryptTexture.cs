@@ -84,13 +84,13 @@ namespace Shell.Protector
             var segment = new ArraySegment<byte>(data, start, end);
             return segment.ToArray();
         }
-        public Texture2D GenerateRefMipmap(int width, int height)
+        public Texture2D GenerateRefMipmap(int width, int height, bool small = false)
         {
             int mip_lv = GetCanMipmapLevel(width, height);
 
-            Texture2D mip = new Texture2D(width, height, TextureFormat.RGB24, mip_lv, true);
+            Texture2D mip = new Texture2D(width, (small == false) ? height : 1, TextureFormat.RGB24, mip_lv, true);
             mip.filterMode = FilterMode.Bilinear;
-            mip.anisoLevel = 1;
+            mip.anisoLevel = (small == false) ? 1 : 0;
 
             for (int m = 0; m < mip.mipmapCount; ++m)
             {
