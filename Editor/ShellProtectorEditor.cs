@@ -34,7 +34,7 @@ namespace Shell.Protector
         bool debug = false;
         bool option = true;
 
-        readonly string[] languages = new string[2];
+        readonly string[] languages = new string[3];
         readonly string[] filters = new string[2];
         readonly string[] enc_funcs = new string[1];
         readonly string[] key_lengths = new string[5];
@@ -111,6 +111,7 @@ namespace Shell.Protector
 
             languages[0] = "English";
             languages[1] = "한국어";
+            languages[2] = "日本語";
 
             key_lengths[0] = Lang("0 (Minimal security)");
             key_lengths[1] = Lang("4 (Low security)");
@@ -153,6 +154,9 @@ namespace Shell.Protector
                     break;
                 case 1:
                     root.lang = "kor";
+                    break;
+                case 2:
+                    root.lang = "jp";
                     break;
                 default:
                     root.lang = "eng";
