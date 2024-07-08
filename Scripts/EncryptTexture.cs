@@ -103,7 +103,8 @@ namespace Shell.Protector
                 }
                 mip.SetPixels32(pixels_mip, m);
             }
-            mip.Compress(false);
+            if(small == false)
+                mip.Compress(false);
             return mip;
         }
         public Texture2D[] TextureEncryptXXTEA(Texture2D texture, byte[] key, uint rounds = 25)

@@ -123,6 +123,11 @@ namespace Shell.Protector
                     shader_data = Regex.Replace(shader_data, @"float4 col = .*?_OutlineTexture.*?\* float4(.*?);", "float4 col = float4(poiFragData.baseColor, poiFragData.alpha) * float4$1;");
 
             }
+            else
+            {
+                Debug.LogErrorFormat("{0} is unsupported Poiyomi version!", mat.name);
+                return null;
+            }
             File.WriteAllText(output_path + '/' + shader_name, shader_data);
 
             string decode_data = GenerateDecoder(decode_dir, tex);
