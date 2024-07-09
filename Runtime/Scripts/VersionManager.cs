@@ -43,7 +43,7 @@ public class VersionManager : MonoBehaviour
     public string GetVersion()
     {
         MonoScript monoScript = MonoScript.FromMonoBehaviour(this);
-        string script_path = AssetDatabase.GetAssetPath(monoScript);
+        string script_path = Directory.GetParent(AssetDatabase.GetAssetPath(monoScript)).ToString();
         string dir = Path.GetDirectoryName(Path.GetDirectoryName(script_path));
 
         string data = File.ReadAllText(Path.Combine(dir, "version.json"));
