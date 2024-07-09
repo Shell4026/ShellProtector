@@ -1,4 +1,5 @@
 #if UNITY_EDITOR
+#if MODULAR
 using nadena.dev.ndmf;
 using Shell.Protector;
 using UnityEngine;
@@ -21,4 +22,5 @@ public class ShellProtectorNDMFPlugin : Plugin<ShellProtectorNDMFPlugin>
         });
     }
 }
+#endif
 #endif

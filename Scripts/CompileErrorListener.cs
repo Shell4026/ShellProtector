@@ -22,7 +22,7 @@ namespace Shell.Protector
                             continue;
                         if (!m.message.Contains("The type or namespace name 'Thry' could not be found"))
                             continue;
-                        ShaderManager.GetInstance().ResetDefine();
+                        AssetManager.GetInstance().ResetDefine();
                         break;
                     }
                 }

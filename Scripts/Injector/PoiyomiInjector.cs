@@ -51,7 +51,7 @@ namespace Shell.Protector
             UNITY_DECLARE_TEX2D(_MipTex);
             Texture2D _EncryptTex;
 ";
-            int version = ShaderManager.GetInstance().GetShaderType(shader);
+            int version = AssetManager.GetInstance().GetShaderType(shader);
             if(version == 73)
             {
                 string path = output_path + "/CGI_Poicludes.cginc";

@@ -10,7 +10,7 @@ namespace Shell.Protector
     {
         public static Injector GetInjector(Shader shader)
         {
-            ShaderManager shader_manager = ShaderManager.GetInstance();
+            AssetManager shader_manager = AssetManager.GetInstance();
             if (shader_manager.IsPoiyomi(shader))
                 return new PoiyomiInjector();
             else if (shader_manager.IslilToon(shader))

@@ -7,21 +7,22 @@ using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEditor.Build.Player;
 using UnityEngine;
+using System.Linq;
 
 namespace Shell.Protector
 {
-    public class ShaderManager
+    public class AssetManager
     {
-        static ShaderManager instance;
+        static AssetManager instance;
         readonly Dictionary<string, int> support_version = new Dictionary<string, int>();
 
-        static public ShaderManager GetInstance()
+        static public AssetManager GetInstance()
         {
             if(instance == null)
-                instance = new ShaderManager();
+                instance = new AssetManager();
             return instance;
         }
-        ShaderManager()
+        AssetManager()
         {
             support_version.Add("Poiyomi 7.3", 73);
             support_version.Add("Poiyomi 8.0", 80);
@@ -108,6 +109,29 @@ namespace Shell.Protector
 
             return return_shader;
         }
+        public static bool NamespaceExists(string namespaceName)
+        {
+            return AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(t => t.GetTypes())
+                .Any(t => String.Equals(t.Namespace, namespaceName, StringComparison.Ordinal));
+        }
+
+        public void CheckModular()
+        {
+            if (!NamespaceExists("nadena.dev.ndmf"))
+            {
+                Debug.Log("ShellProtector: Can't find Modular!");
+                return;
+            }
+            Debug.Log("ShellProtector: Find Modular!");
+
+            string symbols = PlayerSettings.GetScriptingDefineSymbolsForGroup(EditorUserBuildSettings.selectedBuildTargetGroup);
+            string symbols_original = string.Copy(symbols);
+            symbols += ";MODULAR";
+
+            if (symbols_original != symbols)
+                PlayerSettings.SetScriptingDefineSymbolsForGroup(EditorUserBuildSettings.selectedBuildTargetGroup, symbols);
+        }
 
         public void ResetDefine()
         {
@@ -115,6 +139,7 @@ namespace Shell.Protector
 
             symbols = symbols.Replace(";LILTOON", ";");
             symbols = symbols.Replace(";POIYOMI", ";");
+            symbols = symbols.Replace(";MODULAR", ";");
 
             PlayerSettings.SetScriptingDefineSymbolsForGroup(EditorUserBuildSettings.selectedBuildTargetGroup, symbols);
         }

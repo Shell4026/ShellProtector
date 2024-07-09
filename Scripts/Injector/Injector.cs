@@ -11,7 +11,7 @@ namespace Shell.Protector
     abstract public class Injector
     {
         protected ushort[] keys = new ushort[8]; //16byte
-        protected ShaderManager shader_manager = ShaderManager.GetInstance();
+        protected AssetManager shader_manager = AssetManager.GetInstance();
         protected int filter = 1;
         protected string asset_dir;
         protected int user_key_length = 4;

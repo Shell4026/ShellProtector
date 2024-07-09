@@ -32,7 +32,7 @@ namespace Shell.Protector
 
         EncryptTexture encrypt = new EncryptTexture();
         Injector injector;
-        ShaderManager shader_manager = ShaderManager.GetInstance();
+        AssetManager shader_manager = AssetManager.GetInstance();
 
         public string asset_dir = "Assets/ShellProtect";
         public string pwd = "password"; // fixed password

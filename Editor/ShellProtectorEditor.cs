@@ -129,9 +129,11 @@ namespace Shell.Protector
             key_lengths[3] = Lang("12 (Hight security)");
             key_lengths[4] = Lang("16 (Unbreakable security)");
 
-            shaders = ShaderManager.GetInstance().CheckShader();
+            shaders = AssetManager.GetInstance().CheckShader();
 
             VersionManager.GetInstance().Refresh();
+
+            AssetManager.GetInstance().CheckModular();
         }
 
         public override void OnInspectorGUI()
@@ -176,6 +178,11 @@ namespace Shell.Protector
             GUILayout.EndHorizontal();
 
             GUILayout.Label(Lang("Decteced shaders:") + string.Join(", ", shaders), EditorStyles.boldLabel);
+#if MODULAR
+            GUILayout.Label(Lang("ModularAvatar: true"), EditorStyles.boldLabel);
+#else
+            GUILayout.Label(Lang("ModularAvatar: false"), EditorStyles.boldLabel);
+#endif
             GUILayout.Space(20);
 
             GUILayout.Label(Lang("Password"), EditorStyles.boldLabel);
@@ -334,9 +341,21 @@ namespace Shell.Protector
             if (game_object_list.count == 0 && material_list.count == 0)
                 GUI.enabled = false;
 
+#if MODULAR
+            if (GUILayout.Button(Lang("Manual Encrypt!")))
+#else
             if (GUILayout.Button(Lang("Encrypt!")))
+#endif
                 root.Encrypt(bUseSmallMipTexture.boolValue);
             GUI.enabled = true;
+
+#if MODULAR
+            GUIStyle modularStyle = new GUIStyle(GUI.skin.label);
+            modularStyle.normal.textColor = Color.green;
+            modularStyle.wordWrap = true;
+            GUILayout.Label(Lang("Modular avatars exist. It is automatically encrypted on upload."), modularStyle);
+#endif
+
             debug = EditorGUILayout.Foldout(debug, Lang("Debug"));
             if(debug)
             {
@@ -378,6 +397,7 @@ namespace Shell.Protector
                     if(last != null)
                         Selection.activeObject = last;
                 }
+
                 /*if (GUILayout.Button("Decrypt"))
                 {
                     Texture2D last = null;
@@ -406,7 +426,7 @@ namespace Shell.Protector
                     if (last != null)
                         Selection.activeObject = last;
                 }*/
-                
+
                 GUILayout.EndHorizontal();
             }
             serializedObject.ApplyModifiedProperties();
