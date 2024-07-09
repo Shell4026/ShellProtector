@@ -3,10 +3,11 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
+using VRC.SDKBase;
 
 namespace Shell.Protector
 {
-    public class ShellProtectorTester : MonoBehaviour
+    public class ShellProtectorTester : MonoBehaviour, IEditorOnly
     {
         public string lang = "eng";
         public int lang_idx = 0;

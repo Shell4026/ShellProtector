@@ -21,7 +21,7 @@ using Thry;
 
 namespace Shell.Protector
 {
-    public class ShellProtector : MonoBehaviour
+    public class ShellProtector : MonoBehaviour, IEditorOnly
     {
 [SerializeField]
         List<GameObject> game_object_list = new List<GameObject>();
