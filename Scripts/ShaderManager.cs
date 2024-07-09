@@ -62,6 +62,12 @@ namespace Shell.Protector
                 var str = shader.GetPropertyDescription(poiyomiLabel);
                 if (str.Contains("Poiyomi 9.0"))
                     return support_version["Poiyomi 9.0"];
+                else if(str.Contains("Poiymoi 8.0"))
+                    return support_version["Poiyomi 8.0"];
+                else if(str.Contains("Poiyomi 8.1"))
+                    return support_version["Poiyomi 8.1"];
+                else if (str.Contains("Poiyomi 8.2"))
+                    return support_version["Poiyomi 8.2"];
             }
             return -1;
         }
