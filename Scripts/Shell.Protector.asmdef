@@ -1,6 +1,11 @@
 {
     "name": "Shell.Protector",
-    "references": ["ThryAssemblyDefinition"],
+    "rootNamespace": "",
+    "references": [
+        "ThryAssemblyDefinition",
+        "nadena.dev.ndmf",
+        "nadena.dev.ndmf.runtime"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
