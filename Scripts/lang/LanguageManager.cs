@@ -62,7 +62,9 @@ public class LanguageManager
             { "Number of encryption iterations. Higher values provide better security, but at the expense of performance.", "암호화 반복 횟수. 값이 높을 수록 보안이 좋아지나 성능이 저하 됩니다." },
             { "Setting it to 'Point' may result in aliasing, but performance is better.", "Point로 설정시 계단현상이 생길 수 있으나 성능이 좋아집니다." },
             { "Small mip texture", "작은 밉 텍스쳐" },
-            { "It uses a smaller mipTexture to reduce memory usage and improve performance. It may look slightly different from the original when viewed from the side.", "작은 밉 텍스쳐를 사용하여 메모리 사용량을 줄이고 성능을 개선합니다. 옆에서 봤을 때 원본과 약간 다르게 보일 수 있습니다."}
+            { "It uses a smaller mipTexture to reduce memory usage and improve performance. It may look slightly different from the original when viewed from the side.", "작은 밉 텍스쳐를 사용하여 메모리 사용량을 줄이고 성능을 개선합니다. 옆에서 봤을 때 원본과 약간 다르게 보일 수 있습니다."},
+            { "Object list", "오브젝트 목록"}
+        
         };
 
         var jpStrings = new Dictionary<string, string>()
@@ -109,7 +111,8 @@ public class LanguageManager
             { "Number of encryption iterations. Higher values provide better security, but at the expense of performance.", "暗号化の繰り返し回数。値が高いほどセキュリティは向上しますが、性能が低下します。" },
             { "Setting it to 'Point' may result in aliasing, but performance is better.", "Pointに設定すると階段現象が発生する可能性がありますが、性能が良くなります。" },
             { "Small mip texture", "小さなミップテクスチャ" },
-            { "It uses a smaller mipTexture to reduce memory usage and improve performance. It may look slightly different from the original when viewed from the side.", "小さなミップテクスチャを使用して、メモリ使用量を減らし、パフォーマンスを向上させます。 横から見ると、オリジナルと少し違って見えるかもしれません。"}
+            { "It uses a smaller mipTexture to reduce memory usage and improve performance. It may look slightly different from the original when viewed from the side.", "小さなミップテクスチャを使用して、メモリ使用量を減らし、パフォーマンスを向上させます。 横から見ると、オリジナルと少し違って見えるかもしれません。"},
+            { "Object list", "オブジェクト一覧"}
         };
 
         languageMap.Add("kor", koreanStrings);

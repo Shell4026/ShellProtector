@@ -18,7 +18,7 @@ namespace Shell.Protector
         ShellProtector root = null;
         readonly LanguageManager lang = LanguageManager.GetInstance();
 
-        SerializedProperty game_object_list;
+        ReorderableList game_object_list;
         ReorderableList material_list;
         ReorderableList texture_list;
 
@@ -76,8 +76,15 @@ namespace Shell.Protector
             MonoScript monoScript = MonoScript.FromMonoBehaviour(root);
             string script_path = AssetDatabase.GetAssetPath(monoScript);
 
-            game_object_list = serializedObject.FindProperty("game_object_list");
             root.asset_dir = Path.GetDirectoryName(Path.GetDirectoryName(script_path));
+
+            game_object_list = new ReorderableList(serializedObject, serializedObject.FindProperty("gameobject_list"), true, true, true, true);
+            game_object_list.drawHeaderCallback = rect => EditorGUI.LabelField(rect, Lang("Object list"));
+            game_object_list.drawElementCallback = (rect, index, is_active, is_focused) =>
+            {
+                SerializedProperty element = game_object_list.serializedProperty.GetArrayElementAtIndex(index);
+                EditorGUI.PropertyField(new Rect(rect.x, rect.y, rect.width, EditorGUIUtility.singleLineHeight), element, GUIContent.none);
+            };
 
             material_list = new ReorderableList(serializedObject, serializedObject.FindProperty("material_list"), true, true, true, true);
             material_list.drawHeaderCallback = rect => EditorGUI.LabelField(rect, Lang("Material List"));
@@ -234,7 +241,7 @@ namespace Shell.Protector
             GUILayout.Label(Lang("Parameters to be used:") + using_parameter, EditorStyles.wordWrappedLabel);
 
             serializedObject.Update();
-            EditorGUILayout.PropertyField(game_object_list, new GUIContent(Lang("Game Object List")), true);
+            game_object_list.DoLayoutList();
             material_list.DoLayoutList();
 
             #region Options
@@ -324,7 +331,7 @@ namespace Shell.Protector
                 GUI.enabled = false;
                 GUILayout.Label(Lang("Not enough parameter space!"), red_style);
             }
-            if (game_object_list.arraySize == 0 && material_list.count == 0)
+            if (game_object_list.count == 0 && material_list.count == 0)
                 GUI.enabled = false;
 
             if (GUILayout.Button(Lang("Encrypt!")))

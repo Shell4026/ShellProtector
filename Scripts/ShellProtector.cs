@@ -23,8 +23,8 @@ namespace Shell.Protector
 {
     public class ShellProtector : MonoBehaviour, IEditorOnly
     {
-[SerializeField]
-        List<GameObject> game_object_list = new List<GameObject>();
+        [SerializeField]
+        List<GameObject> gameobject_list = new List<GameObject>();
         [SerializeField]
         List<Material> material_list = new List<Material>();
         [SerializeField]
@@ -195,7 +195,7 @@ namespace Shell.Protector
         public List<Material> GetMaterials()
         {
             List<Material> materials = new List<Material>();
-            foreach (GameObject g in game_object_list)
+            foreach (GameObject g in gameobject_list)
             {
                 var meshRenderers = g.GetComponentsInChildren<MeshRenderer>(true);
                 foreach (var meshRenderer in meshRenderers)
