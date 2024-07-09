@@ -6,7 +6,7 @@
   "description": "Texture encryption for VRChat. Save avatars from ripping",
   "author": {
     "name": "Shell",
-    "url": "https://github.com/Shell4026/ShellProtector"
+    "url": "https://github.com/Shell4026"
   },
   "vpmDependencies": {
     "com.vrchat.avatars": ">=3.1"
