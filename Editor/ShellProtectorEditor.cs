@@ -1,4 +1,4 @@
-﻿#if UNITY_EDITOR
+#if UNITY_EDITOR
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -18,6 +18,7 @@ namespace Shell.Protector
         ShellProtector root = null;
         readonly LanguageManager lang = LanguageManager.GetInstance();
 
+        SerializedProperty game_object_list;
         ReorderableList material_list;
         ReorderableList texture_list;
 
@@ -74,6 +75,8 @@ namespace Shell.Protector
 
             MonoScript monoScript = MonoScript.FromMonoBehaviour(root);
             string script_path = AssetDatabase.GetAssetPath(monoScript);
+
+            game_object_list = serializedObject.FindProperty("game_object_list");
             root.asset_dir = Path.GetDirectoryName(Path.GetDirectoryName(script_path));
 
             material_list = new ReorderableList(serializedObject, serializedObject.FindProperty("material_list"), true, true, true, true);
@@ -231,6 +234,7 @@ namespace Shell.Protector
             GUILayout.Label(Lang("Parameters to be used:") + using_parameter, EditorStyles.wordWrappedLabel);
 
             serializedObject.Update();
+            EditorGUILayout.PropertyField(game_object_list, new GUIContent(Lang("Game Object List")), true);
             material_list.DoLayoutList();
 
             #region Options
@@ -320,7 +324,7 @@ namespace Shell.Protector
                 GUI.enabled = false;
                 GUILayout.Label(Lang("Not enough parameter space!"), red_style);
             }
-            if (material_list.count == 0)
+            if (game_object_list.arraySize == 0 && material_list.count == 0)
                 GUI.enabled = false;
 
             if (GUILayout.Button(Lang("Encrypt!")))

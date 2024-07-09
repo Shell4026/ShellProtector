@@ -1,4 +1,4 @@
-﻿#if UNITY_EDITOR
+#if UNITY_EDITOR
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -10,6 +10,10 @@ using UnityEngine;
 using System.Security.Cryptography;
 using VRC.SDK3.Avatars.ScriptableObjects;
 using VRC.SDK3.Avatars.Components;
+using System.Linq;
+using VRC.SDKBase;
+
+
 
 #if POIYOMI
 using Thry;
@@ -19,6 +23,8 @@ namespace Shell.Protector
 {
     public class ShellProtector : MonoBehaviour
     {
+[SerializeField]
+        List<GameObject> game_object_list = new List<GameObject>();
         [SerializeField]
         List<Material> material_list = new List<Material>();
         [SerializeField]
@@ -186,16 +192,65 @@ namespace Shell.Protector
                 AssetDatabase.CreateFolder(Path.Combine(asset_dir, gameObject.name), "animations");
         }
 
-        public void Encrypt(bool bUseSmallMip = false)
+        public List<Material> GetMaterials()
+        {
+            List<Material> materials = new List<Material>();
+            foreach (GameObject g in game_object_list)
+            {
+                var meshRenderers = g.GetComponentsInChildren<MeshRenderer>(true);
+                foreach (var meshRenderer in meshRenderers)
+                {
+                    foreach (var material in meshRenderer.sharedMaterials)
+                    {
+                        if (material != null)
+                        {
+                            materials.Add(material);
+                        }
+                    }
+                }
+
+                var skinnedMeshRenderers = g.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+                foreach (var skinnedMeshRenderer in skinnedMeshRenderers)
+                {
+                    foreach (var material in skinnedMeshRenderer.sharedMaterials)
+                    {
+                        if (material != null)
+                        {
+                            materials.Add(material);
+                        }
+                    }
+                }
+            }
+
+            return materials.Concat(material_list).Distinct().ToList();
+        }
+
+        public GameObject Encrypt(bool clone = true)
+        {
+            return Encrypt(bUseSmallMipTexture, clone);
+        }
+
+        public GameObject Encrypt(bool bUseSmallMip, bool clone = true)
         {
             gameObject.SetActive(true);
             Debug.Log("Key bytes: " + string.Join(", ", GetKeyBytes()));
 
-            GameObject avatar = DuplicateAvatar(gameObject);
+            var materials = GetMaterials();
+
+            GameObject avatar;
+            if (clone)
+            {
+                avatar = DuplicateAvatar(gameObject);
+            }
+            else
+            {
+                avatar = gameObject;
+            }
+
             if (avatar == null)
             {
                 Debug.LogError("Cannot create duplicated avatar!");
-                return;
+                return null;
             }
 
             var mips = new Dictionary<int, Texture2D>();
@@ -206,7 +261,7 @@ namespace Shell.Protector
             CreateFolders();
 
             int progress = 0;
-            foreach (var mat in material_list)
+            foreach (var mat in materials)
             {
                 if (mat == null)
                 {
@@ -304,7 +359,9 @@ namespace Shell.Protector
                 #region Textures Duplicate Check
                 bool has_exist_encrypt_tex = false;
                 bool has_exist_encrypt_tex2 = false;
-                foreach (var mat_tmp in material_list)
+                foreach (var mat_tmp in materials)
+                {
+                    try
                 {
                     if (mat_tmp == mat)
                         continue;
@@ -338,20 +395,26 @@ namespace Shell.Protector
                                 ++idx;
                             }
                         }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogError(e.Message);
+                        continue;
                     }
                 }
                 #endregion
 
                 #region Materials Duplicate Check
-                for (int i = 0; i < material_list.Count; ++i)
+                for (int i = 0; i < materials.Count; ++i)
                 {
-                    if (material_list[i] == null)
+                    if (materials[i] == null)
                         continue;
-                    if (mat.GetInstanceID() == material_list[i].GetInstanceID())
+                    if (mat.GetInstanceID() == materials[i].GetInstanceID())
                         continue;
                     else
                     {
-                        if(mat.name == material_list[i].name)
+                        if (mat.name == materials[i].name)
                         {
                             Material m = AssetDatabase.LoadAssetAtPath(encrypted_mat_path, typeof(Material)) as Material;
                             int idx = 0;
@@ -525,7 +588,10 @@ namespace Shell.Protector
             AssetDatabase.Refresh();
             ////////////////////////////////////////////////////
 
+            if (clone)
+            {
             gameObject.SetActive(false);
+            }
             var tester = avatar.AddComponent<ShellProtectorTester>();
             tester.lang = lang;
             tester.lang_idx = lang_idx;
@@ -533,6 +599,8 @@ namespace Shell.Protector
             tester.user_key_length = key_size;
             Selection.activeObject = tester;
             DestroyImmediate(avatar.GetComponent<ShellProtector>());
+
+            return avatar;
         }
 
         public VRCExpressionParameters GetParameter()
