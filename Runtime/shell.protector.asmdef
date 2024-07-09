@@ -1,15 +1,19 @@
 {
-  "name": "shell.protector",
-  "references": [
-    "VRC.SDK3A",
-    "VRC.SDKBase"
-  ],
-  "includePlatforms": [],
-  "excludePlatforms": [],
-  "allowUnsafeCode": false,
-  "autoReferenced": true,
-  "overrideReferences": false,
-  "precompiledReferences": [],
-  "defineConstraints": [],
-  "optionalUnityReferences": []
+    "name": "shell.protector",
+    "rootNamespace": "",
+    "references": [
+        "VRC.SDK3A",
+        "VRC.SDKBase",
+        "nadena.dev.ndmf",
+        "ThryAssemblyDefinition"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }
