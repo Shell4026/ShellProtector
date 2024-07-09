@@ -11,6 +11,8 @@
     "name": "Shell",
     "url": ""
   },
-  "legacyFolders": {},
+  "legacyFolders": {
+	  "Assets\\ShellProtect"
+  },
   "legacyFiles": {}
 }
