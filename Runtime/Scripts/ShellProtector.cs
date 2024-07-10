@@ -12,6 +12,8 @@ using VRC.SDK3.Avatars.ScriptableObjects;
 using VRC.SDK3.Avatars.Components;
 using System.Linq;
 using VRC.SDKBase;
+using UnityEditor.Animations;
+
 
 
 
@@ -45,7 +47,7 @@ namespace Shell.Protector
         [SerializeField] int algorithm = 0;
         [SerializeField] int key_size_idx = 0;
         [SerializeField] int key_size = 4;
-        [SerializeField] float animation_speed = 128.0f;
+        [SerializeField] float animation_speed = 256.0f;
         [SerializeField] bool delete_folders = true;
         [SerializeField] bool parameter_multiplexing = false;
         [SerializeField] bool bUseSmallMipTexture = true;
@@ -241,6 +243,7 @@ namespace Shell.Protector
             if (clone)
             {
                 avatar = DuplicateAvatar(gameObject);
+                Debug.Log("Duplicate avatar success.");
             }
             else
             {
@@ -575,7 +578,12 @@ namespace Shell.Protector
             AssetDatabase.CreateAsset(av3.expressionParameters, asset_dir + "/" + gameObject.name + "/" + av3.expressionParameters.name + ".asset");
 
             ///////////////////////animator////////////////////
-            var fx = AnimatorManager.DuplicateAnimator(av3.baseAnimationLayers[4].animatorController, Path.Combine(asset_dir, gameObject.name));
+            AnimatorController fx;
+            if (clone)
+                fx = AnimatorManager.DuplicateAnimator(av3.baseAnimationLayers[4].animatorController, Path.Combine(asset_dir, gameObject.name));
+            else
+                fx = av3.baseAnimationLayers[4].animatorController as AnimatorController;
+
             av3.baseAnimationLayers[4].animatorController = fx;
             string animation_dir = Path.Combine(asset_dir, gameObject.name, "animations");
 
@@ -590,7 +598,7 @@ namespace Shell.Protector
 
             if (clone)
             {
-            gameObject.SetActive(false);
+                gameObject.SetActive(false);
             }
             var tester = avatar.AddComponent<ShellProtectorTester>();
             tester.lang = lang;
