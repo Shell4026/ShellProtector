@@ -18,7 +18,7 @@ You can easily enter the password with the OSC program.
 Source code of OSC: https://github.com/Shell4026/ShellProtectorOSC
 
 ## Supported shaders
-- Poiyomi 7.3(Unstable), 8.0, 8.1, 8.2, 9.0, 9.1
+- Poiyomi 7.3(Unstable), 8.0, 8.1, 8.2, 9.0
 - lilToon (1.3.8 ~ 1.7.3)
 
 ## Supported texture formats
@@ -105,6 +105,8 @@ The exception to this is when the Rimlight texture and Outline texture are the s
 It takes up a little more memory than the original. It's about 1mb larger for a 2K DXT1 image.
 
 On average, it's about 0.2ms~0.8ms slower based on the same 50 materials. Poiyomi performed better than lilToon.
+
+This may not seem like a huge difference, but for performance reasons, I recommend only encrypting textures that are absolutely necessary.
 
 ## How secure is it?
 By default, it has 16 bytes of keys, split between keys stored inside the shader and keys that the user can enter using VRC parameters. (I'll call these user keys.)
