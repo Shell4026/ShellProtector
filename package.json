@@ -1,7 +1,7 @@
 {
   "name": "shell.protector",
   "displayName": "Shell Protector",
-  "version": "1.13.0",
+  "version": "1.13.1",
   "unity": "2022.3",
   "description": "Texture encryption for VRChat. Save avatars from ripping",
   "author": {
