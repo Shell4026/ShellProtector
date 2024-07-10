@@ -129,10 +129,9 @@ namespace Shell.Protector
             key_lengths[3] = Lang("12 (Hight security)");
             key_lengths[4] = Lang("16 (Unbreakable security)");
 
-            shaders = AssetManager.GetInstance().CheckShader();
-
             VersionManager.GetInstance().Refresh();
 
+            shaders = AssetManager.GetInstance().CheckShader();
             AssetManager.GetInstance().CheckModular();
         }
 

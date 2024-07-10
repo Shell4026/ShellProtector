@@ -89,8 +89,8 @@ namespace Shell.Protector
             string symbols = PlayerSettings.GetScriptingDefineSymbolsForGroup(EditorUserBuildSettings.selectedBuildTargetGroup);
             string symbols_original = string.Copy(symbols);
 
-            symbols = symbols.Replace(";LILTOON", ";");
-            symbols = symbols.Replace(";POIYOMI", ";");
+            symbols = symbols.Replace(";LILTOON", "");
+            symbols = symbols.Replace(";POIYOMI", "");
             List<string> return_shader = new List<string>();
             if(guids.Length > 0)
             {
@@ -104,8 +104,13 @@ namespace Shell.Protector
                 symbols += ";POIYOMI";
             }
 
-            if(symbols_original != symbols)
-                PlayerSettings.SetScriptingDefineSymbolsForGroup(EditorUserBuildSettings.selectedBuildTargetGroup, symbols);
+            if (symbols_original.Contains(";LILTOON") != symbols.Contains(";LILTOON"))
+            {
+                if (symbols_original.Contains(";POIYOMI") != symbols.Contains(";POIYOMI"))
+                {
+                    PlayerSettings.SetScriptingDefineSymbolsForGroup(EditorUserBuildSettings.selectedBuildTargetGroup, symbols);
+                }
+            }
 
             return return_shader;
         }
@@ -118,28 +123,34 @@ namespace Shell.Protector
 
         public void CheckModular()
         {
+            string symbols = PlayerSettings.GetScriptingDefineSymbolsForGroup(EditorUserBuildSettings.selectedBuildTargetGroup);
+            string symbols_original = string.Copy(symbols);
+            symbols = symbols.Replace(";MODULAR", "");
+
             if (!NamespaceExists("nadena.dev.ndmf"))
             {
                 Debug.Log("ShellProtector: Can't find Modular!");
+                if (symbols != symbols_original)
+                    PlayerSettings.SetScriptingDefineSymbolsForGroup(EditorUserBuildSettings.selectedBuildTargetGroup, symbols);
                 return;
             }
             Debug.Log("ShellProtector: Find Modular!");
-
-            string symbols = PlayerSettings.GetScriptingDefineSymbolsForGroup(EditorUserBuildSettings.selectedBuildTargetGroup);
-            string symbols_original = string.Copy(symbols);
             symbols += ";MODULAR";
 
-            if (symbols_original != symbols)
+            if (symbols_original.Contains(";MODULAR") != symbols.Contains(";MODULAR"))
+            {
                 PlayerSettings.SetScriptingDefineSymbolsForGroup(EditorUserBuildSettings.selectedBuildTargetGroup, symbols);
+            }
         }
 
         public void ResetDefine()
         {
+            Debug.Log("Reset define");
             string symbols = PlayerSettings.GetScriptingDefineSymbolsForGroup(EditorUserBuildSettings.selectedBuildTargetGroup);
 
-            symbols = symbols.Replace(";LILTOON", ";");
-            symbols = symbols.Replace(";POIYOMI", ";");
-            symbols = symbols.Replace(";MODULAR", ";");
+            symbols = symbols.Replace(";LILTOON", "");
+            symbols = symbols.Replace(";POIYOMI", "");
+            symbols = symbols.Replace(";MODULAR", "");
 
             PlayerSettings.SetScriptingDefineSymbolsForGroup(EditorUserBuildSettings.selectedBuildTargetGroup, symbols);
         }
