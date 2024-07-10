@@ -124,4 +124,6 @@ It is safe to increase the number of user keys by using a minimum of 96 paramete
 A 0-byte user key is a minimal defense, and should be effective against toolkiddies using simple tools.
 
 ## feature
+- Stream ciphers for fast decryption
+- Obfuscation
 - Support BC7
