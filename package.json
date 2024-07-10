@@ -12,6 +12,7 @@
     "com.vrchat.avatars": ">=3.1"
   },
   "legacyFolders": {
-    "Assets\\ShellProtect" : ""
+    "Assets\\ShellProtect" : "",
+	"Assets\\ShellProtector" : ""
   }
 }
