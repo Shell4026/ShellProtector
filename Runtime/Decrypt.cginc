@@ -22,12 +22,8 @@ half3 GammaCorrection(half3 rgb)
 	return result;
 }
 
-void XXTEADecrypt(half3 pixel[4], out uint data[3], uint key[4])
+void XXTEADecrypt(inout uint data[3], uint key[4])
 {
-	data[0] = ((uint)round(pixel[0].r * 255.0f) | ((uint)round(pixel[0].g * 255.0f) << 8) | ((uint)round(pixel[0].b * 255.0f) << 16) | ((uint)round(pixel[1].r * 255.0f) << 24));
-	data[1] = ((uint)round(pixel[1].g * 255.0f) | ((uint)round(pixel[1].b * 255.0f) << 8) + ((uint)round(pixel[2].r * 255.0f) << 16) | ((uint)round(pixel[2].g * 255.0f) << 24));
-	data[2] = ((uint)round(pixel[2].b * 255.0f) | ((uint)round(pixel[3].r * 255.0f) << 8) + ((uint)round(pixel[3].g * 255.0f) << 16) | ((uint)round(pixel[3].b * 255.0f) << 24));
-	
 	const uint n = 3;
 	uint v0, v1, sum;
 	uint p, rounds, e;
@@ -51,11 +47,8 @@ void XXTEADecrypt(half3 pixel[4], out uint data[3], uint key[4])
 		sum -= Delta;
 	} while (--rounds > 0);
 }
-void XXTEADecrypt(half4 pixel[2], out uint data[2], uint key[4])
+void XXTEADecrypt(inout uint data[2], uint key[4])
 {
-	data[0] = ((uint)round(pixel[0].r * 255.0f) | ((uint)round(pixel[0].g * 255.0f) << 8) | ((uint)round(pixel[0].b * 255.0f) << 16) | ((uint)round(pixel[0].a * 255.0f) << 24));
-	data[1] = ((uint)round(pixel[1].r * 255.0f) | ((uint)round(pixel[1].g * 255.0f) << 8) | ((uint)round(pixel[1].b * 255.0f) << 16) | ((uint)round(pixel[1].a * 255.0f) << 24));
-
 	uint v0, v1, sum;
 	uint p, rounds, e;
 	rounds = ROUNDS;
@@ -83,7 +76,7 @@ void XXTEADecrypt(half4 pixel[2], out uint data[2], uint key[4])
 half2 GetUV(int idx, int m, int woffset = 0, int hoffset = 0)
 {
 	int w = idx % mw[m + woffset];
-	int h = idx / mw[m + hoffset];
+	int h = idx / mw[m + woffset];
 	return half2((half)w/mw[m + woffset], (half)h/mh[m + hoffset]);
 }
 
@@ -117,7 +110,7 @@ half4 DecryptTextureXXTEA(half2 uv, int m)
 	data[1] = ((uint)round(pixels[1].g * 255.0f) | ((uint)round(pixels[1].b * 255.0f) << 8) | ((uint)round(pixels[2].r * 255.0f) << 16) | ((uint)round(pixels[2].g * 255.0f) << 24));
 	data[2] = ((uint)round(pixels[2].b * 255.0f) | ((uint)round(pixels[3].r * 255.0f) << 8) | ((uint)round(pixels[3].g * 255.0f) << 16) | ((uint)round(pixels[3].b * 255.0f) << 24));
 
-	XXTEADecrypt(pixels, data, key);
+	XXTEADecrypt(data, key);
 
 	half r[4] = { (data[0] & 0x000000FF)/255.0f, ((data[0] & 0xFF000000) >> 24)/255.0f, ((data[1] & 0x00FF0000) >> 16)/255.0f, ((data[2] & 0x0000FF00) >> 8)/255.0f };
 	half g[4] = { ((data[0] & 0x0000FF00) >> 8)/255.0f, ((data[1] & 0x000000FF) >> 0)/255.0f, ((data[1] & 0xFF000000) >> 24)/255.0f, ((data[2] & 0x00FF0000) >> 16)/255.0f };
@@ -151,7 +144,7 @@ half4 DecryptTextureXXTEARGBA(half2 uv, int m)
 	data[0] = ((uint)round(pixels[0].r * 255.0f) | ((uint)round(pixels[0].g * 255.0f) << 8) | ((uint)round(pixels[0].b * 255.0f) << 16) | ((uint)round(pixels[0].a * 255.0f) << 24));
 	data[1] = ((uint)round(pixels[1].r * 255.0f) | ((uint)round(pixels[1].g * 255.0f) << 8) | ((uint)round(pixels[1].b * 255.0f) << 16) | ((uint)round(pixels[1].a * 255.0f) << 24));
 
-	XXTEADecrypt(pixels, data, key);
+	XXTEADecrypt(data, key);
 
 	half r = ((data[idx & 1] & 0x000000FF) >>  0)/255.0f;
 	half g = ((data[idx & 1] & 0x0000FF00) >>  8)/255.0f;
@@ -194,7 +187,7 @@ half4 DecryptTextureXXTEADXT(half2 uv, int m)
 	data[0] = ((uint)round(pixels[0].r * 255.0f) | ((uint)round(pixels[0].g * 255.0f) << 8) | ((uint)round(pixels[0].b * 255.0f) << 16) | ((uint)round(pixels[0].a * 255.0f) << 24));
 	data[1] = ((uint)round(pixels[1].r * 255.0f) | ((uint)round(pixels[1].g * 255.0f) << 8) | ((uint)round(pixels[1].b * 255.0f) << 16) | ((uint)round(pixels[1].a * 255.0f) << 24));
 	
-	XXTEADecrypt(pixels, data, key);
+	XXTEADecrypt(data, key);
 	
 	uint r = (data[idx & 1] & 0x000000FF) >> 0;
 	uint g = (data[idx & 1] & 0x0000FF00) >> 8;

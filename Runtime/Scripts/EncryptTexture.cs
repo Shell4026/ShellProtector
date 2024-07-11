@@ -4,32 +4,20 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 using System.Linq;
+using UnityEditor;
 
 namespace Shell.Protector
 {
     public class EncryptTexture
     {
-        public int GetCanMipmapLevel(int w, int h, bool dxt = false)
+        public int GetCanMipmapLevel(int w, int h)
         {
-            int w_level = 0, h_level = 0;
-            int min_size = dxt ? 8 : 1;
-            if (w < min_size || h < min_size)
+            int w_level, h_level;
+            if (w < 1 || h <= 1)
                 return 0;
-            while(w != min_size)
-            {
-                w /= 2;
-                if (w < 0)
-                    break;
-                ++w_level;
-            }
-            while (h != min_size)
-            {
-                h /= 2;
-                if (h < 0)
-                    break;
-                ++h_level;
-            }
-            return Math.Min(w_level, h_level);
+            w_level = (int)MathF.Log(w, 2);
+            h_level = (int)MathF.Log(h, 2);
+            return Math.Max(w_level, h_level);
         }
         public int GetDXT1Length(int w, int h, int m)
         {
@@ -64,12 +52,15 @@ namespace Shell.Protector
 
             return pivot + n / 4 * w + n % 4;
         }
+        /// <summary>
+        /// 밉 레벨에 해당하는 DXT데이터 배열을 가져오는 함수
+        /// </summary>
         private byte[] GetArrayDXT(byte[] data, int texture_width, int texture_height, bool dxt5, int miplv)
         {
             int start = 0;
             int end = 0;
 
-            for(int i = 0; i < miplv + 1; ++i)
+            for(int i = 0; i <= miplv; ++i)
             {
                 start += end;
                 int w = texture_width / (int)(Mathf.Pow(2, i));
@@ -87,6 +78,7 @@ namespace Shell.Protector
         public Texture2D GenerateRefMipmap(int width, int height, bool small = false)
         {
             int mip_lv = GetCanMipmapLevel(width, height);
+            Debug.LogFormat("mip {0}, {1} : {2}", width, height, mip_lv);
 
             Texture2D mip = new Texture2D(width, (small == false) ? height : 1, TextureFormat.RGB24, mip_lv, true);
             mip.filterMode = FilterMode.Bilinear;
@@ -110,7 +102,6 @@ namespace Shell.Protector
         public Texture2D[] TextureEncryptXXTEA(Texture2D texture, byte[] key, uint rounds = 25)
         {
             Texture2D tex = texture;
-
             if (tex.width % 2 != 0 && tex.height % 2 != 0)
             {
                 Debug.LogErrorFormat("{0} : The texture size must be a multiple of 2!", texture.name);
@@ -125,9 +116,26 @@ namespace Shell.Protector
             key_uint[2] = (uint)(key[8] | (key[9] << 8) | (key[10] << 16) | (key[11] << 24));
             key_uint[3] = 0;
 
+            if (texture.format == TextureFormat.DXT1 || 
+                texture.format == TextureFormat.DXT1Crunched ||
+                texture.format == TextureFormat.DXT5 ||
+                texture.format == TextureFormat.DXT5Crunched)
+            {
+                if (tex.width < 8)
+                {
+                    Debug.LogErrorFormat("{0} : The texture width must be >= 8px", texture.name);
+                    return null;
+                }
+                if (tex.height < 4)
+                {
+                    Debug.LogErrorFormat("{0} : The texture height must be >= 4px", texture.name);
+                    return null;
+                }
+            }
+
             if (texture.format == TextureFormat.DXT1 || texture.format == TextureFormat.DXT1Crunched)
             {
-                int mip_lv = GetCanMipmapLevel(tex.width, tex.height, true);
+                int mip_lv = GetCanMipmapLevel(tex.width / 4, tex.height / 4);
                 Texture2D dxt1 = tex;
                 if (texture.format == TextureFormat.DXT1Crunched)
                 {
@@ -142,7 +150,6 @@ namespace Shell.Protector
                     }
                     dxt1.Compress(false);
                 }
-                mip_lv = GetCanMipmapLevel(tex.width, tex.height, true);
                 if (mip_lv != 0)
                 {
                     tmp[0] = new Texture2D(tex.width, tex.height, TextureFormat.DXT1, mip_lv, true);
@@ -155,21 +162,21 @@ namespace Shell.Protector
                 }
                 tmp[1].filterMode = FilterMode.Point;
                 tmp[1].anisoLevel = 0;
+                //Note: DXT1 per 4x4 block is 64bit
                 var raw_data = dxt1.GetRawTextureData();
-
                 int lenidx = 0;
+                
                 for (int m = 0; m <= mip_lv; ++m)
                 {
                     if (m != 0 && m == mip_lv)
                         break;
                     var tex_data = GetArrayDXT(raw_data, tex.width, tex.height, false, m);
                     var pixel = tmp[1].GetPixels32(m);
-                    //Debug.Log(m + "=" + tex_data.Length);
 
                     for (int i = 0; i < tex_data.Length; i += 16) //reference color texture
                     {
                         key_uint[3] = (uint)(key[12] | (key[13] << 8) | (key[14] << 16) | (key[15] << 24));
-                        key_uint[3] ^= (uint)(i / 8);
+                        key_uint[3] ^= (uint)(i / 8); //8 bytes(1block) are same id.
 
                         uint[] data = new uint[2];
                         data[0] = (uint)(tex_data[i + 0] + (tex_data[i + 1] << 8) + (tex_data[i + 2] << 16) + (tex_data[i + 3] << 24));
@@ -203,7 +210,7 @@ namespace Shell.Protector
             }
             else if (texture.format == TextureFormat.DXT5 || texture.format == TextureFormat.DXT5Crunched)
             {
-                int mip_lv = GetCanMipmapLevel(tex.width, tex.height, true);
+                int mip_lv = GetCanMipmapLevel(tex.width / 4, tex.height / 4);
                 Texture2D dxt5 = tex;
                 if (texture.format == TextureFormat.DXT5Crunched)
                 {
@@ -219,7 +226,6 @@ namespace Shell.Protector
 
                     dxt5.Compress(true);
                 }
-                mip_lv = GetCanMipmapLevel(tex.width, tex.height, true);
 
                 if (mip_lv != 0)
                 {
@@ -280,7 +286,7 @@ namespace Shell.Protector
             }
             else if (tex.format == TextureFormat.RGBA32)
             {
-                int mip_lv = GetCanMipmapLevel(tex.width, tex.height, false);
+                int mip_lv = GetCanMipmapLevel(tex.width, tex.height);
                 tmp[0] = new Texture2D(tex.width, tex.height, TextureFormat.RGBA32, mip_lv - 2, true); //mip_lv-2 is blur trick (like the box filter)
                 for (int m = 0; m < tmp[0].mipmapCount; ++m)
                 {
@@ -311,7 +317,7 @@ namespace Shell.Protector
             }
             else if (tex.format == TextureFormat.RGB24)
             {
-                int mip_lv = GetCanMipmapLevel(tex.width, tex.height, false);
+                int mip_lv = GetCanMipmapLevel(tex.width, tex.height);
                 tmp[0] = new Texture2D(tex.width, tex.height, TextureFormat.RGB24, mip_lv - 2, true); //mip_lv-2 is blur trick (like the box filter)
                 for (int m = 0; m < tmp[0].mipmapCount; ++m)
                 {

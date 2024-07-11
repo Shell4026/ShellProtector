@@ -199,6 +199,9 @@ namespace Shell.Protector
             List<Material> materials = new List<Material>();
             foreach (GameObject g in gameobject_list)
             {
+                if (g == null)
+                    continue;
+
                 var meshRenderers = g.GetComponentsInChildren<MeshRenderer>(true);
                 foreach (var meshRenderer in meshRenderers)
                 {
@@ -437,9 +440,14 @@ namespace Shell.Protector
                 if (has_exist_encrypt_tex == false)
                 {
                     encrypted_tex = encrypt.TextureEncryptXXTEA(main_texture, key_bytes, rounds);
+                    if (encrypted_tex == null)
+                    {
+                        Debug.LogErrorFormat("{0} : encrypt failed0.", main_texture.name);
+                        continue;
+                    }
                     if (encrypted_tex[0] == null)
                     {
-                        Debug.LogErrorFormat("{0} : encrypt failed.", main_texture.name);
+                        Debug.LogErrorFormat("{0} : encrypt failed1.", main_texture.name);
                         continue;
                     }
                     AssetDatabase.CreateAsset(encrypted_tex[0], encrypt_tex_path);

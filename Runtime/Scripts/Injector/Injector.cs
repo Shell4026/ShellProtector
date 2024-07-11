@@ -212,7 +212,7 @@ namespace Shell.Protector
             data = Regex.Replace(data, "static const uint k\\[4\\] = { 0, 0, 0, 0 };", replace);
             data = Regex.Replace(data, "static const uint ROUNDS = 6;", "static const uint ROUNDS = " + rounds + ";");
             data = Regex.Replace(data, "//key make[\\w\\W]*?//key make end", replace2);
-            data = Regex.Replace(data, @"key\[3\] = (.*?)\(uint\)\(floor\(idx / 2\) \* 2\);[\w\W]*?//4idx", "key[3] = $1(uint)((idx >> 2) << 2);"); //DecryptRGB
+            data = Regex.Replace(data, @"\(uint\)\(\(idx >> 1\) << 1\);[\w\W]*?//4idx", "(uint)((idx >> 2) << 2);"); //DecryptRGB
             return data;
         }
 
