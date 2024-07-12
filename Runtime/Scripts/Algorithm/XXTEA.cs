@@ -1,10 +1,12 @@
 ﻿using System;
 using UnityEngine;
 
-public class XXTEA
+public class XXTEA : IEncryptor
 {
     const uint Delta = 0x9E3779B9;
-    public static uint[] Encrypt(uint[] data, uint[] key, uint _rounds = 0) {
+
+    public uint m_rounds = 0;
+    public uint[] Encrypt(uint[] data, uint[] key) {
         uint n = (uint)data.Length;
 
         uint[] result = new uint[n];
@@ -22,10 +24,10 @@ public class XXTEA
         uint y, z, sum;
         uint p, rounds, e;
 
-        if (_rounds == 0)
+        if (m_rounds == 0)
             rounds = 6 + 52 / n;
         else
-            rounds = _rounds;
+            rounds = m_rounds;
         sum = 0;
         z = result[n - 1];
         do
@@ -42,7 +44,7 @@ public class XXTEA
         } while (--rounds > 0);
         return result;
     }
-    public static uint[] Decrypt(uint[] data, uint[] key, uint _rounds = 0)
+    public uint[] Decrypt(uint[] data, uint[] key)
     {
         uint n = (uint)data.Length;
 
@@ -57,10 +59,10 @@ public class XXTEA
         uint y, z, sum;
         uint p, rounds, e;
 
-        if (_rounds == 0)
+        if (m_rounds == 0)
             rounds = 6 + 52 / n;
         else
-            rounds = _rounds;
+            rounds = m_rounds;
         sum = rounds * Delta;
 
         y = result[0];

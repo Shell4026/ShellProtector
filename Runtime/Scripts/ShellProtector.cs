@@ -80,10 +80,11 @@ namespace Shell.Protector
             Debug.Log(string.Format("key1:{0}, key2:{1}, key3:{2}", key[0], key[1], key[2]));
             Debug.Log("Data: " + string.Join(", ", data));
 
-            uint[] result = XXTEA.Encrypt(data, key);
+            XXTEA xxtea = new XXTEA();
+            uint[] result = xxtea.Encrypt(data, key);
             Debug.Log("Encrypted data: " + string.Join(", ", result));
 
-            result = XXTEA.Decrypt(result, key);
+            result = xxtea.Decrypt(result, key);
             Debug.Log("Decrypted data: " + string.Join(", ", result));
         }
         public static void SetRWEnableTexture(Texture2D texture)
