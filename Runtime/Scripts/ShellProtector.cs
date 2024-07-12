@@ -123,6 +123,18 @@ namespace Shell.Protector
 
             AssetDatabase.Refresh();
         }
+        public static void SetGenerateMipmap(Texture2D texture, bool generate)
+        {
+            string path = AssetDatabase.GetAssetPath(texture);
+            string meta = File.ReadAllText(path + ".meta");
+
+            int enable = generate ? 1 : 0;
+            meta = Regex.Replace(meta, "enableMipMap: \\d+", "enableMipMap: " + enable);
+            File.WriteAllText(path + ".meta", meta);
+
+            AssetDatabase.Refresh();
+        }
+
         public GameObject DuplicateAvatar(GameObject avatar)
         {
             GameObject cpy = Instantiate(avatar);
@@ -309,6 +321,7 @@ namespace Shell.Protector
                 #endregion
                 SetRWEnableTexture(main_texture);
                 SetCrunchCompression(main_texture, false);
+                SetGenerateMipmap(main_texture, true);
 
                 Texture2D lim_texture = null;
                 Texture2D lim_texture2 = null;
