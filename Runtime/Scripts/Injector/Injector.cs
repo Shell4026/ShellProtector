@@ -4,6 +4,7 @@ using System.IO;
 using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
+using static VRC.SDK3.Dynamics.PhysBone.PhysBoneMigration.DynamicBoneColliderData;
 
 #if UNITY_EDITOR
 namespace Shell.Protector
@@ -15,7 +16,6 @@ namespace Shell.Protector
         protected int filter = 1;
         protected string asset_dir;
         protected int user_key_length = 4;
-        protected uint rounds = 25;
 
         protected string shader_code_nofilter = @"
 				half4 mip_texture = _MipTex.Sample(sampler_MipTex, mainUV);
@@ -53,15 +53,9 @@ namespace Shell.Protector
 
         protected GameObject target;
         protected Texture2D main_tex;
+        protected IEncryptor encryptor;
 
-        public enum Encryptor
-        {
-            XXTEA,
-            Chacha8
-        }
-        public Encryptor encryptor = Encryptor.Chacha8;
-
-        public void Init(GameObject target, Texture2D main_tex, byte[] key, int user_key_length, int filter, string asset_dir, uint rounds)
+        public void Init(GameObject target, Texture2D main_tex, byte[] key, int user_key_length, int filter, string asset_dir, IEncryptor encryptor)
         {
             if (key.Length != 16)
             {
@@ -77,7 +71,7 @@ namespace Shell.Protector
             this.filter = filter;
             this.asset_dir = asset_dir;
             this.user_key_length = user_key_length;
-            this.rounds = rounds;
+            this.encryptor = encryptor;
         }
 
         protected string GenerateDecoder(string decode_dir, Texture2D tex)
@@ -217,12 +211,17 @@ namespace Shell.Protector
                 
 
             data = Regex.Replace(data, "static const uint k\\[4\\] = { 0, 0, 0, 0 };", replace);
-            data = Regex.Replace(data, "static const uint ROUNDS = 6;", "static const uint ROUNDS = " + rounds + ";");
+            if(encryptor is XXTEA xxtea)
+            {
+                data = Regex.Replace(data, "static const uint ROUNDS = 6;", "static const uint ROUNDS = " + xxtea.m_rounds + ";");
+            }
             data = Regex.Replace(data, "//key make[\\w\\W]*?//key make end", replace2);
             data = Regex.Replace(data, @"\(uint\)\(\(idx >> 1\) << 1\);[\w\W]*?//4idx", "(uint)((idx >> 2) << 2);"); //DecryptRGB
 
-            if(encryptor == Encryptor.Chacha8)
+            if(encryptor is Chacha20 chacha20)
             {
+                uint[] nonce = chacha20.GetNonceUint3();
+                data = Regex.Replace(data, @"state\[3\] = uint4\(1, 0, 0, 0\);", "state[3] = uint4(1, " + nonce[0] + ", " + nonce[1] + ", " + nonce[2] + ");");
                 data = Regex.Replace(data, @"XXTEADecrypt\(data, key\);", "Chacha20XOR(data, key);");
             }
             return data;

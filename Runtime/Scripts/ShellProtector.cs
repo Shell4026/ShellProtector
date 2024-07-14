@@ -307,6 +307,7 @@ namespace Shell.Protector
 
             CreateFolders();
 
+            ///////////////////Select crypto algorithm/////////////////////
             IEncryptor encryptor = new XXTEA();
             if (algorithm == 0)
             {
@@ -317,8 +318,11 @@ namespace Shell.Protector
             else if(algorithm == 1) 
             {
                 Chacha20 chacha = new Chacha20();
+                byte[] hash = KeyGenerator.GetKeyHash(key_bytes, KeyGenerator.GenerateRandomString(chacha.nonce.Length));
+                Array.Copy(hash, 0, chacha.nonce, 0, chacha.nonce.Length);
                 encryptor = chacha;
             }
+            ///////////////////////////////////////////////////////////////
             int progress = 0;
             foreach (var mat in materials)
             {
@@ -328,7 +332,7 @@ namespace Shell.Protector
                     Debug.LogErrorFormat("mat is null!");
                     continue;
                 }
-                EditorUtility.DisplayProgressBar("Encrypt...", "Encrypt Progress " + ++progress + " of " + material_list.Count, (float)progress / (float)material_list.Count);
+                EditorUtility.DisplayProgressBar("Encrypt...", "Encrypt Progress " + ++progress + " of " + material_list.Count, (float)progress / (float)materials.Count);
                 injector = InjectorFactory.GetInjector(mat.shader);
                 if (injector == null)
                 {
@@ -341,11 +345,7 @@ namespace Shell.Protector
                 Debug.LogFormat("{0} : start encrypt...", mat.name);
 
                 Texture2D main_texture = (Texture2D)mat.mainTexture;
-                injector.Init(gameObject, main_texture, key_bytes, key_size, filter, asset_dir, rounds);
-                if (algorithm == 0)
-                    injector.encryptor = Injector.Encryptor.XXTEA;
-                else if (algorithm == 1)
-                    injector.encryptor = Injector.Encryptor.Chacha8;
+                injector.Init(gameObject, main_texture, key_bytes, key_size, filter, asset_dir, encryptor);
 
                 #region Generate mip_tex
                 int size = Math.Max(mat.mainTexture.width, mat.mainTexture.height);
@@ -635,7 +635,8 @@ namespace Shell.Protector
                     }
                 }
                 //////////////////////////////////////////////////
-                encryptedMaterials.Add(mat, new_mat);
+                if(!encryptedMaterials.ContainsKey(mat))
+                    encryptedMaterials.Add(mat, new_mat);
             }
             EditorUtility.ClearProgressBar();
 
@@ -686,7 +687,7 @@ namespace Shell.Protector
             DestroyImmediate(avatar.GetComponent<ShellProtector>());
         }
 
-        public void ChangeMaterialsInAnims(GameObject avatar, bool clone = true)
+        public void ChangeMaterialsInAnims(GameObject avatar, bool clone)
         {
             var av3 = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
             var fx = av3.baseAnimationLayers[4].animatorController as AnimatorController;

@@ -54,20 +54,6 @@ namespace Shell.Protector
                 return "";
             return lang.GetLang(root.lang, word);
         }
-        private string GenerateRandomString(int length)
-        {
-            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_-+=|\\/?.>,<~`\'\" ";
-            StringBuilder builder = new StringBuilder();
-
-            System.Random random = new System.Random();
-            for (int i = 0; i < length; i++)
-            {
-                int index = random.Next(chars.Length);
-                builder.Append(chars[index]);
-            }
-
-            return builder.ToString();
-        }
 
         void OnEnable()
         {
@@ -193,7 +179,7 @@ namespace Shell.Protector
                 GUILayout.BeginHorizontal();
                 root.pwd = GUILayout.TextField(root.pwd, length, GUILayout.Width(100));
                 if (GUILayout.Button(Lang("Generate")))
-                    root.pwd = GenerateRandomString(length);
+                    root.pwd = KeyGenerator.GenerateRandomString(length);
                 GUILayout.FlexibleSpace();
                 GUILayout.Label(Lang("A password that you don't need to memorize. (max:") + length + ")", EditorStyles.wordWrappedLabel);
                 GUILayout.EndHorizontal();

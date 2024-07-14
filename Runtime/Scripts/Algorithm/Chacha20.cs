@@ -5,7 +5,7 @@ using UnityEngine;
 
 public class Chacha20 : IEncryptor
 {
-    public byte[] noce = new byte[12];
+    public byte[] nonce = new byte[12];
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     byte[] U32t8le(uint v)
     {
@@ -99,12 +99,10 @@ public class Chacha20 : IEncryptor
 
         s[12] = counter;
 
-        for (int i = 0; i < 3; i++)
-        {
-            byte[] nonce_tmp = new byte[4];
-            Array.Copy(nonce, i * 4, nonce_tmp, 0, nonce_tmp.Length);
-            s[13 + i] = U8t32le(nonce_tmp);
-        }
+        uint[] n3 = GetNonceUint3();
+        s[13] = n3[0];
+        s[14] = n3[1];
+        s[15] = n3[2];
     }
 
     //key 16byte nonce 12byte
@@ -151,7 +149,7 @@ public class Chacha20 : IEncryptor
             dataBytes[i + 3] = (byte)(data[i / 4] >> 24 & 0xFF);
         }
 
-        byte[] resultBytes = ChaCha20XOR(keyBytes, 1, noce, dataBytes);
+        byte[] resultBytes = ChaCha20XOR(keyBytes, 1, nonce, dataBytes);
         uint[] result = new uint[data.Length];
         for(int i = 0; i < data.Length; ++i)
         {
@@ -164,4 +162,16 @@ public class Chacha20 : IEncryptor
         return Encrypt(data, key);
     }
 
+    public uint[] GetNonceUint3()
+    {
+        uint[] result = new uint[3];
+        byte[] nonceTmp = new byte[4];
+        for (int i = 0; i < 3; i++)
+        {
+            Array.Copy(nonce, i * 4, nonceTmp, 0, nonceTmp.Length);
+            result[i] = U8t32le(nonceTmp);
+        }
+
+        return result;
+    }
 }
