@@ -450,6 +450,7 @@ namespace Shell.Protector
                             clip = newClip;
                         }
                     }
+                    clip.name += "_encrypted";
                     ChangeMaterialInClip(clip, targetMaterial, encrypted);
                     return clip;
                 }
