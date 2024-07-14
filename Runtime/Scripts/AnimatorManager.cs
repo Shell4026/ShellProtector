@@ -344,5 +344,152 @@ public static class AnimatorManager
 
         AddKeyLayer(anim, animation_dir, key_length, speed, false);
     }
+
+    public static bool IsMaterialInClip(AnimationClip clip, Material originalMaterial)
+    {
+        EditorCurveBinding[] bindings = AnimationUtility.GetObjectReferenceCurveBindings(clip);
+        foreach (EditorCurveBinding binding in bindings)
+        {
+            if ((binding.type == typeof(Renderer) || binding.type == typeof(SkinnedMeshRenderer)) && binding.propertyName.StartsWith("m_Materials"))
+            {
+                ObjectReferenceKeyframe[] keyframes = AnimationUtility.GetObjectReferenceCurve(clip, binding);
+
+                for (int i = 0; i < keyframes.Length; i++)
+                {
+                    if (keyframes[i].value == originalMaterial)
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+    public static void ChangeMaterialInClip(AnimationClip clip, Material source, Material target)
+    {
+        EditorCurveBinding[] bindings = AnimationUtility.GetObjectReferenceCurveBindings(clip);
+        foreach (EditorCurveBinding binding in bindings)
+        {
+            if ((binding.type == typeof(Renderer) || binding.type == typeof(SkinnedMeshRenderer)) && binding.propertyName.StartsWith("m_Materials"))
+            {
+                ObjectReferenceKeyframe[] keyframes = AnimationUtility.GetObjectReferenceCurve(clip, binding);
+                ObjectReferenceKeyframe[] newKeyframes = new ObjectReferenceKeyframe[keyframes.Length];
+
+                bool curveChanged = false;
+                for (int i = 0; i < keyframes.Length; i++)
+                {
+                    newKeyframes[i] = new ObjectReferenceKeyframe
+                    {
+                        time = keyframes[i].time,
+                        value = keyframes[i].value == source ? target : keyframes[i].value
+                    };
+
+                    if (keyframes[i].value == source)
+                    {
+                        curveChanged = true;
+                    }
+                }
+                if (curveChanged)
+                {
+                    AnimationUtility.SetObjectReferenceCurve(clip, binding, newKeyframes);
+                }
+            }
+        }
+    }
+
+    private static void SearchStateMachine(AnimatorStateMachine stateMachine, Material targetMaterial, Material encrypted, bool clone, string clonePath)
+    {
+
+        foreach (ChildAnimatorState state in stateMachine.states)
+        {
+            SearchMotion(state.state.motion, targetMaterial, encrypted, clone, clonePath);
+        }
+
+        foreach (ChildAnimatorStateMachine childStateMachine in stateMachine.stateMachines)
+        {
+            SearchStateMachine(childStateMachine.stateMachine, targetMaterial, encrypted, clone, clonePath);
+        }
+    }
+
+    private static void SearchMotion(Motion motion, Material targetMaterial, Material encrypted, bool clone, string clonePath)
+    {
+        if (motion is AnimationClip clip)
+        {
+            if (IsMaterialInClip(clip, targetMaterial))
+            {
+                Debug.LogFormat("{0} in {1}", targetMaterial.name, clip.name);
+                if(clone)
+                {
+                    string path = AssetDatabase.GetAssetPath(clip);
+                    string copyPath = Path.Combine(clonePath, clip.name + ".anim");
+                    if (!AssetDatabase.CopyAsset(path, copyPath))
+                    {
+                        Debug.LogError("Copy error: " + copyPath);
+                        return;
+                    }
+                    clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(copyPath);
+                }
+                ChangeMaterialInClip(clip, targetMaterial, encrypted);
+            }
+        }
+        else if (motion is BlendTree blendTree)
+        {
+            foreach (ChildMotion childMotion in blendTree.children)
+            {
+                SearchMotion(childMotion.motion, targetMaterial, encrypted, clone, clonePath);
+            }
+        }
+    }
+
+    private static void ChangeMaterialInClip(AnimationClip clip, Material source, Material target, bool clone, string clonePath)
+    {
+        EditorCurveBinding[] bindings = AnimationUtility.GetObjectReferenceCurveBindings(clip);
+        foreach (EditorCurveBinding binding in bindings)
+        {
+            if ((binding.type == typeof(Renderer) || binding.type == typeof(SkinnedMeshRenderer)) && binding.propertyName.StartsWith("m_Materials"))
+            {
+                ObjectReferenceKeyframe[] keyframes = AnimationUtility.GetObjectReferenceCurve(clip, binding);
+                ObjectReferenceKeyframe[] newKeyframes = new ObjectReferenceKeyframe[keyframes.Length];
+
+                bool curveChanged = false;
+                for (int i = 0; i < keyframes.Length; i++)
+                {
+                    newKeyframes[i] = new ObjectReferenceKeyframe
+                    {
+                        time = keyframes[i].time,
+                        value = keyframes[i].value == source ? target : keyframes[i].value
+                    };
+                    if (keyframes[i].value == source)
+                    {
+                        curveChanged = true;
+                    }
+                }
+                if (curveChanged)
+                {
+                    AnimationUtility.SetObjectReferenceCurve(clip, binding, newKeyframes);
+                }
+            }
+        }
+    }
+
+    public static void ChangeAnimationMaterial(AnimatorController anim, Material original, Material encrypted, bool clone, string clonePath)
+    {
+        if (anim == null || original == null)
+            return;
+
+        var layers = anim.layers;
+        foreach (var layer in layers)
+        {
+            if (layer.name == "ShellProtectorDriver")
+                continue;
+            if (layer.name == "ShellProtector")
+                continue;
+            var stateMachine = layer.stateMachine;
+            if (stateMachine == null)
+                continue;
+            SearchStateMachine(stateMachine, original, encrypted, clone, clonePath);
+        }
+        AssetDatabase.SaveAssets();
+    }
 }
 #endif

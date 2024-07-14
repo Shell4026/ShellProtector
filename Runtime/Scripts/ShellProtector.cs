@@ -271,12 +271,12 @@ namespace Shell.Protector
             return materials.Concat(material_list).Distinct().ToList();
         }
 
-        public GameObject Encrypt(bool clone = true)
+        public GameObject Encrypt(bool isModular = true)
         {
-            return Encrypt(bUseSmallMipTexture, clone);
+            return Encrypt(bUseSmallMipTexture, isModular);
         }
 
-        public GameObject Encrypt(bool bUseSmallMip, bool clone = true)
+        public GameObject Encrypt(bool bUseSmallMip, bool isModular = true)
         {
             gameObject.SetActive(true);
             Debug.Log("Key bytes: " + string.Join(", ", GetKeyBytes()));
@@ -284,7 +284,7 @@ namespace Shell.Protector
             var materials = GetMaterials();
 
             GameObject avatar;
-            if (clone)
+            if (!isModular)
             {
                 avatar = DuplicateAvatar(gameObject);
                 Debug.Log("Duplicate avatar success.");
@@ -635,6 +635,7 @@ namespace Shell.Protector
                     }
                 }
                 //////////////////////////////////////////////////
+                encryptedMaterials.Add(mat, new_mat);
             }
             EditorUtility.ClearProgressBar();
 
@@ -645,7 +646,7 @@ namespace Shell.Protector
 
             ///////////////////////animator////////////////////
             AnimatorController fx;
-            if (clone)
+            if (!isModular)
                 fx = AnimatorManager.DuplicateAnimator(av3.baseAnimationLayers[4].animatorController, Path.Combine(asset_dir, gameObject.name));
             else
                 fx = av3.baseAnimationLayers[4].animatorController as AnimatorController;
@@ -662,19 +663,38 @@ namespace Shell.Protector
             AssetDatabase.Refresh();
             ////////////////////////////////////////////////////
 
-            if (clone)
+            if (!isModular)
             {
                 gameObject.SetActive(false);
+
+                var tester = avatar.AddComponent<ShellProtectorTester>();
+                tester.lang = lang;
+                tester.lang_idx = lang_idx;
+                tester.protector = this;
+                tester.user_key_length = key_size;
+                Selection.activeObject = tester;
+
+                ChangeMaterialsInAnims(avatar, true);
+                CleanComponent(avatar);    
             }
-            var tester = avatar.AddComponent<ShellProtectorTester>();
-            tester.lang = lang;
-            tester.lang_idx = lang_idx;
-            tester.protector = this;
-            tester.user_key_length = key_size;
-            Selection.activeObject = tester;
-            DestroyImmediate(avatar.GetComponent<ShellProtector>());
 
             return avatar;
+        }
+
+        public void CleanComponent(GameObject avatar)
+        {
+            DestroyImmediate(avatar.GetComponent<ShellProtector>());
+        }
+
+        public void ChangeMaterialsInAnims(GameObject avatar, bool clone = true)
+        {
+            var av3 = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
+            var fx = av3.baseAnimationLayers[4].animatorController as AnimatorController;
+            string animationDir = Path.Combine(asset_dir, gameObject.name, "animations");
+            foreach (var pair in encryptedMaterials)
+            {
+                AnimatorManager.ChangeAnimationMaterial(fx, pair.Key, pair.Value, clone, animationDir);
+            }
         }
 
         public VRCExpressionParameters GetParameter()
