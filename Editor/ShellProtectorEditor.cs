@@ -31,9 +31,12 @@ namespace Shell.Protector
         SerializedProperty delete_folders;
         SerializedProperty parameter_multiplexing;
         SerializedProperty bUseSmallMipTexture;
-
+        SerializedProperty bObfuscate;
+        SerializedProperty bPreserveMMD;
         bool debug = false;
         bool option = true;
+        bool ObfuscatorOption = true;
+        bool forceProgress = false;
 
         readonly string[] languages = new string[3];
         readonly string[] filters = new string[2];
@@ -98,6 +101,8 @@ namespace Shell.Protector
             delete_folders = serializedObject.FindProperty("delete_folders"); 
             parameter_multiplexing = serializedObject.FindProperty("parameter_multiplexing");
             bUseSmallMipTexture = serializedObject.FindProperty("bUseSmallMipTexture");
+            bObfuscate = serializedObject.FindProperty("bObfuscate");
+            bPreserveMMD = serializedObject.FindProperty("bPreserveMMD");
             #endregion
 
             filters[0] = "Point";
@@ -319,12 +324,35 @@ namespace Shell.Protector
 
                 GUILayout.Space(10);
             }
+
+            ObfuscatorOption = EditorGUILayout.Foldout(option, Lang("Obfustactor Options"));
+            if(ObfuscatorOption)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(Lang("Obfuscate 'Body' BlendShapes"), EditorStyles.boldLabel);
+                bObfuscate.boolValue = EditorGUILayout.Toggle(bObfuscate.boolValue);
+                GUILayout.FlexibleSpace();
+                GUILayout.EndHorizontal();
+
+                GUILayout.Space(10);
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(Lang("Preserve MMD BlendShapes"), EditorStyles.boldLabel);
+                bPreserveMMD.boolValue = EditorGUILayout.Toggle(bPreserveMMD.boolValue);
+                GUILayout.FlexibleSpace();
+                GUILayout.EndHorizontal();
+            }
             #endregion
 
             if (free_parameter - using_parameter < 0)
             {
-                GUI.enabled = false;
                 GUILayout.Label(Lang("Not enough parameter space!"), red_style);
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(Lang("Force progress"));
+                forceProgress = EditorGUILayout.Toggle(forceProgress);
+                GUILayout.FlexibleSpace();
+                GUILayout.EndHorizontal();
+                GUI.enabled = forceProgress;
             }
             if (game_object_list.count == 0 && material_list.count == 0)
                 GUI.enabled = false;
@@ -352,7 +380,6 @@ namespace Shell.Protector
                     root.Test2();
                 if (GUILayout.Button(Lang("Chacha8 test")))
                     root.Test3();
-
                 GUILayout.Space(10);
 
                 texture_list.DoLayoutList();

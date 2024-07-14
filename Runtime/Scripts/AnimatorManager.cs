@@ -450,7 +450,6 @@ namespace Shell.Protector
                             clip = newClip;
                         }
                     }
-                    clip.name += "_encrypted";
                     ChangeMaterialInClip(clip, targetMaterial, encrypted);
                     return clip;
                 }
@@ -492,6 +491,7 @@ namespace Shell.Protector
                 SearchStateMachine(stateMachine, original, encrypted, clone, clonePath);
             }
             AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
         }
     }
 }

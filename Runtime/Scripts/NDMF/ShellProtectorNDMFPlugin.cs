@@ -27,6 +27,7 @@ public class ShellProtectorNDMFPlugin : Plugin<ShellProtectorNDMFPlugin>
                 Debug.Log("After encrypting Shell Protector");
                 if (ctx.AvatarRootObject.TryGetComponent<ShellProtector>(out var shellProtector))
                 {
+                    shellProtector.ObfuscateBlendShape(ctx.AvatarRootObject, false);
                     shellProtector.ChangeMaterialsInAnims(ctx.AvatarRootObject, false);
                     shellProtector.CleanComponent(ctx.AvatarRootObject);
                 }
