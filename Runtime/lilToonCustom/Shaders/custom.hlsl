@@ -59,10 +59,10 @@
 		int mip = round(mip_texture.r * 255 / 10);\
 		int m[13] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10 };\
 		\
-		half4 c00 = DecryptTextureXXTEA(uv_bilinear + half2(uv_unit.x * 0, uv_unit.y * 0), m[mip]);\
-		half4 c10 = DecryptTextureXXTEA(uv_bilinear + half2(uv_unit.x * 1, uv_unit.y * 0), m[mip]);\
-		half4 c01 = DecryptTextureXXTEA(uv_bilinear + half2(uv_unit.x * 0, uv_unit.y * 1), m[mip]);\
-		half4 c11 = DecryptTextureXXTEA(uv_bilinear + half2(uv_unit.x * 1, uv_unit.y * 1), m[mip]);\
+		half4 c00 = DecryptTexture(uv_bilinear + half2(uv_unit.x * 0, uv_unit.y * 0), m[mip]);\
+		half4 c10 = DecryptTexture(uv_bilinear + half2(uv_unit.x * 1, uv_unit.y * 0), m[mip]);\
+		half4 c01 = DecryptTexture(uv_bilinear + half2(uv_unit.x * 0, uv_unit.y * 1), m[mip]);\
+		half4 c11 = DecryptTexture(uv_bilinear + half2(uv_unit.x * 1, uv_unit.y * 1), m[mip]);\
 		\
 		half2 f = frac(uv_bilinear * _MainTex_TexelSize.zw);\
 		\
@@ -79,10 +79,10 @@
 		int mip = round(mip_texture.r * 255 / 10);\
 		int m[13] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10 };\
 		\
-		half4 c00 = DecryptTextureXXTEARGBA(uv_bilinear + half2(uv_unit.x * 0, uv_unit.y * 0), m[mip]);\
-		half4 c10 = DecryptTextureXXTEARGBA(uv_bilinear + half2(uv_unit.x * 1, uv_unit.y * 0), m[mip]);\
-		half4 c01 = DecryptTextureXXTEARGBA(uv_bilinear + half2(uv_unit.x * 0, uv_unit.y * 1), m[mip]);\
-		half4 c11 = DecryptTextureXXTEARGBA(uv_bilinear + half2(uv_unit.x * 1, uv_unit.y * 1), m[mip]);\
+		half4 c00 = DecryptTextureRGBA(uv_bilinear + half2(uv_unit.x * 0, uv_unit.y * 0), m[mip]);\
+		half4 c10 = DecryptTextureRGBA(uv_bilinear + half2(uv_unit.x * 1, uv_unit.y * 0), m[mip]);\
+		half4 c01 = DecryptTextureRGBA(uv_bilinear + half2(uv_unit.x * 0, uv_unit.y * 1), m[mip]);\
+		half4 c11 = DecryptTextureRGBA(uv_bilinear + half2(uv_unit.x * 1, uv_unit.y * 1), m[mip]);\
 		\
 		half2 f = frac(uv_bilinear * _MainTex_TexelSize.zw);\
 		\
@@ -99,7 +99,7 @@
 		int mip = round(mip_texture.r * 255 / 10);\
 		int m[13] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10 };\
 		\
-		half4 c00 = DecryptTextureXXTEA(uv, m[mip]);\
+		half4 c00 = DecryptTexture(uv, m[mip]);\
 		fd.col = c00;\
 	}\
 	else if(code == 3)\
@@ -108,7 +108,7 @@
 		int mip = round(mip_texture.r * 255 / 10);\
 		int m[13] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10 };\
 		\
-		half4 c00 = DecryptTextureXXTEARGBA(uv, m[mip]);\
+		half4 c00 = DecryptTextureRGBA(uv, m[mip]);\
 		fd.col = c00;\
 	}\
 	else if(code == 4)\
@@ -117,10 +117,10 @@
 		int mip = round(mip_texture.r * 255 / 10);\
 		int m[13] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10 };\
 		\
-		half4 c00 = DecryptTextureXXTEADXT(uv_bilinear + half2(uv_unit.x * 0, uv_unit.y * 0), m[mip]);\
-		half4 c10 = DecryptTextureXXTEADXT(uv_bilinear + half2(uv_unit.x * 1, uv_unit.y * 0), m[mip]);\
-		half4 c01 = DecryptTextureXXTEADXT(uv_bilinear + half2(uv_unit.x * 0, uv_unit.y * 1), m[mip]);\
-		half4 c11 = DecryptTextureXXTEADXT(uv_bilinear + half2(uv_unit.x * 1, uv_unit.y * 1), m[mip]);\
+		half4 c00 = DecryptTextureDXT(uv_bilinear + half2(uv_unit.x * 0, uv_unit.y * 0), m[mip]);\
+		half4 c10 = DecryptTextureDXT(uv_bilinear + half2(uv_unit.x * 1, uv_unit.y * 0), m[mip]);\
+		half4 c01 = DecryptTextureDXT(uv_bilinear + half2(uv_unit.x * 0, uv_unit.y * 1), m[mip]);\
+		half4 c11 = DecryptTextureDXT(uv_bilinear + half2(uv_unit.x * 1, uv_unit.y * 1), m[mip]);\
 		\
 		half2 f = frac(uv_bilinear * _MainTex_TexelSize.zw);\
 		\
@@ -137,7 +137,7 @@
 		int mip = round(mip_texture.r * 255 / 10);\
 		int m[13] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10 };\
 		\
-		half4 c00 = DecryptTextureXXTEADXT(uv, m[mip]);\
+		half4 c00 = DecryptTextureDXT(uv, m[mip]);\
 		fd.col = c00;\
 	}\
 	\
@@ -156,7 +156,7 @@
 		int mip = round(mip_texture.r * 255 / 10);\
 		int m[13] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10 };\
 		\
-		half4 c00 = DecryptTextureXXTEADXT(uv, m[mip]);\
+		half4 c00 = DecryptTextureDXT(uv, m[mip]);\
 		fd.col += c00;\
 		LIL_APPLY_OUTLINE_TONECORRECTION \
 		LIL_APPLY_OUTLINE_COLOR

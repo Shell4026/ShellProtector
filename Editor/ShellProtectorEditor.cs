@@ -37,7 +37,7 @@ namespace Shell.Protector
 
         readonly string[] languages = new string[3];
         readonly string[] filters = new string[2];
-        readonly string[] enc_funcs = new string[1];
+        readonly string[] enc_funcs = new string[2];
         readonly string[] key_lengths = new string[5];
 
         List<string> shaders = new List<string>();
@@ -118,6 +118,7 @@ namespace Shell.Protector
             filters[1] = "Bilinear";
 
             enc_funcs[0] = "XXTEA";
+            enc_funcs[1] = "Chacha8";
 
             languages[0] = "English";
             languages[1] = "한국어";
@@ -279,15 +280,17 @@ namespace Shell.Protector
                 GUILayout.Label(Lang("Encrytion algorithm"), EditorStyles.boldLabel);
                 algorithm.intValue = EditorGUILayout.Popup(algorithm.intValue, enc_funcs, GUILayout.Width(120));
 
-                GUILayout.Label(Lang("Rounds"), EditorStyles.boldLabel);
-                GUILayout.BeginHorizontal();
-                rounds.uintValue = (uint)Mathf.RoundToInt(GUILayout.HorizontalSlider(rounds.uintValue, 6, 32, GUILayout.Width(100)));
-                rounds.uintValue = (uint)EditorGUILayout.IntField("", (int)rounds.uintValue, GUILayout.Width(50));
-                rounds.uintValue = Math.Clamp(rounds.uintValue, 6, 32);
-                GUILayout.FlexibleSpace();
-                GUILayout.EndHorizontal();
-                GUILayout.Label(Lang("Number of encryption iterations. Higher values provide better security, but at the expense of performance."), EditorStyles.wordWrappedLabel);
-
+                if (algorithm.intValue == 0)
+                {
+                    GUILayout.Label(Lang("Rounds"), EditorStyles.boldLabel);
+                    GUILayout.BeginHorizontal();
+                    rounds.uintValue = (uint)Mathf.RoundToInt(GUILayout.HorizontalSlider(rounds.uintValue, 6, 32, GUILayout.Width(100)));
+                    rounds.uintValue = (uint)EditorGUILayout.IntField("", (int)rounds.uintValue, GUILayout.Width(50));
+                    rounds.uintValue = Math.Clamp(rounds.uintValue, 6, 32);
+                    GUILayout.FlexibleSpace();
+                    GUILayout.EndHorizontal();
+                    GUILayout.Label(Lang("Number of encryption iterations. Higher values provide better security, but at the expense of performance."), EditorStyles.wordWrappedLabel);
+                }
                 GUILayout.Space(10);
 
                 GUILayout.Label(Lang("Texture filter"), EditorStyles.boldLabel);
@@ -345,7 +348,7 @@ namespace Shell.Protector
 #else
             if (GUILayout.Button(Lang("Encrypt!")))
 #endif
-                root.Encrypt(bUseSmallMipTexture.boolValue, true);
+                root.Encrypt(bUseSmallMipTexture.boolValue, false);
             GUI.enabled = true;
 
 #if MODULAR
@@ -361,6 +364,8 @@ namespace Shell.Protector
                 GUILayout.Space(10);
                 if (GUILayout.Button(Lang("XXTEA test")))
                     root.Test2();
+                if (GUILayout.Button(Lang("Chacha8 test")))
+                    root.Test3();
 
                 GUILayout.Space(10);
 
@@ -376,7 +381,7 @@ namespace Shell.Protector
 
                         ShellProtector.SetRWEnableTexture(texture);
 
-                        Texture2D[] encrypted_texture = root.GetEncryptTexture().TextureEncryptXXTEA(texture, KeyGenerator.MakeKeyBytes(root.pwd, root.pwd2, key_size.intValue));
+                        Texture2D[] encrypted_texture = root.GetEncryptTexture().TextureEncrypt(texture, KeyGenerator.MakeKeyBytes(root.pwd, root.pwd2, key_size.intValue), new XXTEA());
 
                         last = encrypted_texture[0];
 

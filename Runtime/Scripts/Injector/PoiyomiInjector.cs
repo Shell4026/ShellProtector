@@ -63,21 +63,21 @@ namespace Shell.Protector
                 string frag = File.ReadAllText(path);
                 frag = Regex.Replace(frag, "float4 frag\\(", "#include \"Decrypt.cginc\"\nfloat4 frag(");
 
-                string shader_code = shader_code_nofilter_XXTEA;
+                string shader_code = shader_code_nofilter;
                 if (filter == 0)
-                    shader_code = shader_code_nofilter_XXTEA;
+                    shader_code = shader_code_nofilter;
                 else if (filter == 1)
-                    shader_code = shader_code_bilinear_XXTEA;
+                    shader_code = shader_code_bilinear;
 
                 frag = Regex.Replace(frag, "float4 mainTexture = .*?;", shader_code);
                 frag = Regex.Replace(frag, "float4 mip_texture = _MipTex.Sample\\(sampler_MipTex, .*?\\);", "float4 mip_texture = _MipTex.Sample(sampler_MipTex, poiMesh.uv[0]);");
                 if (tex.format == TextureFormat.DXT1)
                 {
-                    frag = Regex.Replace(frag, "DecryptTextureXXTEA", "DecryptTextureXXTEADXT");
+                    frag = Regex.Replace(frag, "DecryptTexture", "DecryptTextureDXT");
                 }
                 else if (EncryptTexture.HasAlpha(tex))
                 {
-                    frag = Regex.Replace(frag, "DecryptTextureXXTEA", "DecryptTextureXXTEARGBA");
+                    frag = Regex.Replace(frag, "DecryptTexture", "DecryptTextureRGBA");
                 }
                 File.WriteAllText(path, frag);
             }
@@ -89,20 +89,20 @@ namespace Shell.Protector
                 shader_data = Regex.Replace(shader_data, "UNITY_SAMPLE_TEX2D_SAMPLER_LOD\\((.*?), _MainTex", "UNITY_SAMPLE_TEX2D_SAMPLER_LOD($1, _MipTex");
                 shader_data = Regex.Replace(shader_data, "UNITY_SAMPLE_TEX2D_SAMPLER\\((.*?), _MainTex", "UNITY_SAMPLE_TEX2D_SAMPLER($1, _MipTex");
                 shader_data = Regex.Replace(shader_data, "float4 frag\\(", "#include \"Decrypt.cginc\"\n\t\t\tfloat4 frag(");
-                string shader_code = shader_code_nofilter_XXTEA;
+                string shader_code = shader_code_nofilter;
                 if (filter == 0)
-                    shader_code = shader_code_nofilter_XXTEA;
+                    shader_code = shader_code_nofilter;
                 else if (filter == 1)
-                    shader_code = shader_code_bilinear_XXTEA;
+                    shader_code = shader_code_bilinear;
 
                 shader_data = Regex.Replace(shader_data, "float4 mainTexture = .*?;", shader_code);
                 if (tex.format == TextureFormat.DXT1 || tex.format == TextureFormat.DXT5)
                 {
-                    shader_data = Regex.Replace(shader_data, "DecryptTextureXXTEA", "DecryptTextureXXTEADXT");
+                    shader_data = Regex.Replace(shader_data, "DecryptTexture", "DecryptTextureDXT");
                 }
                 else if (EncryptTexture.HasAlpha(tex))
                 {
-                    shader_data = Regex.Replace(shader_data, "DecryptTextureXXTEA", "DecryptTextureXXTEARGBA");
+                    shader_data = Regex.Replace(shader_data, "DecryptTexture", "DecryptTextureRGBA");
                 }
 
                 if (has_lim_texture)

@@ -17,17 +17,17 @@ namespace Shell.Protector
         protected int user_key_length = 4;
         protected uint rounds = 25;
 
-        protected string shader_code_nofilter_XXTEA = @"
+        protected string shader_code_nofilter = @"
 				half4 mip_texture = _MipTex.Sample(sampler_MipTex, mainUV);
 				
 				int mip = round(mip_texture.r * 255 / 10); //fucking precision problems
 				int m[13] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10 }; // max size 4k
 
-				half4 c00 = DecryptTextureXXTEA(mainUV, m[mip]);
+				half4 c00 = DecryptTexture(mainUV, m[mip]);
 
 				half4 mainTexture = c00;
         ";
-        protected string shader_code_bilinear_XXTEA = @"
+        protected string shader_code_bilinear = @"
 				half4 mip_texture = _MipTex.Sample(sampler_MipTex, mainUV);
 				
 				half2 uv_unit = _MainTex_TexelSize.xy;
@@ -36,10 +36,10 @@ namespace Shell.Protector
 				int mip = round(mip_texture.r * 255 / 10); //fucking precision problems
 				int m[13] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10 }; // max size 4k
 				
-                half4 c00 = DecryptTextureXXTEA(uv_bilinear + half2(uv_unit.x * 0, uv_unit.y * 0), m[mip]);
-                half4 c10 = DecryptTextureXXTEA(uv_bilinear + half2(uv_unit.x * 1, uv_unit.y * 0), m[mip]);
-                half4 c01 = DecryptTextureXXTEA(uv_bilinear + half2(uv_unit.x * 0, uv_unit.y * 1), m[mip]);
-                half4 c11 = DecryptTextureXXTEA(uv_bilinear + half2(uv_unit.x * 1, uv_unit.y * 1), m[mip]);
+                half4 c00 = DecryptTexture(uv_bilinear + half2(uv_unit.x * 0, uv_unit.y * 0), m[mip]);
+                half4 c10 = DecryptTexture(uv_bilinear + half2(uv_unit.x * 1, uv_unit.y * 0), m[mip]);
+                half4 c01 = DecryptTexture(uv_bilinear + half2(uv_unit.x * 0, uv_unit.y * 1), m[mip]);
+                half4 c11 = DecryptTexture(uv_bilinear + half2(uv_unit.x * 1, uv_unit.y * 1), m[mip]);
 				
 				half2 f = frac(uv_bilinear * _MainTex_TexelSize.zw);
 				
@@ -53,6 +53,13 @@ namespace Shell.Protector
 
         protected GameObject target;
         protected Texture2D main_tex;
+
+        public enum Encryptor
+        {
+            XXTEA,
+            Chacha8
+        }
+        public Encryptor encryptor = Encryptor.Chacha8;
 
         public void Init(GameObject target, Texture2D main_tex, byte[] key, int user_key_length, int filter, string asset_dir, uint rounds)
         {
@@ -213,6 +220,11 @@ namespace Shell.Protector
             data = Regex.Replace(data, "static const uint ROUNDS = 6;", "static const uint ROUNDS = " + rounds + ";");
             data = Regex.Replace(data, "//key make[\\w\\W]*?//key make end", replace2);
             data = Regex.Replace(data, @"\(uint\)\(\(idx >> 1\) << 1\);[\w\W]*?//4idx", "(uint)((idx >> 2) << 2);"); //DecryptRGB
+
+            if(encryptor == Encryptor.Chacha8)
+            {
+                data = Regex.Replace(data, @"XXTEADecrypt\(data, key\);", "Chacha20XOR(data, key);");
+            }
             return data;
         }
 

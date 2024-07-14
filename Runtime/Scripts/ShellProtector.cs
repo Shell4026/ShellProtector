@@ -32,6 +32,8 @@ namespace Shell.Protector
         [SerializeField]
         List<Texture2D> texture_list = new List<Texture2D>();
 
+        Dictionary<Material, Material> encryptedMaterials = new Dictionary<Material, Material>();
+
         EncryptTexture encrypt = new EncryptTexture();
         Injector injector;
         AssetManager shader_manager = AssetManager.GetInstance();
@@ -44,7 +46,7 @@ namespace Shell.Protector
 
         [SerializeField] uint rounds = 20;
         [SerializeField] int filter = 1;
-        [SerializeField] int algorithm = 0;
+        [SerializeField] int algorithm = 1;
         [SerializeField] int key_size_idx = 0;
         [SerializeField] int key_size = 4;
         [SerializeField] float animation_speed = 256.0f;
@@ -85,6 +87,32 @@ namespace Shell.Protector
             Debug.Log("Encrypted data: " + string.Join(", ", result));
 
             result = xxtea.Decrypt(result, key);
+            Debug.Log("Decrypted data: " + string.Join(", ", result));
+        }
+
+        public void Test3()
+        {
+            byte[] data_byte = new byte[8] { 255, 255, 245, 240, 235, 230, 225, 220 };
+            byte[] key_byte = KeyGenerator.MakeKeyBytes(pwd, pwd2, key_size);
+
+            uint[] data = new uint[2];
+            data[0] = (uint)(data_byte[0] | (data_byte[1] << 8) | (data_byte[2] << 16) | (data_byte[3] << 24));
+            data[1] = (uint)(data_byte[4] | (data_byte[5] << 8) | (data_byte[6] << 16) | (data_byte[7] << 24));
+
+            uint[] key = new uint[4];
+            key[0] = (uint)(key_byte[0] | (key_byte[1] << 8) | (key_byte[2] << 16) | (key_byte[3] << 24));
+            key[1] = (uint)(key_byte[4] | (key_byte[5] << 8) | (key_byte[6] << 16) | (key_byte[7] << 24));
+            key[2] = (uint)(key_byte[8] | (key_byte[9] << 8) | (key_byte[10] << 16) | (key_byte[11] << 24));
+            key[3] = (uint)(key_byte[12] | (key_byte[13] << 8) | (key_byte[14] << 16) | (key_byte[15] << 24));
+
+            Debug.Log("Key bytes: " + string.Join(", ", key_byte));
+            Debug.Log(string.Format("key1:{0}, key2:{1}, key3:{2}", key[0], key[1], key[2]));
+            Debug.Log("Data: " + string.Join(", ", data));
+
+            Chacha20 chacha = new Chacha20();
+            uint[] result = chacha.Encrypt(data, key);
+            Debug.Log("Encrypted data: " + string.Join(", ", result));
+            result = chacha.Encrypt(result, key);
             Debug.Log("Decrypted data: " + string.Join(", ", result));
         }
         public static void SetRWEnableTexture(Texture2D texture)
@@ -156,7 +184,7 @@ namespace Shell.Protector
             }
             if (mat.mainTexture == null)
             {
-                Debug.LogErrorFormat("{0} : The mainTexture is empty. it will be skip.", mat.name);
+                Debug.LogWarningFormat("{0} : The mainTexture is empty. it will be skip.", mat.name);
                 return false;
             }
             if (mat.mainTexture.width % 2 != 0 && mat.mainTexture.height % 2 != 0)
@@ -172,12 +200,12 @@ namespace Shell.Protector
             var av3 = gameObject.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
             if (av3 == null)
             {
-                Debug.LogWarning(gameObject.name + ": can't find VRCAvatarDescriptor!");
+                Debug.LogError(gameObject.name + ": can't find VRCAvatarDescriptor!");
                 return false;
             }
             if(av3.expressionParameters == null)
             {
-                Debug.LogWarning(gameObject.name + ": can't find expressionParmeters!");
+                Debug.LogError(gameObject.name + ": can't find expressionParmeters!");
                 return false;
             }
             return true;
@@ -279,6 +307,18 @@ namespace Shell.Protector
 
             CreateFolders();
 
+            IEncryptor encryptor = new XXTEA();
+            if (algorithm == 0)
+            {
+                XXTEA xxtea = new XXTEA();
+                xxtea.m_rounds = rounds;
+                encryptor = xxtea;
+            }
+            else if(algorithm == 1) 
+            {
+                Chacha20 chacha = new Chacha20();
+                encryptor = chacha;
+            }
             int progress = 0;
             foreach (var mat in materials)
             {
@@ -302,6 +342,10 @@ namespace Shell.Protector
 
                 Texture2D main_texture = (Texture2D)mat.mainTexture;
                 injector.Init(gameObject, main_texture, key_bytes, key_size, filter, asset_dir, rounds);
+                if (algorithm == 0)
+                    injector.encryptor = Injector.Encryptor.XXTEA;
+                else if (algorithm == 1)
+                    injector.encryptor = Injector.Encryptor.Chacha8;
 
                 #region Generate mip_tex
                 int size = Math.Max(mat.mainTexture.width, mat.mainTexture.height);
@@ -453,7 +497,7 @@ namespace Shell.Protector
                 #region Make encrypted textures
                 if (has_exist_encrypt_tex == false)
                 {
-                    encrypted_tex = encrypt.TextureEncryptXXTEA(main_texture, key_bytes, rounds);
+                    encrypted_tex = encrypt.TextureEncrypt(main_texture, key_bytes, encryptor);
                     if (encrypted_tex == null)
                     {
                         Debug.LogErrorFormat("{0} : encrypt failed0.", main_texture.name);

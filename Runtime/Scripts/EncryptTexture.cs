@@ -355,7 +355,7 @@ namespace Shell.Protector
             return result;
         }
 
-        public Texture2D[] TextureEncryptXXTEA(Texture2D texture, byte[] key, uint rounds = 25)
+        public Texture2D[] TextureEncrypt(Texture2D texture, byte[] key, IEncryptor encryptor)
         {
             Texture2D tex = texture;
             if (tex.width % 2 != 0 && tex.height % 2 != 0)
@@ -389,24 +389,21 @@ namespace Shell.Protector
                 }
             }
 
-            XXTEA xxtea = new XXTEA();
-            xxtea.m_rounds = rounds;
-
             if (texture.format == TextureFormat.DXT1 || texture.format == TextureFormat.DXT1Crunched)
             {
-                result = EncryptDXT1(texture, key, xxtea);
+                result = EncryptDXT1(texture, key, encryptor);
             }
             else if (texture.format == TextureFormat.DXT5 || texture.format == TextureFormat.DXT5Crunched)
             {
-                result = EncryptDXT5(texture, key, xxtea);
+                result = EncryptDXT5(texture, key, encryptor);
             }
             else if (tex.format == TextureFormat.RGB24)
             {
-                result = EncryptRGB24(tex, key, xxtea);
+                result = EncryptRGB24(tex, key, encryptor);
             }
             else if (tex.format == TextureFormat.RGBA32)
             {
-                result = EncryptRGBA32(tex, key, xxtea);
+                result = EncryptRGBA32(tex, key, encryptor);
             }
             else
             {
