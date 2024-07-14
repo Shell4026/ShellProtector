@@ -692,9 +692,11 @@ namespace Shell.Protector
             var av3 = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
             var fx = av3.baseAnimationLayers[4].animatorController as AnimatorController;
             string animationDir = Path.Combine(asset_dir, gameObject.name, "animations");
+
+            AnimatorManager animManager = new();
             foreach (var pair in encryptedMaterials)
             {
-                AnimatorManager.ChangeAnimationMaterial(fx, pair.Key, pair.Value, clone, animationDir);
+                animManager.ChangeAnimationMaterial(fx, pair.Key, pair.Value, clone, animationDir);
             }
         }
 
