@@ -2,23 +2,25 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class LanguageManager
+namespace Shell.Protector
 {
-    static LanguageManager instance = null;
-
-    private Dictionary<string, Dictionary<string, string>> languageMap;
-
-    public static LanguageManager GetInstance()
+    public class LanguageManager
     {
-        if(instance == null)
-            instance = new LanguageManager();
-        return instance;
-    }
+        static LanguageManager instance = null;
 
-    private LanguageManager()
-    {
-        languageMap = new Dictionary<string, Dictionary<string, string>>();
-        var koreanStrings = new Dictionary<string, string>()
+        private Dictionary<string, Dictionary<string, string>> languageMap;
+
+        public static LanguageManager GetInstance()
+        {
+            if (instance == null)
+                instance = new LanguageManager();
+            return instance;
+        }
+
+        private LanguageManager()
+        {
+            languageMap = new Dictionary<string, Dictionary<string, string>>();
+            var koreanStrings = new Dictionary<string, string>()
         {
             { "Material List", "메테리얼 목록" },
             { "Texture List", "텍스쳐 목록" },
@@ -65,10 +67,11 @@ public class LanguageManager
             { "It uses a smaller mipTexture to reduce memory usage and improve performance. It may look slightly different from the original when viewed from the side.", "작은 밉 텍스쳐를 사용하여 메모리 사용량을 줄이고 성능을 개선합니다. 옆에서 봤을 때 원본과 약간 다르게 보일 수 있습니다."},
             { "Object list", "오브젝트 목록" },
             { "Manual Encrypt!", "수동 암호화 시작!" },
-            { "Modular avatars exist. It is automatically encrypted on upload.", "모듈러 아바타가 존재합니다. 업로드 시 자동으로 암호화됩니다." }
+            { "Modular avatars exist. It is automatically encrypted on upload.", "모듈러 아바타가 존재합니다. 업로드 시 자동으로 암호화됩니다." },
+            { "Force progress", "강제 진행" }
         };
 
-        var jpStrings = new Dictionary<string, string>()
+            var jpStrings = new Dictionary<string, string>()
         {
             { "Material List", "マテリアル一覧" },
             { "Texture List", "テクスチャ一覧" },
@@ -115,26 +118,28 @@ public class LanguageManager
             { "It uses a smaller mipTexture to reduce memory usage and improve performance. It may look slightly different from the original when viewed from the side.", "小さなミップテクスチャを使用して、メモリ使用量を減らし、パフォーマンスを向上させます。 横から見ると、オリジナルと少し違って見えるかもしれません。"},
             { "Object list", "オブジェクト一覧"},
             { "Manual Encrypt!", "手動暗号化開始！" },
-            { "Modular avatars exist. it is automatically encrypted on upload.", "Modular Avatarが存在します。アップロード時に自動的に暗号化されます。" }
+            { "Modular avatars exist. it is automatically encrypted on upload.", "Modular Avatarが存在します。アップロード時に自動的に暗号化されます。" },
+            { "Force progress", "強制的に進行" }
         };
 
-        languageMap.Add("kor", koreanStrings);
-        languageMap.Add("jp", jpStrings);
-    }
-
-    public string GetLang(string lang, string word)
-    {
-        if (lang == "eng")
-            return word;
-        if (languageMap.ContainsKey(lang))
-        {
-            var languageStrings = languageMap[lang];
-            if (languageStrings.ContainsKey(word))
-            {
-                return languageStrings[word];
-            }
+            languageMap.Add("kor", koreanStrings);
+            languageMap.Add("jp", jpStrings);
         }
 
-        return word;
+        public string GetLang(string lang, string word)
+        {
+            if (lang == "eng")
+                return word;
+            if (languageMap.ContainsKey(lang))
+            {
+                var languageStrings = languageMap[lang];
+                if (languageStrings.ContainsKey(word))
+                {
+                    return languageStrings[word];
+                }
+            }
+
+            return word;
+        }
     }
 }
