@@ -33,6 +33,8 @@ namespace Shell.Protector
         List<Material> material_list = new List<Material>();
         [SerializeField]
         List<Texture2D> texture_list = new List<Texture2D>();
+        [SerializeField]
+        List<SkinnedMeshRenderer> obfuscationRenderers = new();
 
         EncryptTexture encrypt = new EncryptTexture();
         Injector injector;
@@ -44,6 +46,8 @@ namespace Shell.Protector
         public int lang_idx = 0;
         public string lang = "kor";
 
+        bool init = false;
+
         //Must clear them before start encrypting//
         HashSet<GameObject> meshes = new HashSet<GameObject>();
         HashSet<Texture2D> fallbackTextures = new();
@@ -53,15 +57,36 @@ namespace Shell.Protector
         [SerializeField] uint rounds = 20;
         [SerializeField] int filter = 0;
         [SerializeField] int algorithm = 1;
-        [SerializeField] int key_size_idx = 0;
-        [SerializeField] int key_size = 4;
+        [SerializeField] int key_size_idx = 3;
+        [SerializeField] int key_size = 12;
         [SerializeField] float animation_speed = 256.0f;
         [SerializeField] bool delete_folders = true;
         [SerializeField] bool parameter_multiplexing = false;
         [SerializeField] bool bUseSmallMipTexture = true;
 
-        [SerializeField] bool bObfuscate = true;
         [SerializeField] bool bPreserveMMD = true;
+
+        public void OnEnable()
+        {
+            if (init)
+                return;
+            Transform child = transform.Find("Body");
+            if (child != null)
+            {
+                SkinnedMeshRenderer renderer = child.GetComponent<SkinnedMeshRenderer>();
+                if (renderer != null)
+                {
+                    Mesh mesh = renderer.sharedMesh;
+                    if (mesh != null)
+                    {
+                        obfuscationRenderers.Add(renderer);
+                    }
+                        
+                }
+            }
+            init = true;
+        }
+
         public byte[] GetKeyBytes()
         {
             return KeyGenerator.MakeKeyBytes(pwd, pwd2, key_size);
@@ -122,20 +147,6 @@ namespace Shell.Protector
             Debug.Log("Encrypted data: " + string.Join(", ", result));
             result = chacha.Encrypt(result, key);
             Debug.Log("Decrypted data: " + string.Join(", ", result));
-        }
-
-        public void Test4()
-        {
-
-            Transform child = gameObject.transform.Find("Body");
-            SkinnedMeshRenderer renderer = child.GetComponent<SkinnedMeshRenderer>();
-            Mesh mesh = renderer.sharedMesh;
-            string str = "";
-            for(int i = 0; i < mesh.blendShapeCount; ++i)
-            {
-                str += "\"" + mesh.GetBlendShapeName(i) + "\", ";
-            }
-            Debug.Log(str);
         }
         public static void SetRWEnableTexture(Texture2D texture)
         {
@@ -781,52 +792,55 @@ namespace Shell.Protector
 
         public void ObfuscateBlendShape(GameObject avatar, bool clone)
         {
-            if (bObfuscate == false)
-                return;
-
-            Transform child = avatar.transform.Find("Body");
-            if (child == null)
-            {
-                Debug.LogErrorFormat("{0} haven't 'Body'", avatar.name);
-                return;
-            }
-
-            SkinnedMeshRenderer renderer = child.GetComponent<SkinnedMeshRenderer>();
-            if (renderer == null)
-            {
-                Debug.LogErrorFormat("{0}'s Body haven't SkinnedMeshRenderer", avatar.name); 
-                return;
-            }
-
-            Mesh mesh = renderer.sharedMesh;
-            if(mesh == null)
-            {
-                Debug.LogErrorFormat("{0}'s 'Body' haven't mesh", avatar.name);
-                return;
-            }
+            var av3 = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
+            AnimatorController fx = Getfx(avatar);
+            string animDir = Path.Combine(asset_dir, gameObject.name, "animations");
 
             Obfuscator obfuscator = new Obfuscator();
             obfuscator.clone = clone;
-            Mesh newMesh = obfuscator.ObfuscateBlendShapeMesh(mesh, Path.Combine(asset_dir, gameObject.name));
-            renderer.sharedMesh = newMesh;
-            ////////Change renderer component shape keys////////
-            List<float> weights = new();
-            for(int i = 0; i < newMesh.blendShapeCount; ++i)
-            {
-                weights.Add(renderer.GetBlendShapeWeight(i));
-                renderer.SetBlendShapeWeight(i, 0.0f);
-            }
-            var obList = obfuscator.GetObfuscatedBlendShapeIndex();
-            Debug.LogFormat("size: {0}, {1}", newMesh.blendShapeCount, obList.Count);
-            for (int i = 0; i < newMesh.blendShapeCount; ++i)
-            {
-                renderer.SetBlendShapeWeight(i, weights[obList[i]]);
-            }
-            /////////////////////////////////
-            obfuscator.ObfuscateBlendshapeInAnim(Getfx(avatar), Path.Combine(asset_dir, gameObject.name, "animations"));
 
-            var av3 = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
-            obfuscator.ChangeObfuscatedBlendShapeInDescriptor(av3);
+            var childRenderers = avatar.GetComponentsInChildren<SkinnedMeshRenderer>();
+            foreach (var renderer in obfuscationRenderers)
+            {
+                SkinnedMeshRenderer selectRenderer = null;
+                foreach (var childRenderer in childRenderers)
+                {
+                    if(childRenderer.sharedMesh == renderer.sharedMesh)
+                    {
+                        selectRenderer = childRenderer;
+                        break;
+                    }
+                }
+                if (selectRenderer == null)
+                    continue;
+
+                Mesh mesh = selectRenderer.sharedMesh;
+                if (mesh == null)
+                {
+                    Debug.LogErrorFormat("{0} haven't mesh", renderer.transform.name);
+                    continue;
+                }
+                Mesh newMesh = obfuscator.ObfuscateBlendShapeMesh(mesh, Path.Combine(asset_dir, gameObject.name));
+                selectRenderer.sharedMesh = newMesh;
+
+                ////////Change renderer component shape keys////////
+                List<float> weights = new();
+                for (int i = 0; i < newMesh.blendShapeCount; ++i)
+                {
+                    weights.Add(selectRenderer.GetBlendShapeWeight(i));
+                    selectRenderer.SetBlendShapeWeight(i, 0.0f);
+                }
+                var obList = obfuscator.GetObfuscatedBlendShapeIndex();
+                Debug.LogFormat("size: {0}, {1}", newMesh.blendShapeCount, obList.Count);
+                for (int i = 0; i < newMesh.blendShapeCount; ++i)
+                {
+                    selectRenderer.SetBlendShapeWeight(i, weights[obList[i]]);
+                }
+                /////////////////////////////////
+                obfuscator.ObfuscateBlendshapeInAnim(fx, animDir);
+                obfuscator.ChangeObfuscatedBlendShapeInDescriptor(av3);
+                obfuscator.Clean();
+            }
         }
 
         public static void SetMaterialFallbackValue(GameObject avatar, bool fallback)

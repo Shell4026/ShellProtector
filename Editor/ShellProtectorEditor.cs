@@ -21,6 +21,7 @@ namespace Shell.Protector
         ReorderableList game_object_list;
         ReorderableList material_list;
         ReorderableList texture_list;
+        ReorderableList obfuscationList;
 
         SerializedProperty rounds;
         SerializedProperty filter;
@@ -31,7 +32,6 @@ namespace Shell.Protector
         SerializedProperty delete_folders;
         SerializedProperty parameter_multiplexing;
         SerializedProperty bUseSmallMipTexture;
-        SerializedProperty bObfuscate;
         SerializedProperty bPreserveMMD;
         bool debug = false;
         bool option = true;
@@ -91,6 +91,14 @@ namespace Shell.Protector
                 EditorGUI.PropertyField(new Rect(rect.x, rect.y, rect.width, EditorGUIUtility.singleLineHeight), element, GUIContent.none);
             };
 
+            obfuscationList = new ReorderableList(serializedObject, serializedObject.FindProperty("obfuscationRenderers"), true, true, true, true);
+            obfuscationList.drawHeaderCallback = rect => EditorGUI.LabelField(rect, Lang("BlendShape obfuscation"));
+            obfuscationList.drawElementCallback = (rect, index, is_active, is_focused) =>
+            {
+                SerializedProperty element = obfuscationList.serializedProperty.GetArrayElementAtIndex(index);
+                EditorGUI.PropertyField(new Rect(rect.x, rect.y, rect.width, EditorGUIUtility.singleLineHeight), element, GUIContent.none);
+            };
+
             #region SerializedObject
             rounds = serializedObject.FindProperty("rounds");
             filter = serializedObject.FindProperty("filter");
@@ -101,7 +109,6 @@ namespace Shell.Protector
             delete_folders = serializedObject.FindProperty("delete_folders"); 
             parameter_multiplexing = serializedObject.FindProperty("parameter_multiplexing");
             bUseSmallMipTexture = serializedObject.FindProperty("bUseSmallMipTexture");
-            bObfuscate = serializedObject.FindProperty("bObfuscate");
             bPreserveMMD = serializedObject.FindProperty("bPreserveMMD");
             #endregion
 
@@ -125,6 +132,8 @@ namespace Shell.Protector
 
             shaders = AssetManager.GetInstance().CheckShader();
             AssetManager.GetInstance().CheckModular();
+
+            root.OnEnable();
         }
 
         public override void OnInspectorGUI()
@@ -328,13 +337,7 @@ namespace Shell.Protector
             ObfuscatorOption = EditorGUILayout.Foldout(ObfuscatorOption, Lang("Obfustactor Options"));
             if(ObfuscatorOption)
             {
-                GUILayout.BeginHorizontal();
-                GUILayout.Label(Lang("Obfuscate 'Body' BlendShapes"), EditorStyles.boldLabel);
-                bObfuscate.boolValue = EditorGUILayout.Toggle(bObfuscate.boolValue);
-                GUILayout.FlexibleSpace();
-                GUILayout.EndHorizontal();
-
-                GUILayout.Space(10);
+                obfuscationList.DoLayoutList();
 
                 GUILayout.BeginHorizontal();
                 GUILayout.Label(Lang("Preserve MMD BlendShapes"), EditorStyles.boldLabel);
