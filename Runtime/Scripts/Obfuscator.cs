@@ -5,8 +5,10 @@ using System.Linq;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
+using VRC.SDK3.Avatars.Components;
 using static UnityEditor.Experimental.GraphView.GraphView;
 using static UnityEngine.UI.Image;
+using static VRC.SDK3.Avatars.Components.VRCAvatarDescriptor;
 
 namespace Shell.Protector
 {
@@ -105,6 +107,28 @@ namespace Shell.Protector
             AssetDatabase.CreateAsset(obfuscatedMesh, Path.Combine(newPath, obfuscatedMesh.name + ".asset"));
             AssetDatabase.Refresh();
             return obfuscatedMesh;
+        }
+
+        public void ChangeObfuscatedBlendShapeInDescriptor(VRCAvatarDescriptor descriptor)
+        {
+            for (int i = 0; i < descriptor.VisemeBlendShapes.Length; i++)
+            {
+                if (obfuscatedBlendShapeNames.ContainsKey(descriptor.VisemeBlendShapes[i]))
+                    descriptor.VisemeBlendShapes[i] = obfuscatedBlendShapeNames[descriptor.VisemeBlendShapes[i]];
+            }
+            for (int i = 0; i < descriptor.customEyeLookSettings.eyelidsBlendshapes.Length; i++)
+            {
+                int idx = descriptor.customEyeLookSettings.eyelidsBlendshapes[i];
+                descriptor.customEyeLookSettings.eyelidsBlendshapes[i] = obfuscatedBlendShapeIndex.FindIndex(0, obfuscatedBlendShapeIndex.Count - 1,
+                    x =>
+                    {
+                        if (x == idx)
+                            return true;
+                        return false;
+                    }
+                );
+            }
+            
         }
 
         public void ObfuscateBlendshapeInAnim(AnimatorController anim, string newDir)
