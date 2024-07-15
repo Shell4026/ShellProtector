@@ -9,10 +9,11 @@ namespace lilToon
     {
         // Custom properties
         MaterialProperty mip_tex;
-        MaterialProperty encrypted_tex;
-		MaterialProperty[] key = new MaterialProperty[15];
-		
-		
+        MaterialProperty encrypted_tex0;
+        MaterialProperty encrypted_tex1;
+        MaterialProperty[] key = new MaterialProperty[15];
+        MaterialProperty fallback;
+
         private static bool isShowCustomProperties;
 		private static bool show_pwd = false;
         private const string shaderName = "ShellProtector";
@@ -30,9 +31,11 @@ namespace lilToon
 
             //LoadCustomLanguage("");
             mip_tex = FindProperty("_MipTex", props);
-            encrypted_tex = FindProperty("_EncryptTex", props);
-			
-			for(int i = 0; i < key.Length; ++i)
+            encrypted_tex0 = FindProperty("_EncryptTex0", props);
+            encrypted_tex1 = FindProperty("_EncryptTex1", props);
+            fallback = FindProperty("_fallback", props);
+
+            for (int i = 0; i < key.Length; ++i)
 				key[i] = FindProperty("_Key" + i, props);
         }
 
@@ -49,12 +52,15 @@ namespace lilToon
             isShowCustomProperties = Foldout("ShellProtector", "ShellProtector", isShowCustomProperties);
             if(isShowCustomProperties)
             {
+                m_MaterialEditor.ShaderProperty(fallback, "fallback");
+
                 EditorGUILayout.BeginVertical(boxOuter);
                 EditorGUILayout.LabelField(GetLoc("ShellProtector"), customToggleFont);
                 EditorGUILayout.BeginVertical(boxInnerHalf);
 
                 m_MaterialEditor.ShaderProperty(mip_tex, "Mip reference texture");
-                m_MaterialEditor.ShaderProperty(encrypted_tex, "Encrypted texture(DXT)");
+                m_MaterialEditor.ShaderProperty(encrypted_tex0, "Encrypted texture0");
+                m_MaterialEditor.ShaderProperty(encrypted_tex1, "Encrypted texture1");
 
                 EditorGUILayout.EndVertical();
                 EditorGUILayout.EndVertical();

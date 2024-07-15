@@ -18,37 +18,53 @@ namespace Shell.Protector
         protected int user_key_length = 4;
 
         protected string shader_code_nofilter = @"
-				half4 mip_texture = _MipTex.Sample(sampler_MipTex, mainUV);
+				half4 mainTexture;
+                if(_fallback == 0)
+                {
+				    half4 mip_texture = _MipTex.Sample(sampler_MipTex, mainUV);
 				
-				int mip = round(mip_texture.r * 255 / 10); //fucking precision problems
-				int m[13] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10 }; // max size 4k
+				    int mip = round(mip_texture.r * 255 / 10); //fucking precision problems
+				    int m[13] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10 }; // max size 4k
 
-				half4 c00 = DecryptTexture(mainUV, m[mip]);
+				    half4 c00 = DecryptTexture(mainUV, m[mip]);
 
-				half4 mainTexture = c00;
+				    mainTexture = c00;
+                }
+                else
+                {
+                    mainTexture = _MainTex.Sample(sampler_MainTex, mainUV);
+                }
         ";
         protected string shader_code_bilinear = @"
-				half4 mip_texture = _MipTex.Sample(sampler_MipTex, mainUV);
+                half4 mainTexture;
+                if(_fallback == 0)
+                {
+				    half4 mip_texture = _MipTex.Sample(sampler_MipTex, mainUV);
 				
-				half2 uv_unit = _MainTex_TexelSize.xy;
-				//bilinear interpolation
-				half2 uv_bilinear = poiMesh.uv[0] - 0.5 * uv_unit;
-				int mip = round(mip_texture.r * 255 / 10); //fucking precision problems
-				int m[13] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10 }; // max size 4k
+				    half2 uv_unit = _EncryptTex0_TexelSize.xy;
+				    //bilinear interpolation
+				    half2 uv_bilinear = poiMesh.uv[0] - 0.5 * uv_unit;
+				    int mip = round(mip_texture.r * 255 / 10); //fucking precision problems
+				    int m[13] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10 }; // max size 4k
 				
-                half4 c00 = DecryptTexture(uv_bilinear + half2(uv_unit.x * 0, uv_unit.y * 0), m[mip]);
-                half4 c10 = DecryptTexture(uv_bilinear + half2(uv_unit.x * 1, uv_unit.y * 0), m[mip]);
-                half4 c01 = DecryptTexture(uv_bilinear + half2(uv_unit.x * 0, uv_unit.y * 1), m[mip]);
-                half4 c11 = DecryptTexture(uv_bilinear + half2(uv_unit.x * 1, uv_unit.y * 1), m[mip]);
+                    half4 c00 = DecryptTexture(uv_bilinear + half2(uv_unit.x * 0, uv_unit.y * 0), m[mip]);
+                    half4 c10 = DecryptTexture(uv_bilinear + half2(uv_unit.x * 1, uv_unit.y * 0), m[mip]);
+                    half4 c01 = DecryptTexture(uv_bilinear + half2(uv_unit.x * 0, uv_unit.y * 1), m[mip]);
+                    half4 c11 = DecryptTexture(uv_bilinear + half2(uv_unit.x * 1, uv_unit.y * 1), m[mip]);
 				
-				half2 f = frac(uv_bilinear * _MainTex_TexelSize.zw);
+				    half2 f = frac(uv_bilinear * _EncryptTex0_TexelSize.zw);
 				
-				half4 c0 = lerp(c00, c10, f.x);
-				half4 c1 = lerp(c01, c11, f.x);
+				    half4 c0 = lerp(c00, c10, f.x);
+				    half4 c1 = lerp(c01, c11, f.x);
 
-				half4 bilinear = lerp(c0, c1, f.y);
+				    half4 bilinear = lerp(c0, c1, f.y);
 				
-				half4 mainTexture = bilinear;
+				    mainTexture = bilinear;
+                }
+                else
+                {
+                    mainTexture = _MainTex.Sample(sampler_MainTex, mainUV);
+                }
         ";
 
         protected GameObject target;

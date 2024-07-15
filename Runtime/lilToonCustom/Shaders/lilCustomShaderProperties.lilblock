@@ -1,5 +1,6 @@
 		_MipTex ("MipReference", 2D) = "white" { }
-		_EncryptTex("Encrypted", 2D) = "white" { }
+		_EncryptTex0("Encrypted0", 2D) = "white" { }
+		_EncryptTex1("Encrypted1", 2D) = "white" { }
         _Key0 ("key0", float) = 0
         _Key1 ("key1", float) = 0
         _Key2 ("key2", float) = 0
@@ -16,3 +17,4 @@
         _Key13 ("key13", float) = 0
         _Key14 ("key14", float) = 0
         _Key15 ("key15", float) = 0
+		[MaterialToggle] _fallback("Fallback", float) = 0

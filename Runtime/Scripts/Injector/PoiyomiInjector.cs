@@ -49,7 +49,11 @@ namespace Shell.Protector
             string declare = @"
             UNITY_DECLARE_TEX2D(_MainTex);
             UNITY_DECLARE_TEX2D(_MipTex);
-            Texture2D _EncryptTex;
+            UNITY_DECLARE_TEX2D(_EncryptTex0);
+            Texture2D _EncryptTex1;
+
+            float4 _EncryptTex0_TexelSize;
+            fixed _fallback;
 ";
             int version = AssetManager.GetInstance().GetShaderType(shader);
             if(version == 73)
@@ -152,7 +156,10 @@ namespace Shell.Protector
                 int suffix_idx = match.Index + match.Length;
                 string properties = @"
         _MipTex (""MipReference"", 2D) = ""white"" { }
-        _EncryptTex (""Encrypted"", 2D) = ""white"" { }";
+        _EncryptTex0 (""Encrypted0"", 2D) = ""white"" { }
+        _EncryptTex1 (""Encrypted1"", 2D) = ""white"" { }
+        [MaterialToggle] _fallback(""Fallback"", float) = 0
+";
 
                 for (int i = 0; i < user_key_length; ++i)
                     properties += "_Key" + i + " (\"key" + i + "\", float) = 0\n";

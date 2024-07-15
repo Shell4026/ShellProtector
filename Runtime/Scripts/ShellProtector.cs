@@ -13,6 +13,8 @@ using VRC.SDK3.Avatars.Components;
 using System.Linq;
 using VRC.SDKBase;
 using UnityEditor.Animations;
+using UnityEngine.XR;
+
 
 
 
@@ -32,8 +34,6 @@ namespace Shell.Protector
         [SerializeField]
         List<Texture2D> texture_list = new List<Texture2D>();
 
-        Dictionary<Material, Material> encryptedMaterials = new Dictionary<Material, Material>();
-
         EncryptTexture encrypt = new EncryptTexture();
         Injector injector;
         AssetManager shader_manager = AssetManager.GetInstance();
@@ -44,8 +44,14 @@ namespace Shell.Protector
         public int lang_idx = 0;
         public string lang = "kor";
 
+        //Must clear them before start encrypting//
+        HashSet<GameObject> meshes = new HashSet<GameObject>();
+        HashSet<Texture2D> fallbackTextures = new();
+        Dictionary<Material, Material> encryptedMaterials = new Dictionary<Material, Material>();
+        //////////////////////////////////
+
         [SerializeField] uint rounds = 20;
-        [SerializeField] int filter = 1;
+        [SerializeField] int filter = 0;
         [SerializeField] int algorithm = 1;
         [SerializeField] int key_size_idx = 0;
         [SerializeField] int key_size = 4;
@@ -294,6 +300,10 @@ namespace Shell.Protector
 
         public GameObject Encrypt(bool bUseSmallMip, bool isModular = true)
         {
+            meshes.Clear();
+            encryptedMaterials.Clear();
+            fallbackTextures.Clear();
+
             gameObject.SetActive(true);
             Debug.Log("Key bytes: " + string.Join(", ", GetKeyBytes()));
 
@@ -317,7 +327,6 @@ namespace Shell.Protector
             }
 
             var mips = new Dictionary<int, Texture2D>();
-            HashSet<GameObject> meshes = new HashSet<GameObject>();
 
             byte[] key_bytes = GetKeyBytes();
 
@@ -386,9 +395,12 @@ namespace Shell.Protector
                 Texture2D lim_texture = null;
                 Texture2D lim_texture2 = null;
                 Texture2D outline_texture = null;
+                Texture2D limShadeTexture = null;
+
                 bool has_lim_texture = false;
                 bool has_lim_texture2 = false;
                 bool has_outline_texture = false;
+                bool hasLimShadeTexture = false;
                 #region Get lim, outline tex
                 if (shader_manager.IsPoiyomi(mat.shader))
                 {
@@ -408,10 +420,12 @@ namespace Shell.Protector
                     var tex_properties = mat.GetTexturePropertyNames();
                     foreach (var t in tex_properties)
                     {
-                        if(t == "_RimColorTex")
+                        if (t == "_RimColorTex")
                             lim_texture = (Texture2D)mat.GetTexture(t);
-                        if (t == "_OutlineTex")
+                        else if (t == "_OutlineTex")
                             outline_texture = (Texture2D)mat.GetTexture(t);
+                        else if (t == "_RimShadeMask")
+                            limShadeTexture = (Texture2D)mat.GetTexture(t);
                     }
                 }
                 if (lim_texture != null)
@@ -428,6 +442,11 @@ namespace Shell.Protector
                 {
                     if (main_texture.GetInstanceID() == outline_texture.GetInstanceID())
                         has_outline_texture = true;
+                }
+                if (limShadeTexture != null)
+                {
+                    if (main_texture.GetInstanceID() == limShadeTexture.GetInstanceID())
+                        hasLimShadeTexture = true;
                 }
                 #endregion
                 string encrypt_tex_path = Path.Combine(asset_dir, gameObject.name, "tex", main_texture.name + "_encrypt.asset");
@@ -550,15 +569,30 @@ namespace Shell.Protector
                     continue;
                 }
 
-                AssetDatabase.SaveAssets();
-                AssetDatabase.Refresh();
+                string fallbackDir = Path.Combine(asset_dir, gameObject.name, "tex", main_texture.name + "_fallback.asset");
+                Texture2D fallback = null;
+                if (!fallbackTextures.Contains(main_texture))
+                {
+                    fallback = encrypt.GenerateFallback(main_texture);
+                    if (fallback != null)
+                    {
+                        fallbackTextures.Add(main_texture);
+                        AssetDatabase.CreateAsset(fallback, fallbackDir);
+                        AssetDatabase.SaveAssets();
+                        AssetDatabase.Refresh();
+                    }
+                }
+                else
+                {
+                    fallback = AssetDatabase.LoadAssetAtPath<Texture2D>(fallbackDir);
+                }
 
                 #region Material
                 Material new_mat = new Material(mat.shader);
                 new_mat.CopyPropertiesFromMaterial(mat);
                 new_mat.shader = encrypted_shader;
                 var original_tex = new_mat.mainTexture;
-                new_mat.mainTexture = encrypted_tex[0];
+                new_mat.mainTexture = fallback;
 
                 int max = Math.Max(encrypted_tex[0].width, encrypted_tex[0].height);
                 var mip_tex = mips[max];
@@ -567,8 +601,10 @@ namespace Shell.Protector
 
                 new_mat.SetTexture("_MipTex", mip_tex);
 
+                if (encrypted_tex[0] != null)
+                    new_mat.SetTexture("_EncryptTex0", encrypted_tex[0]);
                 if (encrypted_tex[1] != null)
-                    new_mat.SetTexture("_EncryptTex", encrypted_tex[1]);
+                    new_mat.SetTexture("_EncryptTex1", encrypted_tex[1]);
 
                 if(has_lim_texture)
                 {
@@ -585,9 +621,14 @@ namespace Shell.Protector
                 if(has_outline_texture)
                 {
                     if (shader_manager.IsPoiyomi(mat.shader))
-                        new_mat.SetTexture("_OutlineTexture", encrypted_tex[0]);
+                        new_mat.SetTexture("_OutlineTexture", fallback);
                     else if(shader_manager.IslilToon(mat.shader))
-                        new_mat.SetTexture("_OutlineTex", encrypted_tex[0]);
+                        new_mat.SetTexture("_OutlineTex", fallback);
+                }
+                if(hasLimShadeTexture) //only liltoon
+                {
+                    if (shader_manager.IslilToon(mat.shader))
+                        new_mat.SetTexture("_RimShadeMask", fallback);
                 }
 
                 new_mat.renderQueue = mat.renderQueue;
@@ -660,26 +701,8 @@ namespace Shell.Protector
             var av3 = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
             av3.expressionParameters = ParameterManager.AddKeyParameter(av3.expressionParameters, key_size, parameter_multiplexing);
             AssetDatabase.CreateAsset(av3.expressionParameters, asset_dir + "/" + gameObject.name + "/" + av3.expressionParameters.name + ".asset");
-
-            ///////////////////////animator////////////////////
-            AnimatorController fx;
-            if (!isModular)
-                fx = AnimatorManager.DuplicateAnimator(av3.baseAnimationLayers[4].animatorController, Path.Combine(asset_dir, gameObject.name));
-            else
-                fx = av3.baseAnimationLayers[4].animatorController as AnimatorController;
-
-            av3.baseAnimationLayers[4].animatorController = fx;
-            string animation_dir = Path.Combine(asset_dir, gameObject.name, "animations");
-
-            GameObject[] mesh_array = new GameObject[meshes.Count];
-            meshes.CopyTo(mesh_array);
-            AnimatorManager.DuplicateAniamtions(Path.Combine(asset_dir, "Animations"), animation_dir, mesh_array);
-            AnimatorManager.AddKeyLayer(fx, animation_dir, key_size, animation_speed, parameter_multiplexing);
-
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
             ////////////////////////////////////////////////////
-
+            SetMaterialFallbackValue(avatar, true);
             if (!isModular)
             {
                 gameObject.SetActive(false);
@@ -691,12 +714,35 @@ namespace Shell.Protector
                 tester.user_key_length = key_size;
                 Selection.activeObject = tester;
 
+                SetAnimations(avatar, true);
                 ObfuscateBlendShape(avatar, true);
                 ChangeMaterialsInAnims(avatar, true);
                 CleanComponent(avatar);    
             }
 
             return avatar;
+        }
+
+        public void SetAnimations(GameObject avatar, bool clone)
+        {
+            var av3 = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
+            AnimatorController fx;
+            if (clone)
+                fx = AnimatorManager.DuplicateAnimator(av3.baseAnimationLayers[4].animatorController, Path.Combine(asset_dir, gameObject.name));
+            else
+                fx = av3.baseAnimationLayers[4].animatorController as AnimatorController;
+
+            av3.baseAnimationLayers[4].animatorController = fx;
+            string animation_dir = Path.Combine(asset_dir, gameObject.name, "animations");
+
+            GameObject[] mesh_array = new GameObject[meshes.Count];
+            meshes.CopyTo(mesh_array);
+            AnimatorManager.CreateKeyAniamtions(Path.Combine(asset_dir, "Animations"), animation_dir, mesh_array);
+            AnimatorManager.CreateFallbackAniamtions(Path.Combine(asset_dir, "Animations", "FallbackOff.anim"), animation_dir, mesh_array);
+            AnimatorManager.AddKeyLayer(fx, animation_dir, key_size, animation_speed, parameter_multiplexing);
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
         }
 
         public void CleanComponent(GameObject avatar)
@@ -762,8 +808,8 @@ namespace Shell.Protector
             Obfuscator obfuscator = new Obfuscator();
             obfuscator.clone = clone;
             Mesh newMesh = obfuscator.ObfuscateBlendShapeMesh(mesh, Path.Combine(asset_dir, gameObject.name));
-
             renderer.sharedMesh = newMesh;
+            ////////Change renderer component shape keys////////
             List<float> weights = new();
             for(int i = 0; i < newMesh.blendShapeCount; ++i)
             {
@@ -776,8 +822,59 @@ namespace Shell.Protector
             {
                 renderer.SetBlendShapeWeight(i, weights[obList[i]]);
             }
-
+            /////////////////////////////////
             obfuscator.ObfuscateBlendshapeInAnim(Getfx(avatar), Path.Combine(asset_dir, gameObject.name, "animations"));
+
+            var av3 = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
+            obfuscator.ChangeObfuscatedBlendShapeInDescriptor(av3);
+        }
+
+        public static void SetMaterialFallbackValue(GameObject avatar, bool fallback)
+        {
+            var renderers = avatar.GetComponentsInChildren<MeshRenderer>(true);
+            if (renderers != null)
+            {
+                foreach (var r in renderers)
+                {
+                    var mats = r.sharedMaterials;
+                    if (mats == null)
+                    {
+                        Debug.LogWarning(r.gameObject.name + ": can't find sharedMaterials");
+                        continue;
+                    }
+                    foreach (var mat in mats)
+                    {
+                        if (mat == null)
+                            continue;
+                        if (mat.name.Contains("_encrypted"))
+                        {
+                            mat.SetFloat("_fallback", fallback == true ? 1.0f : 0.0f);
+                        }
+                    }
+                }
+            }
+            var skinned_renderers = avatar.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+            if (skinned_renderers != null)
+            {
+                foreach (var r in skinned_renderers)
+                {
+                    var mats = r.sharedMaterials;
+                    if (mats == null)
+                    {
+                        Debug.LogWarning(r.gameObject.name + ": can't find sharedMaterials");
+                        continue;
+                    }
+                    foreach (var mat in mats)
+                    {
+                        if (mat == null)
+                            continue;
+                        if (mat.name.Contains("_encrypted"))
+                        {
+                            mat.SetFloat("_fallback", fallback == true ? 1.0f : 0.0f);
+                        }
+                    }
+                }
+            }
         }
     }
 }

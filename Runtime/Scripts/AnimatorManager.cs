@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
+using Thry;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
@@ -73,6 +74,28 @@ namespace Shell.Protector
     path: Body
     classID: 137
     script: {fileID: 0}";
+        static string curve3 = @"
+  - serializedVersion: 2
+    curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 136
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.33333334
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: material._fallback
+    path: Body
+    classID: 137
+    script: {fileID: 0}
+    flags: 16";
         public static AnimatorController DuplicateAnimator(RuntimeAnimatorController anim, string new_dir)
         {
             string dir = AssetDatabase.GetAssetPath(anim);
@@ -84,7 +107,7 @@ namespace Shell.Protector
             return AssetDatabase.LoadAssetAtPath(output, typeof(RuntimeAnimatorController)) as AnimatorController;
         }
 
-        public static void DuplicateAniamtions(string animation_dir, string new_dir, GameObject[] objs)
+        public static void CreateKeyAniamtions(string animation_dir, string new_dir, GameObject[] objs)
         {
             string[] files = Directory.GetFiles(animation_dir);
             foreach (string file in files)
@@ -94,9 +117,12 @@ namespace Shell.Protector
                     continue;
                 if (filename.Contains("dummy"))
                     continue;
-                File.Copy(file, Path.Combine(new_dir, filename), true);
+                if (filename.Contains("FallbackOff"))
+                    continue;
 
                 string path = Path.Combine(new_dir, filename);
+                File.Copy(file, path, true);
+
                 string anim = File.ReadAllText(path);
 
                 Match match = Regex.Match(filename, "key(\\d+).*?\\.anim");
@@ -119,14 +145,46 @@ namespace Shell.Protector
                     else
                         curve = Regex.Replace(curve2, "attribute: material._Key\\d+", "attribute: material._Key" + n);
                     curve = Regex.Replace(curve, "path: Body", "path: " + hr_path);
+                    //SkinnedMeshRender classID:137
+                    //MeshRenderer classID:23
                     if (obj.GetComponent<SkinnedMeshRenderer>() == null)
                         curve = Regex.Replace(curve, "classID: 137", "classID: 23");
 
                     anim = Regex.Replace(anim, "m_FloatCurves:", "m_FloatCurves:" + curve);
                     anim = Regex.Replace(anim, "m_EditorCurves:", "m_EditorCurves:" + curve);
                 }
-                File.WriteAllText(Path.Combine(new_dir, filename), anim);
+                File.WriteAllText(path, anim);
             }
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+        }
+
+        public static void CreateFallbackAniamtions(string animation_dir, string new_dir, GameObject[] objs)
+        {
+            string newPath = Path.Combine(new_dir, "FallbackOff.anim");
+            File.Copy(animation_dir, newPath, true);
+
+            string anim = File.ReadAllText(newPath);
+
+            foreach (var obj in objs)
+            {
+                if (obj.name == "Body")
+                    continue;
+
+                string hr_path = obj.transform.GetHierarchyPath();
+                hr_path = Regex.Replace(hr_path, ".*?/(.*)", "$1");
+
+                string curve = Regex.Replace(curve3, "path: Body", "path: " + hr_path);
+                //SkinnedMeshRender classID:137
+                //MeshRenderer classID:23
+                if (obj.GetComponent<SkinnedMeshRenderer>() == null)
+                    curve = Regex.Replace(curve, "classID: 137", "classID: 23");
+
+                anim = Regex.Replace(anim, "m_FloatCurves:", "m_FloatCurves:" + curve);
+                anim = Regex.Replace(anim, "m_EditorCurves:", "m_EditorCurves:" + curve);
+            }
+            File.WriteAllText(newPath, anim);
+
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
         }
@@ -292,6 +350,9 @@ namespace Shell.Protector
                 tree_root.AddChild(key_tree[i]);
                 AssetDatabase.AddObjectToAsset(key_tree[i], anim);
             }
+            string fallbackPath = Path.Combine(animation_dir, "FallbackOff.anim");
+            tree_root.AddChild(AssetDatabase.LoadAssetAtPath<AnimationClip>(fallbackPath));
+
             ChildMotion[] children = tree_root.children;
             for (int i = 0; i < children.Length; ++i)
                 children[i].directBlendParameter = "key_weight";

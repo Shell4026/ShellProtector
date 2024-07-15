@@ -201,10 +201,10 @@ half4 DecryptTexture(half2 uv, int m)
 	
 	int pos[4] = { 0, -1, -2, -3 };
 	int offset = pos[idx % 4];
-	pixels[0] = _MainTex.SampleLevel(sampler_MainTex, GetUV(idx + 0 + offset, m, WOFFSET, HOFFSET), m);
-	pixels[1] = _MainTex.SampleLevel(sampler_MainTex, GetUV(idx + 1 + offset, m, WOFFSET, HOFFSET), m);
-	pixels[2] = _MainTex.SampleLevel(sampler_MainTex, GetUV(idx + 2 + offset, m, WOFFSET, HOFFSET), m);
-	pixels[3] = _MainTex.SampleLevel(sampler_MainTex, GetUV(idx + 3 + offset, m, WOFFSET, HOFFSET), m);
+	pixels[0] = _EncryptTex1.SampleLevel(sampler_EncryptTex0, GetUV(idx + 0 + offset, m, WOFFSET, HOFFSET), m);
+	pixels[1] = _EncryptTex1.SampleLevel(sampler_EncryptTex0, GetUV(idx + 1 + offset, m, WOFFSET, HOFFSET), m);
+	pixels[2] = _EncryptTex1.SampleLevel(sampler_EncryptTex0, GetUV(idx + 2 + offset, m, WOFFSET, HOFFSET), m);
+	pixels[3] = _EncryptTex1.SampleLevel(sampler_EncryptTex0, GetUV(idx + 3 + offset, m, WOFFSET, HOFFSET), m);
 
 	uint data[3] = { 0, 0, 0 };
 	data[0] = ((uint)round(pixels[0].r * 255.0f) | ((uint)round(pixels[0].g * 255.0f) << 8) | ((uint)round(pixels[0].b * 255.0f) << 16) | ((uint)round(pixels[1].r * 255.0f) << 24));
@@ -238,8 +238,8 @@ half4 DecryptTextureRGBA(half2 uv, int m)
 	half4 pixels[2];
 	
 	int offset = (idx & 1) == 0 ? 0 : -1;
-	pixels[0] = _MainTex.SampleLevel(sampler_MainTex, GetUV(idx + 0 + offset, m, WOFFSET, HOFFSET), m);
-	pixels[1] = _MainTex.SampleLevel(sampler_MainTex, GetUV(idx + 1 + offset, m, WOFFSET, HOFFSET), m);
+	pixels[0] = _EncryptTex1.SampleLevel(sampler_EncryptTex0, GetUV(idx + 0 + offset, m, WOFFSET, HOFFSET), m);
+	pixels[1] = _EncryptTex1.SampleLevel(sampler_EncryptTex0, GetUV(idx + 1 + offset, m, WOFFSET, HOFFSET), m);
 
 	uint data[2] = { 0, 0 };
 	data[0] = ((uint)round(pixels[0].r * 255.0f) | ((uint)round(pixels[0].g * 255.0f) << 8) | ((uint)round(pixels[0].b * 255.0f) << 16) | ((uint)round(pixels[0].a * 255.0f) << 24));
@@ -263,7 +263,7 @@ half4 DecryptTextureDXT(half2 uv, int m)
 
 	int miplv = 0;
 	
-	half4 col = _MainTex.SampleLevel(sampler_MainTex, uv, m);
+	half4 col = _EncryptTex0.SampleLevel(sampler_EncryptTex0, uv, m);
 	
 	uint w = mw[m + WOFFSET];
 	uint h = mh[m + HOFFSET];
@@ -281,8 +281,8 @@ half4 DecryptTextureDXT(half2 uv, int m)
 	int offset = (idx & 1) == 0 ? 0 : -1;
 	
 	half4 pixels[2];
-	pixels[0] = _EncryptTex.SampleLevel(sampler_MainTex, GetUV(idx + 0 + offset, m, WOFFSET, HOFFSET), m);
-	pixels[1] = _EncryptTex.SampleLevel(sampler_MainTex, GetUV(idx + 1 + offset, m, WOFFSET, HOFFSET), m);
+	pixels[0] = _EncryptTex1.SampleLevel(sampler_EncryptTex0, GetUV(idx + 0 + offset, m, WOFFSET, HOFFSET), m);
+	pixels[1] = _EncryptTex1.SampleLevel(sampler_EncryptTex0, GetUV(idx + 1 + offset, m, WOFFSET, HOFFSET), m);
 	
 	uint data[2];
 	data[0] = ((uint)round(pixels[0].r * 255.0f) | ((uint)round(pixels[0].g * 255.0f) << 8) | ((uint)round(pixels[0].b * 255.0f) << 16) | ((uint)round(pixels[0].a * 255.0f) << 24));

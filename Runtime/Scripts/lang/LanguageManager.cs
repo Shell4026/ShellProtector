@@ -68,7 +68,12 @@ namespace Shell.Protector
             { "Object list", "오브젝트 목록" },
             { "Manual Encrypt!", "수동 암호화 시작!" },
             { "Modular avatars exist. It is automatically encrypted on upload.", "모듈러 아바타가 존재합니다. 업로드 시 자동으로 암호화됩니다." },
-            { "Force progress", "강제 진행" }
+            { "Force progress", "강제 진행" },
+            { "Obfustactor Options", "난독화 옵션" },
+            { "Obfuscate 'Body' BlendShapes", "'Body' 쉐이프키 난독화" },
+            { "Preserve MMD BlendShapes", "MMD 쉐이프키 보존" },
+            { "Off fallback", "폴백 끄기" },
+            { "On fallback", "폴백 켜기" },
         };
 
             var jpStrings = new Dictionary<string, string>()
@@ -119,7 +124,12 @@ namespace Shell.Protector
             { "Object list", "オブジェクト一覧"},
             { "Manual Encrypt!", "手動暗号化開始！" },
             { "Modular avatars exist. it is automatically encrypted on upload.", "Modular Avatarが存在します。アップロード時に自動的に暗号化されます。" },
-            { "Force progress", "強制的に進行" }
+            { "Force progress", "強制的に進行" },
+            { "Obfustactor Options", "難読化オプション" },
+            { "Obfuscate 'Body' BlendShapes", "'Body' BlendShapeを難読化" },
+            { "Preserve MMD BlendShapes", "MMD BlendShapeを保存" },
+            { "Off fallback", "フォールバックをオフにする" },
+            { "On fallback", "フォールバックをオンにする" },
         };
 
             languageMap.Add("kor", koreanStrings);

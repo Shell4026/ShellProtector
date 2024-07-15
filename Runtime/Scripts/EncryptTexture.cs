@@ -60,7 +60,7 @@ namespace Shell.Protector
             int start = 0;
             int end = 0;
 
-            for(int i = 0; i <= miplv; ++i)
+            for (int i = 0; i <= miplv; ++i)
             {
                 start += end;
                 int w = texture_width / (int)(Mathf.Pow(2, i));
@@ -95,9 +95,40 @@ namespace Shell.Protector
                 }
                 mip.SetPixels32(pixels_mip, m);
             }
-            if(small == false)
+            if (small == false)
                 mip.Compress(false);
             return mip;
+        }
+
+        public Texture2D GenerateFallback(Texture2D original)
+        {
+            if(original.width < 128 || original.height < 128)
+            {
+                return null;
+            }
+            TextureFormat format = TextureFormat.RGB24;
+            bool hasAlpha = HasAlpha(original);
+            if (hasAlpha)
+                format = TextureFormat.RGBA32;
+
+            RenderTexture renderTexture = new RenderTexture(32, 32, 0);
+            RenderTexture.active = renderTexture;
+
+            Graphics.Blit(original, renderTexture);
+
+            Texture2D resizedTexture = new Texture2D(32, 32, format, true);
+            resizedTexture.ReadPixels(new Rect(0, 0, 32, 32), 0, 0);
+            resizedTexture.Apply();
+
+            resizedTexture.filterMode = FilterMode.Point;
+            resizedTexture.anisoLevel = 0;
+            resizedTexture.Compress(false);
+            if(hasAlpha)
+                resizedTexture.alphaIsTransparency = true;
+
+            RenderTexture.active = null;
+
+            return resizedTexture;
         }
 
         private Texture2D[] EncryptDXT1(Texture2D texture, byte[] key, IEncryptor encryptor)
