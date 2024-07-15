@@ -325,7 +325,7 @@ namespace Shell.Protector
                 GUILayout.Space(10);
             }
 
-            ObfuscatorOption = EditorGUILayout.Foldout(option, Lang("Obfustactor Options"));
+            ObfuscatorOption = EditorGUILayout.Foldout(ObfuscatorOption, Lang("Obfustactor Options"));
             if(ObfuscatorOption)
             {
                 GUILayout.BeginHorizontal();
