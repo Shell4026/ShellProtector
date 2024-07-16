@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using Thry;
 using UnityEditor;
 using UnityEditor.Animations;
+using UnityEditor.Search;
 using UnityEngine;
 using VRC.SDK3.Avatars.Components;
 
@@ -135,7 +136,7 @@ namespace Shell.Protector
                     if (obj.name == "Body")
                         continue;
 
-                    string hr_path = obj.transform.GetHierarchyPath();
+                    string hr_path = SearchUtils.GetHierarchyPath(obj);
                     hr_path = Regex.Replace(hr_path, ".*?/(.*)", "$1");
 
                     string curve;
@@ -171,7 +172,7 @@ namespace Shell.Protector
                 if (obj.name == "Body")
                     continue;
 
-                string hr_path = obj.transform.GetHierarchyPath();
+                string hr_path = SearchUtils.GetHierarchyPath(obj);
                 hr_path = Regex.Replace(hr_path, ".*?/(.*)", "$1");
 
                 string curve = Regex.Replace(curve3, "path: Body", "path: " + hr_path);
