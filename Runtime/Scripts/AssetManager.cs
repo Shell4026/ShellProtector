@@ -34,8 +34,9 @@ namespace Shell.Protector
         }
         public bool IsPoiyomi(Shader shader)
         {
-            
             if (shader.name.Contains("Poiyomi"))
+                return true;
+            if (shader.name.Contains("PCSS4Poi"))
                 return true;
             return false;
         }
