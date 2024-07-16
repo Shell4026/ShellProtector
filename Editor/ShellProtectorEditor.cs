@@ -8,6 +8,7 @@ using System.Text;
 using System;
 using System.IO;
 using System.Text.RegularExpressions;
+using VRC.SDK3.Avatars.Components;
 
 namespace Shell.Protector
 {
@@ -450,6 +451,51 @@ namespace Shell.Protector
                 GUILayout.EndHorizontal();
             }
             serializedObject.ApplyModifiedProperties();
+        }
+
+        [MenuItem("GameObject/ShellProtector")]
+        static void AddShellProtector()
+        {
+            LanguageManager lang = LanguageManager.GetInstance();
+
+            GameObject gameobject = Selection.activeTransform.gameObject;
+            var av3 = gameobject.GetComponent<VRCAvatarDescriptor>();
+            if(av3 == null)
+            {
+                ErrorWindow.ShowWindow("Can't find avatar decriptor!", Color.white);
+                return;
+            }
+
+            gameobject.AddComponent<ShellProtector>();
+        }
+
+        public class ErrorWindow : EditorWindow
+        {
+            string msg;
+            Color color;
+
+            public static void ShowWindow(string msg, Color color)
+            {
+                ErrorWindow window = GetWindow<ErrorWindow>("ShellProtector Console");
+                window.minSize = new Vector2(400, 200);
+                window.maxSize = new Vector2(400, 200);
+                window.msg = msg;
+                window.color = color;
+                window.Focus();
+            }
+
+            private void OnGUI()
+            {
+                GUIStyle styles = new GUIStyle();
+                //styles.fontStyle = FontStyle.Bold;
+                styles.normal.textColor = color;
+                GUILayout.Label(msg, styles);
+                GUILayout.FlexibleSpace();
+                if (GUILayout.Button("Close"))
+                {
+                    Close();
+                }
+            }
         }
     }
 }
