@@ -18,7 +18,7 @@ You can easily enter the password with the OSC program.
 Source code of OSC: https://github.com/Shell4026/ShellProtectorOSC
 
 ## Supported shaders
-- Poiyomi 7.3(Unstable), 8.0, 8.1, 8.2, 9.0
+- Poiyomi 7.3(Unstable), 8.0, 8.1, 8.2, 9.0, 9.1(pro)
 - lilToon (1.3.8 ~ 1.7.3)
 
 ## Supported texture formats
@@ -28,8 +28,11 @@ Source code of OSC: https://github.com/Shell4026/ShellProtectorOSC
   
 ## Usage
 
-1. Add an 'Shell Protector' Component to your avatar.
-2. Enter a password and add the material that contains the texture you want to encrypt to the Material List.
+1. Right-click on your avatar and select "Shell Protector" to add the component.
+2. Set a password and specify the Material or GameObject to encrypt.
+
+(The steps below are not required when using Modular avatar)
+
 3. Click the Encrypt button.
 4. Check the encryption via the Testor component in the new avatar and press the Done button.
 5. Upload the avatar.
@@ -52,6 +55,11 @@ This will slightly increase the time it takes to get back to your original avata
 When using parameter multiplexing, depending on the server or network conditions, OSC values may not be delivered to other users and decryption may not work.
 
 In this case, try increasing the refresh rate slightly, which was added in OSC 1.5.0.
+
+### Avatar fallback
+암호화가 걸려있을 때 세이프티가 켜져있는 사람은 아바타를 볼 때 열화된 버전으로 보이게 하는 기능입니다.
+A feature that allows anyone with Safety On when encryption is in place to appear as a degraded version of themselves when viewing your avatar.
+![fallback](https://github.com/user-attachments/assets/d3ca69b0-ff08-4793-a4e4-73269bc8efd3)
 
 ## Troubleshooting
 **[is not supported texture format! Error]**
@@ -104,7 +112,15 @@ The exception to this is when the Rimlight texture and Outline texture are the s
 ## Is there any performance impact?
 It takes up a little more memory than the original. It's about 1mb larger for a 2K DXT1 image.
 
-On average, it's about 0.2ms~0.8ms slower based on the same 50 materials. Poiyomi performed better than lilToon.
+Poiyomi performed better than lilToon.
+
+<Approximate Poiyomi GPU measurement results>
+
+Default : 0.1ms
+
+Point filtering: 0.2ms
+
+Bilinear filtering: 0.35ms
 
 This may not seem like a huge difference, but for performance reasons, I recommend only encrypting textures that are absolutely necessary.
 
@@ -124,6 +140,4 @@ It is safe to increase the number of user keys by using a minimum of 96 paramete
 A 0-byte user key is a minimal defense, and should be effective against toolkiddies using simple tools.
 
 ## feature
-- Stream ciphers for fast decryption
-- Obfuscation
 - Support BC7

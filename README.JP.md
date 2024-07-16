@@ -29,8 +29,11 @@ OSCのソースコード： https://github.com/Shell4026/ShellProtectorOSC
 - Crunch Compressionフォーマットは自動的にDXT1またはDXT5に変換されます。
 
 ## 使用方法
-1. アバターに「Shell Protector」コンポーネントを追加します。
-2. パスワードを指定し、マテリアルリストに暗号化するテクスチャがあるマテリアルを入れます。
+1. アバターを右クリックして「Shell Protector」を押してコンポーネントを追加します。
+2. パスワードを設定し、暗号化するマテリアルやゲームオブジェクトを指定します。
+
+( Modularを使用する場合、以下のプロセスは必要ありません).
+
 3. Encryptボタンを押します。
 4. 新しく生成されたアバターに入ったTestorコンポーネントで暗号化するかどうかを確認し、'Done'ボタンを押します。
 5. アバターをアップロードします。
@@ -53,6 +56,10 @@ OSCのソースコード： https://github.com/Shell4026/ShellProtectorOSC
 パラメータマルチプレックス使用時、サーバーやネットワークの状況により、他のユーザにOSC値が伝達されず、復号化ができない場合があります。
 
 この場合、OSC 1.5.0で追加されたRefresh rateを少し上げてみてください。
+
+### アバターフォールバック
+暗号化がかかっているときにSafetyがオンになっている人は、アバターを見るときに劣化したバージョンに見えるようにする機能です。
+![fallback](https://github.com/user-attachments/assets/d3ca69b0-ff08-4793-a4e4-73269bc8efd3)
 
 ## 問題解決
 **<is not supported texture format!>**
@@ -107,7 +114,14 @@ MainTexture のみを暗号化するため、MainTexture と同じテクスチ�
 ## 性能に影響はありませんか
 メモリはオリジナルより少し多くなります。2K DXT1画像基準で1mb程度大きくなります。
 
-同じマテリアル50個を基準に平均0.2ms ~ 0.8ms程度遅くなります。PoiyomiがlilToonより性能が良かったです。
+PoiyomiがlilToonより性能が良かったです。
+
+<おおよそのPoiyomi GPUの測定結果>
+Default : 0.1ms
+
+Point：0.2ms
+
+Bilinear：0.35ms
 
 それほど大きな差はないようですが、パフォーマンスを考えると、必要なテクスチャだけを暗号化することをお勧めします。
 

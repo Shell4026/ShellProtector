@@ -361,7 +361,7 @@ namespace Shell.Protector
                 fallbackTime.floatValue = Math.Clamp(fallbackTime.floatValue, 0.0f, 10.0f);
                 fallbackTime.floatValue = MathF.Round(fallbackTime.floatValue, 1);
                 GUILayout.FlexibleSpace();
-                GUILayout.Label(Lang("After this time, the fallback is turned off. (Only who is Safty OFF)"), EditorStyles.wordWrappedLabel);
+                GUILayout.Label(Lang("After this time, the fallback is turned off. (Only who is Safety OFF)"), EditorStyles.wordWrappedLabel);
                 GUILayout.EndHorizontal();
             }
             #endregion
