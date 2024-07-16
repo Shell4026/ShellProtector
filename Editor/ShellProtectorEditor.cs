@@ -35,6 +35,7 @@ namespace Shell.Protector
         SerializedProperty bUseSmallMipTexture;
         SerializedProperty bPreserveMMD;
         SerializedProperty fallbackTime;
+        SerializedProperty turnOnAllSafetyFallback;
         bool debug = false;
         bool option = true;
         bool ObfuscatorOption = true;
@@ -114,6 +115,7 @@ namespace Shell.Protector
             bUseSmallMipTexture = serializedObject.FindProperty("bUseSmallMipTexture");
             bPreserveMMD = serializedObject.FindProperty("bPreserveMMD");
             fallbackTime = serializedObject.FindProperty("fallbackTime");
+            turnOnAllSafetyFallback = serializedObject.FindProperty("turnOnAllSafetyFallback");
             #endregion
 
             filters[0] = "Point";
@@ -362,6 +364,14 @@ namespace Shell.Protector
                 fallbackTime.floatValue = MathF.Round(fallbackTime.floatValue, 1);
                 GUILayout.FlexibleSpace();
                 GUILayout.Label(Lang("After this time, the fallback is turned off. (Only who is Safety OFF)"), EditorStyles.wordWrappedLabel);
+                GUILayout.EndHorizontal();
+
+                GUILayout.Space(10);
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(Lang("Change all Safety Fallback settings of shader to Unlit."), EditorStyles.boldLabel);
+                turnOnAllSafetyFallback.boolValue = EditorGUILayout.Toggle(turnOnAllSafetyFallback.boolValue);
+                GUILayout.FlexibleSpace();
                 GUILayout.EndHorizontal();
             }
             #endregion

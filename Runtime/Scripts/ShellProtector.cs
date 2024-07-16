@@ -69,7 +69,8 @@ namespace Shell.Protector
 
         [SerializeField] bool bPreserveMMD = true;
 
-        [SerializeField] float fallbackTime = 3.0f;
+        [SerializeField] float fallbackTime = 5.0f;
+        [SerializeField] bool turnOnAllSafetyFallback = true;
 
         public void Init()
         {
@@ -668,6 +669,10 @@ namespace Shell.Protector
                 }
 
                 new_mat.renderQueue = mat.renderQueue;
+                if(turnOnAllSafetyFallback)
+                {
+                    new_mat.SetOverrideTag("VRCFallback", "Unlit");
+                }
                 #endregion
 
                 #region Remove Duplicate Textures
