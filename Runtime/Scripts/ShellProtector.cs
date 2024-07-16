@@ -57,7 +57,7 @@ namespace Shell.Protector
         //////////////////////////////////
 
         [SerializeField] uint rounds = 20;
-        [SerializeField] int filter = 0;
+        [SerializeField] int filter = 1;
         [SerializeField] int algorithm = 1;
         [SerializeField] int key_size_idx = 3;
         [SerializeField] int key_size = 12;
@@ -68,9 +68,11 @@ namespace Shell.Protector
 
         [SerializeField] bool bPreserveMMD = true;
 
+        [SerializeField] float fallbackTime = 3.0f;
+
         public void OnEnable()
         {
-            if (init)
+            if (initw)
                 return;
             Transform child = transform.Find("Body");
             if (child != null)
@@ -759,8 +761,9 @@ namespace Shell.Protector
             GameObject[] mesh_array = new GameObject[meshes.Count];
             meshes.CopyTo(mesh_array);
             AnimatorManager.CreateKeyAniamtions(Path.Combine(asset_dir, "Animations"), animation_dir, mesh_array);
-            AnimatorManager.CreateFallbackAniamtions(Path.Combine(asset_dir, "Animations", "FallbackOff.anim"), animation_dir, mesh_array);
+            var fallbackAnim = AnimatorManager.CreateFallbackAniamtions(Path.Combine(asset_dir, "Animations", "FallbackOff.anim"), animation_dir, mesh_array);
             AnimatorManager.AddKeyLayer(fx, animation_dir, key_size, animation_speed, parameter_multiplexing);
+            AnimatorManager.AddFallbackLayer(fx, fallbackAnim, fallbackTime);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();

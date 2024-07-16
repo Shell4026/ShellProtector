@@ -159,7 +159,7 @@ namespace Shell.Protector
             AssetDatabase.Refresh();
         }
 
-        public static void CreateFallbackAniamtions(string animation_dir, string new_dir, GameObject[] objs)
+        public static AnimationClip CreateFallbackAniamtions(string animation_dir, string new_dir, GameObject[] objs)
         {
             string newPath = Path.Combine(new_dir, "FallbackOff.anim");
             File.Copy(animation_dir, newPath, true);
@@ -187,6 +187,8 @@ namespace Shell.Protector
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
+
+            return AssetDatabase.LoadAssetAtPath<AnimationClip>(newPath);
         }
 
         private static BlendTree[] CreateKeyTree(string animation_dir, int key_length, float speed)
@@ -350,8 +352,6 @@ namespace Shell.Protector
                 tree_root.AddChild(key_tree[i]);
                 AssetDatabase.AddObjectToAsset(key_tree[i], anim);
             }
-            string fallbackPath = Path.Combine(animation_dir, "FallbackOff.anim");
-            tree_root.AddChild(AssetDatabase.LoadAssetAtPath<AnimationClip>(fallbackPath));
 
             ChildMotion[] children = tree_root.children;
             for (int i = 0; i < children.Length; ++i)
@@ -408,6 +408,36 @@ namespace Shell.Protector
             }
 
             AddKeyLayer(anim, animation_dir, key_length, speed, false);
+        }
+
+        public static void AddFallbackLayer(AnimatorController anim, AnimationClip fallbackAnimation, float time = 3)
+        {
+            var layers = anim.layers;
+            foreach (var _layer in layers)
+            {
+                if (_layer.name == "ShellProtectorFallback")
+                    return;
+            }
+
+            AnimatorStateMachine stateMachine = new AnimatorStateMachine
+            {
+                name = anim.MakeUniqueLayerName("ShellProtectorFallback"),
+                hideFlags = HideFlags.HideInHierarchy
+            };
+            AssetDatabase.AddObjectToAsset(stateMachine, anim);
+            anim.AddLayer(new AnimatorControllerLayer { name = stateMachine.name, defaultWeight = 1.0f, stateMachine = stateMachine });
+
+            var layer = anim.layers[anim.layers.Length - 1];
+            var state = layer.stateMachine.AddState("empty");
+            var fallbackState = layer.stateMachine.AddState("fallbackState");
+
+            var transition = state.AddTransition(fallbackState);
+            transition.canTransitionToSelf = false;
+            transition.exitTime = time;
+            transition.duration = 0;
+            transition.hasExitTime = true;
+
+            fallbackState.motion = fallbackAnimation;
         }
 
         public static bool IsMaterialInClip(AnimationClip clip, Material originalMaterial)

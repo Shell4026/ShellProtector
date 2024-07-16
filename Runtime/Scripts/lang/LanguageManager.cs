@@ -74,6 +74,9 @@ namespace Shell.Protector
             { "Preserve MMD BlendShapes", "MMD 쉐이프키 보존" },
             { "Off fallback", "폴백 끄기" },
             { "On fallback", "폴백 켜기" },
+            { "Fallback Options", "폴백 옵션" },
+            { "Fallback wait time", "폴백 대기 시간" },
+            { "After this time, the fallback is turned off. (Only who is Safty OFF)", "이 시간이 지나면 폴백 기능이 꺼집니다. (세이프티 꺼진 상대만)" },
         };
 
             var jpStrings = new Dictionary<string, string>()
@@ -130,6 +133,9 @@ namespace Shell.Protector
             { "Preserve MMD BlendShapes", "MMD BlendShapeを保存" },
             { "Off fallback", "フォールバックをオフにする" },
             { "On fallback", "フォールバックをオンにする" },
+            { "Fallback Options", "フォールバックオプション" },
+            { "Fallback wait time", "フォールバック待機時間" },
+            { "After this time, the fallback is turned off. (Only who is Safty OFF)", "この時間が過ぎると、フォールバック機能がオフになります。( Safety off 相手のみ)" },
         };
 
             languageMap.Add("kor", koreanStrings);
