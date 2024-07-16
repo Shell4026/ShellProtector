@@ -376,7 +376,6 @@ namespace Shell.Protector
                 if (mat == null)
                 {
                     ++progress;
-                    Debug.LogErrorFormat("mat is null!");
                     continue;
                 }
                 EditorUtility.DisplayProgressBar("Encrypt...", "Encrypt Progress " + ++progress + " of " + material_list.Count, (float)progress / (float)materials.Count);
