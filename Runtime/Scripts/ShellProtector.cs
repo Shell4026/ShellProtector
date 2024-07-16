@@ -47,6 +47,7 @@ namespace Shell.Protector
         public string pwd2 = "pass"; // user password
         public int lang_idx = 0;
         public string lang = "kor";
+        public VRCAvatarDescriptor descriptor;
 
         bool init = false;
 
@@ -70,13 +71,13 @@ namespace Shell.Protector
 
         [SerializeField] float fallbackTime = 3.0f;
 
-        public void OnEnable()
+        public void Init()
         {
             if (init)
                 return;
 
             HashSet<SkinnedMeshRenderer> rednererSet = new();
-            Transform child = transform.Find("Body");
+            Transform child = descriptor.transform.Find("Body");
             if (child != null)
             {
                 SkinnedMeshRenderer renderer = child.GetComponent<SkinnedMeshRenderer>();
@@ -87,10 +88,10 @@ namespace Shell.Protector
                     {
                         rednererSet.Add(renderer);
                     }
-                        
+
                 }
             }
-            foreach(var renderer in rednererSet)
+            foreach (var renderer in rednererSet)
             {
                 obfuscationRenderers.Add(renderer);
             }
@@ -241,15 +242,15 @@ namespace Shell.Protector
                 Debug.LogWarning(mat.name + ": The shader is already encrypted.");
                 return false;
             }
-            var av3 = gameObject.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
+            var av3 = descriptor.gameObject.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
             if (av3 == null)
             {
-                Debug.LogError(gameObject.name + ": can't find VRCAvatarDescriptor!");
+                Debug.LogError(descriptor.gameObject.name + ": can't find VRCAvatarDescriptor!");
                 return false;
             }
             if(av3.expressionParameters == null)
             {
-                Debug.LogError(gameObject.name + ": can't find expressionParmeters!");
+                Debug.LogError(descriptor.gameObject.name + ": can't find expressionParmeters!");
                 return false;
             }
             return true;
@@ -257,26 +258,26 @@ namespace Shell.Protector
 
         public void CreateFolders()
         {
-            if (!AssetDatabase.IsValidFolder(asset_dir + '/' + gameObject.name))
-                AssetDatabase.CreateFolder(asset_dir, gameObject.name);
+            if (!AssetDatabase.IsValidFolder(asset_dir + '/' + descriptor.gameObject.name))
+                AssetDatabase.CreateFolder(asset_dir, descriptor.gameObject.name);
             else
             {
                 if (delete_folders)
                 {
-                    AssetDatabase.DeleteAsset(Path.Combine(asset_dir, gameObject.name, "animations"));
-                    AssetDatabase.DeleteAsset(Path.Combine(asset_dir, gameObject.name, "mat"));
-                    AssetDatabase.DeleteAsset(Path.Combine(asset_dir, gameObject.name, "shader"));
-                    AssetDatabase.DeleteAsset(Path.Combine(asset_dir, gameObject.name, "tex"));
+                    AssetDatabase.DeleteAsset(Path.Combine(asset_dir, descriptor.gameObject.name, "animations"));
+                    AssetDatabase.DeleteAsset(Path.Combine(asset_dir, descriptor.gameObject.name, "mat"));
+                    AssetDatabase.DeleteAsset(Path.Combine(asset_dir, descriptor.gameObject.name, "shader"));
+                    AssetDatabase.DeleteAsset(Path.Combine(asset_dir, descriptor.gameObject.name, "tex"));
                 }
             }
-            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, gameObject.name, "tex")))
-                AssetDatabase.CreateFolder(Path.Combine(asset_dir, gameObject.name), "tex");
-            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, gameObject.name, "mat")))
-                AssetDatabase.CreateFolder(Path.Combine(asset_dir, gameObject.name), "mat");
-            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, gameObject.name, "shader")))
-                AssetDatabase.CreateFolder(Path.Combine(asset_dir, gameObject.name), "shader");
-            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, gameObject.name, "animations")))
-                AssetDatabase.CreateFolder(Path.Combine(asset_dir, gameObject.name), "animations");
+            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, descriptor.gameObject.name, "tex")))
+                AssetDatabase.CreateFolder(Path.Combine(asset_dir, descriptor.gameObject.name), "tex");
+            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, descriptor.gameObject.name, "mat")))
+                AssetDatabase.CreateFolder(Path.Combine(asset_dir, descriptor.gameObject.name), "mat");
+            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, descriptor.gameObject.name, "shader")))
+                AssetDatabase.CreateFolder(Path.Combine(asset_dir, descriptor.gameObject.name), "shader");
+            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, descriptor.gameObject.name, "animations")))
+                AssetDatabase.CreateFolder(Path.Combine(asset_dir, descriptor.gameObject.name), "animations");
         }
 
         public List<Material> GetMaterials()
@@ -326,7 +327,13 @@ namespace Shell.Protector
             encryptedMaterials.Clear();
             fallbackTextures.Clear();
 
-            gameObject.SetActive(true);
+            if(descriptor == null)
+            {
+                Debug.LogError("Can't find avatar descriptor!");
+                return null;
+            }
+
+            descriptor.gameObject.SetActive(true);
             Debug.Log("Key bytes: " + string.Join(", ", GetKeyBytes()));
 
             var materials = GetMaterials();
@@ -334,12 +341,12 @@ namespace Shell.Protector
             GameObject avatar;
             if (!isModular)
             {
-                avatar = DuplicateAvatar(gameObject);
+                avatar = DuplicateAvatar(descriptor.gameObject);
                 Debug.Log("Duplicate avatar success.");
             }
             else
             {
-                avatar = gameObject;
+                avatar = descriptor.gameObject;
             }
 
             if (avatar == null)
@@ -391,7 +398,7 @@ namespace Shell.Protector
                 Debug.LogFormat("{0} : start encrypt...", mat.name);
 
                 Texture2D main_texture = (Texture2D)mat.mainTexture;
-                injector.Init(gameObject, main_texture, key_bytes, key_size, filter, asset_dir, encryptor);
+                injector.Init(descriptor.gameObject, main_texture, key_bytes, key_size, filter, asset_dir, encryptor);
 
                 #region Generate mip_tex
                 int size = Math.Max(mat.mainTexture.width, mat.mainTexture.height);
@@ -403,7 +410,7 @@ namespace Shell.Protector
                     else
                     {
                         mips.Add(size, mip);
-                        AssetDatabase.CreateAsset(mip, Path.Combine(asset_dir, gameObject.name, "tex", "mip_" + size + ".asset"));
+                        AssetDatabase.CreateAsset(mip, Path.Combine(asset_dir, descriptor.gameObject.name, "tex", "mip_" + size + ".asset"));
                         AssetDatabase.SaveAssets();
                         AssetDatabase.Refresh();
                     }
@@ -470,10 +477,10 @@ namespace Shell.Protector
                         hasLimShadeTexture = true;
                 }
                 #endregion
-                string encrypt_tex_path = Path.Combine(asset_dir, gameObject.name, "tex", main_texture.name + "_encrypt.asset");
-                string encrypt_tex2_path = Path.Combine(asset_dir, gameObject.name, "tex", main_texture.name + "_encrypt2.asset");
-                string encrypted_mat_path = Path.Combine(asset_dir, gameObject.name, "mat", mat.name + "_encrypted.mat");
-                string encrypted_shader_path = Path.Combine(asset_dir, gameObject.name, "shader", mat.name);
+                string encrypt_tex_path = Path.Combine(asset_dir, descriptor.gameObject.name, "tex", main_texture.name + "_encrypt.asset");
+                string encrypt_tex2_path = Path.Combine(asset_dir, descriptor.gameObject.name, "tex", main_texture.name + "_encrypt2.asset");
+                string encrypted_mat_path = Path.Combine(asset_dir, descriptor.gameObject.name, "mat", mat.name + "_encrypted.mat");
+                string encrypted_shader_path = Path.Combine(asset_dir, descriptor.gameObject.name, "shader", mat.name);
                 Texture2D[] encrypted_tex = new Texture2D[2] { null, null };
 
                 #region Textures Duplicate Check
@@ -508,8 +515,8 @@ namespace Shell.Protector
                             int idx = 0;
                             while (encrypted_tex[0] != null)
                             {
-                                encrypt_tex_path = Path.Combine(asset_dir, gameObject.name, "tex", main_texture.name + idx + "_encrypt.asset");
-                                encrypt_tex2_path = Path.Combine(asset_dir, gameObject.name, "tex", main_texture.name + idx + "_encrypt2.asset");
+                                encrypt_tex_path = Path.Combine(asset_dir, descriptor.gameObject.name, "tex", main_texture.name + idx + "_encrypt.asset");
+                                encrypt_tex2_path = Path.Combine(asset_dir, descriptor.gameObject.name, "tex", main_texture.name + idx + "_encrypt2.asset");
 
                                 encrypted_tex[0] = AssetDatabase.LoadAssetAtPath(encrypt_tex_path, typeof(Texture2D)) as Texture2D;
                                 ++idx;
@@ -540,8 +547,8 @@ namespace Shell.Protector
                             int idx = 0;
                             while(m != null)
                             {
-                                encrypted_mat_path = Path.Combine(asset_dir, gameObject.name, "mat", mat.name + idx + "_encrypted.mat");
-                                encrypted_shader_path = Path.Combine(asset_dir, gameObject.name, "shader", mat.name + idx);
+                                encrypted_mat_path = Path.Combine(asset_dir, descriptor.gameObject.name, "mat", mat.name + idx + "_encrypted.mat");
+                                encrypted_shader_path = Path.Combine(asset_dir, descriptor.gameObject.name, "shader", mat.name + idx);
                                 m = AssetDatabase.LoadAssetAtPath(encrypted_mat_path, typeof(Material)) as Material;
                                 ++idx;
                             }
@@ -598,7 +605,7 @@ namespace Shell.Protector
                     continue;
                 }
 
-                string fallbackDir = Path.Combine(asset_dir, gameObject.name, "tex", main_texture.name + "_fallback.asset");
+                string fallbackDir = Path.Combine(asset_dir, descriptor.gameObject.name, "tex", main_texture.name + "_fallback.asset");
                 Texture2D fallback = null;
                 if (!fallbackTextures.Contains(main_texture))
                 {
@@ -729,14 +736,15 @@ namespace Shell.Protector
             ///////////////////////parameter////////////////////
             var av3 = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
             av3.expressionParameters = ParameterManager.AddKeyParameter(av3.expressionParameters, key_size, parameter_multiplexing);
-            AssetDatabase.CreateAsset(av3.expressionParameters, asset_dir + "/" + gameObject.name + "/" + av3.expressionParameters.name + ".asset");
+            AssetDatabase.CreateAsset(av3.expressionParameters, asset_dir + "/" + descriptor.gameObject.name + "/" + av3.expressionParameters.name + ".asset");
             ////////////////////////////////////////////////////
             SetMaterialFallbackValue(avatar, true);
             if (!isModular)
             {
-                gameObject.SetActive(false);
+                descriptor.gameObject.SetActive(false);
 
-                var tester = avatar.AddComponent<ShellProtectorTester>();
+                var newDesriptor = avatar.transform.GetComponentInChildren<ShellProtector>().gameObject;
+                var tester = newDesriptor.AddComponent<ShellProtectorTester>();
                 tester.lang = lang;
                 tester.lang_idx = lang_idx;
                 tester.protector = this;
@@ -757,12 +765,12 @@ namespace Shell.Protector
             var av3 = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
             AnimatorController fx;
             if (clone)
-                fx = AnimatorManager.DuplicateAnimator(av3.baseAnimationLayers[4].animatorController, Path.Combine(asset_dir, gameObject.name));
+                fx = AnimatorManager.DuplicateAnimator(av3.baseAnimationLayers[4].animatorController, Path.Combine(asset_dir, descriptor.gameObject.name));
             else
                 fx = av3.baseAnimationLayers[4].animatorController as AnimatorController;
 
             av3.baseAnimationLayers[4].animatorController = fx;
-            string animation_dir = Path.Combine(asset_dir, gameObject.name, "animations");
+            string animation_dir = Path.Combine(asset_dir, descriptor.gameObject.name, "animations");
 
             GameObject[] mesh_array = new GameObject[meshes.Count];
             meshes.CopyTo(mesh_array);
@@ -777,14 +785,14 @@ namespace Shell.Protector
 
         public void CleanComponent(GameObject avatar)
         {
-            DestroyImmediate(avatar.GetComponent<ShellProtector>());
+            DestroyImmediate(avatar.GetComponentInChildren<ShellProtector>());
         }
 
         public void ChangeMaterialsInAnims(GameObject avatar, bool clone)
         {
             var av3 = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
             var fx = av3.baseAnimationLayers[4].animatorController as AnimatorController;
-            string animationDir = Path.Combine(asset_dir, gameObject.name, "animations");
+            string animationDir = Path.Combine(asset_dir, descriptor.gameObject.name, "animations");
 
             AnimatorManager animManager = new();
             foreach (var pair in encryptedMaterials)
@@ -795,7 +803,7 @@ namespace Shell.Protector
 
         public VRCExpressionParameters GetParameter()
         {
-            var av3 = gameObject.GetComponent<VRCAvatarDescriptor>();
+            var av3 = descriptor;
             if (av3 == null)
                 return null;
             return av3.expressionParameters;
@@ -813,7 +821,7 @@ namespace Shell.Protector
         {
             var av3 = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
             AnimatorController fx = Getfx(avatar);
-            string animDir = Path.Combine(asset_dir, gameObject.name, "animations");
+            string animDir = Path.Combine(asset_dir, descriptor.gameObject.name, "animations");
 
             Obfuscator obfuscator = new Obfuscator();
             obfuscator.clone = clone;
@@ -839,7 +847,7 @@ namespace Shell.Protector
                     Debug.LogErrorFormat("{0} haven't mesh", renderer.transform.name);
                     continue;
                 }
-                Mesh newMesh = obfuscator.ObfuscateBlendShapeMesh(mesh, Path.Combine(asset_dir, gameObject.name));
+                Mesh newMesh = obfuscator.ObfuscateBlendShapeMesh(mesh, Path.Combine(asset_dir, descriptor.gameObject.name));
                 selectRenderer.sharedMesh = newMesh;
 
                 ////////Change renderer component shape keys////////

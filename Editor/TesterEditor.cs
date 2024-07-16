@@ -67,11 +67,11 @@ namespace Shell.Protector
             GUILayout.BeginHorizontal();
             if (GUILayout.Button(Lang("Off fallback")))
             {
-                ShellProtector.SetMaterialFallbackValue(root.gameObject, false);
+                ShellProtector.SetMaterialFallbackValue(root.transform.root.gameObject, false);
             }
             if (GUILayout.Button(Lang("On fallback")))
             {
-                ShellProtector.SetMaterialFallbackValue(root.gameObject, true);
+                ShellProtector.SetMaterialFallbackValue(root.transform.root.gameObject, true);
             }
             GUILayout.EndHorizontal();
 

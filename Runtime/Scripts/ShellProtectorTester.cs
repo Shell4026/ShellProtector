@@ -23,11 +23,11 @@ namespace Shell.Protector
                 return;
             }
 
-            ShellProtector.SetMaterialFallbackValue(gameObject, false);
+            ShellProtector.SetMaterialFallbackValue(transform.root.gameObject, false);
 
             byte[] pwd_bytes = protector.GetKeyBytes();
 
-            var renderers = GetComponentsInChildren<MeshRenderer>(true);
+            var renderers = transform.root.GetComponentsInChildren<MeshRenderer>(true);
             if (renderers != null)
             {
                 foreach (var r in renderers)
@@ -50,7 +50,7 @@ namespace Shell.Protector
                     }
                 }
             }
-            var skinned_renderers = GetComponentsInChildren<SkinnedMeshRenderer>(true);
+            var skinned_renderers = transform.root.GetComponentsInChildren<SkinnedMeshRenderer>(true);
             if (skinned_renderers != null)
             {
                 foreach (var r in skinned_renderers)
@@ -76,9 +76,9 @@ namespace Shell.Protector
         }
         public void ResetEncryption()
         {
-            ShellProtector.SetMaterialFallbackValue(gameObject, true);
+            ShellProtector.SetMaterialFallbackValue(transform.root.gameObject, true);
 
-            var renderers = GetComponentsInChildren<MeshRenderer>(true);
+            var renderers = transform.root.GetComponentsInChildren<MeshRenderer>(true);
             foreach (var r in renderers)
             {
                 var mats = r.sharedMaterials;
@@ -98,7 +98,7 @@ namespace Shell.Protector
                     }
                 }
             }
-            var skinned_renderers = GetComponentsInChildren<SkinnedMeshRenderer>(true);
+            var skinned_renderers = transform.root.GetComponentsInChildren<SkinnedMeshRenderer>(true);
             foreach (var r in skinned_renderers)
             {
                 var mats = r.sharedMaterials;

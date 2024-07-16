@@ -136,14 +136,13 @@ namespace Shell.Protector
 
             shaders = AssetManager.GetInstance().CheckShader();
             AssetManager.GetInstance().CheckModular();
-
-            root.OnEnable();
         }
 
         public override void OnInspectorGUI()
         {
             root = target as ShellProtector;
 
+            root.descriptor = EditorGUILayout.ObjectField(root.descriptor, typeof(VRCAvatarDescriptor)) as VRCAvatarDescriptor;
             GUILayout.BeginHorizontal();
             GUILayout.Label(Lang("Current version: ") + VersionManager.GetInstance().GetVersion());
             GUILayout.FlexibleSpace();
@@ -421,15 +420,15 @@ namespace Shell.Protector
 
                         last = encrypted_texture[0];
 
-                        if (!AssetDatabase.IsValidFolder(root.asset_dir + '/' + root.gameObject.name))
-                            AssetDatabase.CreateFolder(root.asset_dir, root.gameObject.name);
-                        if (!AssetDatabase.IsValidFolder(root.asset_dir + '/' + root.gameObject.name + "/mat"))
-                            AssetDatabase.CreateFolder(root.asset_dir + '/' + root.gameObject.name, "mat");
+                        if (!AssetDatabase.IsValidFolder(root.asset_dir + '/' + root.descriptor.gameObject.name))
+                            AssetDatabase.CreateFolder(root.asset_dir, root.descriptor.gameObject.name);
+                        if (!AssetDatabase.IsValidFolder(root.asset_dir + '/' + root.descriptor.gameObject.name + "/mat"))
+                            AssetDatabase.CreateFolder(root.asset_dir + '/' + root.descriptor.gameObject.name, "mat");
 
-                        AssetDatabase.CreateAsset(encrypted_texture[0], root.asset_dir + '/' + root.gameObject.name + '/' + texture.name + "_encrypt.asset");
-                        File.WriteAllBytes(root.asset_dir + '/' + root.gameObject.name + '/' + texture.name + "_encrypt.png", encrypted_texture[1].EncodeToPNG());
+                        AssetDatabase.CreateAsset(encrypted_texture[0], root.asset_dir + '/' + root.descriptor.gameObject.name + '/' + texture.name + "_encrypt.asset");
+                        File.WriteAllBytes(root.asset_dir + '/' + root.descriptor.gameObject.name + '/' + texture.name + "_encrypt.png", encrypted_texture[1].EncodeToPNG());
                         if (encrypted_texture[1] != null)
-                            AssetDatabase.CreateAsset(encrypted_texture[1], root.asset_dir + '/' + root.gameObject.name + '/' + texture.name + "_encrypt2.asset");
+                            AssetDatabase.CreateAsset(encrypted_texture[1], root.asset_dir + '/' + root.descriptor.gameObject.name + '/' + texture.name + "_encrypt2.asset");
                         AssetDatabase.SaveAssets();
 
                         AssetDatabase.Refresh();
@@ -485,7 +484,15 @@ namespace Shell.Protector
                 return;
             }
 
-            gameobject.AddComponent<ShellProtector>();
+            var obj = new GameObject();
+            obj.name = "ShellProtector";
+            obj.transform.parent = gameobject.transform;
+
+            var shellProtector = obj.AddComponent<ShellProtector>();
+            shellProtector.descriptor = av3;
+            shellProtector.Init();
+
+            Selection.activeObject = obj;
         }
 
         public class ErrorWindow : EditorWindow
