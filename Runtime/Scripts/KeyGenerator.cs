@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Security.Cryptography;
+using YamlDotNet.Core.Tokens;
+using System;
 public class KeyGenerator
 {
     //key1 is fixed key
@@ -47,6 +49,14 @@ public class KeyGenerator
         for(int i = 0; i < hash.Length; ++i)
             hash[i] ^= saltBytes[i % saltBytes.Length];
 
+        return hash;
+    }
+
+    public static byte[] GetHash(int data)
+    {
+        SHA256 sha256 = SHA256.Create();
+        byte[] bytes = BitConverter.GetBytes(data);
+        byte[] hash = sha256.ComputeHash(bytes);
         return hash;
     }
 

@@ -14,6 +14,8 @@ using System.Linq;
 using VRC.SDKBase;
 using UnityEditor.Animations;
 using UnityEngine.XR;
+using BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1.IsisMtt.Ocsp;
+
 
 
 
@@ -354,8 +356,8 @@ namespace Shell.Protector
             else if(algorithm == 1) 
             {
                 Chacha20 chacha = new Chacha20();
-                byte[] hash = KeyGenerator.GetKeyHash(key_bytes, KeyGenerator.GenerateRandomString(chacha.nonce.Length));
-                Array.Copy(hash, 0, chacha.nonce, 0, chacha.nonce.Length);
+                byte[] hash1 = KeyGenerator.GetKeyHash(key_bytes, KeyGenerator.GenerateRandomString(chacha.nonce.Length));
+                Array.Copy(hash1, 0, chacha.nonce, 0, chacha.nonce.Length);
                 encryptor = chacha;
             }
             ///////////////////////////////////////////////////////////////
@@ -541,6 +543,14 @@ namespace Shell.Protector
                 #endregion
 
                 #region Make encrypted textures
+                if (algorithm == 1)
+                {
+                    Chacha20 chacha = encryptor as Chacha20;
+                    byte[] hashMat = KeyGenerator.GetHash(mat.GetInstanceID());
+                    for (int i = 0; i < chacha.nonce.Length; ++i)
+                        chacha.nonce[i] ^= hashMat[i];
+                }
+
                 if (has_exist_encrypt_tex == false)
                 {
                     encrypted_tex = encrypt.TextureEncrypt(main_texture, key_bytes, encryptor);
