@@ -72,8 +72,10 @@ namespace Shell.Protector
 
         public void OnEnable()
         {
-            if (initw)
+            if (init)
                 return;
+
+            HashSet<SkinnedMeshRenderer> rednererSet = new();
             Transform child = transform.Find("Body");
             if (child != null)
             {
@@ -83,10 +85,14 @@ namespace Shell.Protector
                     Mesh mesh = renderer.sharedMesh;
                     if (mesh != null)
                     {
-                        obfuscationRenderers.Add(renderer);
+                        rednererSet.Add(renderer);
                     }
                         
                 }
+            }
+            foreach(var renderer in rednererSet)
+            {
+                obfuscationRenderers.Add(renderer);
             }
             init = true;
         }
@@ -186,6 +192,7 @@ namespace Shell.Protector
             meta = Regex.Replace(meta, "crunchedCompression: \\d+", "crunchedCompression: " + enable);
             File.WriteAllText(path + ".meta", meta);
 
+            AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
         }
         public static void SetGenerateMipmap(Texture2D texture, bool generate)
