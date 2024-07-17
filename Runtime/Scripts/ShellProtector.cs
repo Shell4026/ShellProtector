@@ -3,23 +3,14 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
-using System.Security.Cryptography;
 using VRC.SDK3.Avatars.ScriptableObjects;
 using VRC.SDK3.Avatars.Components;
 using System.Linq;
 using VRC.SDKBase;
 using UnityEditor.Animations;
-using UnityEngine.XR;
-using BestHTTP.SecureProtocol.Org.BouncyCastle.Asn1.IsisMtt.Ocsp;
-
-
-
-
-
 
 #if POIYOMI
 using Thry;
@@ -266,31 +257,31 @@ namespace Shell.Protector
 
         public void CreateFolders()
         {
-            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, descriptor.gameObject.name)))
+            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString())))
             {
-                AssetDatabase.CreateFolder(asset_dir, descriptor.gameObject.name);
+                AssetDatabase.CreateFolder(asset_dir, descriptor.gameObject.GetInstanceID().ToString());
             }
             else
             {
                 if (delete_folders)
                 {
-                    AssetDatabase.DeleteAsset(Path.Combine(asset_dir, descriptor.gameObject.name, "animations"));
-                    AssetDatabase.DeleteAsset(Path.Combine(asset_dir, descriptor.gameObject.name, "mat"));
-                    AssetDatabase.DeleteAsset(Path.Combine(asset_dir, descriptor.gameObject.name, "shader"));
-                    AssetDatabase.DeleteAsset(Path.Combine(asset_dir, descriptor.gameObject.name, "tex"));
+                    AssetDatabase.DeleteAsset(Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString(), "animations"));
+                    AssetDatabase.DeleteAsset(Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString(), "mat"));
+                    AssetDatabase.DeleteAsset(Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString(), "shader"));
+                    AssetDatabase.DeleteAsset(Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString(), "tex"));
                 }
             }
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
-            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, descriptor.gameObject.name, "tex")))
-                AssetDatabase.CreateFolder(Path.Combine(asset_dir, descriptor.gameObject.name), "tex");
-            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, descriptor.gameObject.name, "mat")))
-                AssetDatabase.CreateFolder(Path.Combine(asset_dir, descriptor.gameObject.name), "mat");
-            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, descriptor.gameObject.name, "shader")))
-                AssetDatabase.CreateFolder(Path.Combine(asset_dir, descriptor.gameObject.name), "shader");
-            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, descriptor.gameObject.name, "animations")))
-                AssetDatabase.CreateFolder(Path.Combine(asset_dir, descriptor.gameObject.name), "animations");
+            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString(), "tex")))
+                AssetDatabase.CreateFolder(Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString()), "tex");
+            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString(), "mat")))
+                AssetDatabase.CreateFolder(Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString()), "mat");
+            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString(), "shader")))
+                AssetDatabase.CreateFolder(Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString()), "shader");
+            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString(), "animations")))
+                AssetDatabase.CreateFolder(Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString()), "animations");
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -346,6 +337,7 @@ namespace Shell.Protector
             MonoScript monoScript = MonoScript.FromMonoBehaviour(this);
             string script_path = AssetDatabase.GetAssetPath(monoScript);
             asset_dir = Path.GetDirectoryName(Path.GetDirectoryName(script_path));
+            string avatarDir = Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString());
 
             Debug.Log("AssetDir: " + asset_dir);
 
@@ -432,7 +424,7 @@ namespace Shell.Protector
                     else
                     {
                         mips.Add(size, mip);
-                        AssetDatabase.CreateAsset(mip, Path.Combine(asset_dir, descriptor.gameObject.name, "tex", "mip_" + size + ".asset"));
+                        AssetDatabase.CreateAsset(mip, Path.Combine(avatarDir, "tex", "mip_" + size + ".asset"));
                         AssetDatabase.SaveAssets();
                         AssetDatabase.Refresh();
                     }
@@ -499,10 +491,10 @@ namespace Shell.Protector
                         hasLimShadeTexture = true;
                 }
                 #endregion
-                string encrypt_tex_path = Path.Combine(asset_dir, descriptor.gameObject.name, "tex", main_texture.GetInstanceID() + "_encrypt.asset");
-                string encrypt_tex2_path = Path.Combine(asset_dir, descriptor.gameObject.name, "tex", main_texture.GetInstanceID() + "_encrypt2.asset");
-                string encrypted_mat_path = Path.Combine(asset_dir, descriptor.gameObject.name, "mat", mat.GetInstanceID() + "_encrypted.mat");
-                string encrypted_shader_path = Path.Combine(asset_dir, descriptor.gameObject.name, "shader", mat.GetInstanceID().ToString());
+                string encrypt_tex_path = Path.Combine(avatarDir, "tex", main_texture.GetInstanceID() + "_encrypt.asset");
+                string encrypt_tex2_path = Path.Combine(avatarDir, "tex", main_texture.GetInstanceID() + "_encrypt2.asset");
+                string encrypted_mat_path = Path.Combine(avatarDir, "mat", mat.GetInstanceID() + "_encrypted.mat");
+                string encrypted_shader_path = Path.Combine(avatarDir, "shader", mat.GetInstanceID().ToString());
 
                 #region Make encrypted textures
                 Texture2D[] encrypted_tex = new Texture2D[2] { null, null };
@@ -584,7 +576,7 @@ namespace Shell.Protector
 
                 #region FallbackTexture
                 /////////////////Generate fallback/////////////////////
-                string fallbackDir = Path.Combine(asset_dir, descriptor.gameObject.name, "tex", main_texture.GetInstanceID() + "_fallback.asset");
+                string fallbackDir = Path.Combine(avatarDir, "tex", main_texture.GetInstanceID() + "_fallback.asset");
                 Texture2D fallback = processedTexture.fallback;
                 if (fallback == null)
                 {
@@ -721,7 +713,7 @@ namespace Shell.Protector
             ///////////////////////parameter////////////////////
             var av3 = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
             av3.expressionParameters = ParameterManager.AddKeyParameter(av3.expressionParameters, key_size, parameter_multiplexing);
-            AssetDatabase.CreateAsset(av3.expressionParameters, asset_dir + "/" + descriptor.gameObject.name + "/" + av3.expressionParameters.name + ".asset");
+            AssetDatabase.CreateAsset(av3.expressionParameters, Path.Combine(avatarDir, av3.expressionParameters.name + ".asset"));
             ////////////////////////////////////////////////////
             SetMaterialFallbackValue(avatar, true);
             if (!isModular)
@@ -750,12 +742,12 @@ namespace Shell.Protector
             var av3 = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
             AnimatorController fx;
             if (clone)
-                fx = AnimatorManager.DuplicateAnimator(av3.baseAnimationLayers[4].animatorController, Path.Combine(asset_dir, descriptor.gameObject.name));
+                fx = AnimatorManager.DuplicateAnimator(av3.baseAnimationLayers[4].animatorController, Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString()));
             else
                 fx = av3.baseAnimationLayers[4].animatorController as AnimatorController;
 
             av3.baseAnimationLayers[4].animatorController = fx;
-            string animation_dir = Path.Combine(asset_dir, descriptor.gameObject.name, "animations");
+            string animation_dir = Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString(), "animations");
 
             GameObject[] mesh_array = new GameObject[meshes.Count];
             meshes.CopyTo(mesh_array);
@@ -777,7 +769,7 @@ namespace Shell.Protector
         {
             var av3 = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
             var fx = av3.baseAnimationLayers[4].animatorController as AnimatorController;
-            string animationDir = Path.Combine(asset_dir, descriptor.gameObject.name, "animations");
+            string animationDir = Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString(), "animations");
 
             AnimatorManager animManager = new();
             foreach (var pair in encryptedMaterials)
@@ -807,7 +799,7 @@ namespace Shell.Protector
         {
             var av3 = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
             AnimatorController fx = Getfx(avatar);
-            string animDir = Path.Combine(asset_dir, descriptor.gameObject.name, "animations");
+            string animDir = Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString(), "animations");
 
             Obfuscator obfuscator = new Obfuscator();
             obfuscator.clone = clone;
@@ -833,7 +825,7 @@ namespace Shell.Protector
                     Debug.LogErrorFormat("{0} haven't mesh", renderer.transform.name);
                     continue;
                 }
-                Mesh newMesh = obfuscator.ObfuscateBlendShapeMesh(mesh, Path.Combine(asset_dir, descriptor.gameObject.name));
+                Mesh newMesh = obfuscator.ObfuscateBlendShapeMesh(mesh, Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString()));
                 selectRenderer.sharedMesh = newMesh;
 
                 ////////Change renderer component shape keys////////
