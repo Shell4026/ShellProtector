@@ -266,8 +266,10 @@ namespace Shell.Protector
 
         public void CreateFolders()
         {
-            if (!AssetDatabase.IsValidFolder(asset_dir + '/' + descriptor.gameObject.name))
+            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, descriptor.gameObject.name)))
+            {
                 AssetDatabase.CreateFolder(asset_dir, descriptor.gameObject.name);
+            }
             else
             {
                 if (delete_folders)
@@ -341,7 +343,13 @@ namespace Shell.Protector
             encryptedMaterials.Clear();
             processedTextures.Clear();
 
-            if(descriptor == null)
+            MonoScript monoScript = MonoScript.FromMonoBehaviour(this);
+            string script_path = AssetDatabase.GetAssetPath(monoScript);
+            asset_dir = Path.GetDirectoryName(Path.GetDirectoryName(script_path));
+
+            Debug.Log("AssetDir: " + asset_dir);
+
+            if (descriptor == null)
             {
                 Debug.LogError("Can't find avatar descriptor!");
                 return null;
@@ -774,6 +782,7 @@ namespace Shell.Protector
             AnimatorManager animManager = new();
             foreach (var pair in encryptedMaterials)
             {
+                Debug.LogFormat("{0}, {1}", pair.Key.name, pair.Value.name);
                 animManager.ChangeAnimationMaterial(fx, pair.Key, pair.Value, clone, animationDir);
             }
         }
