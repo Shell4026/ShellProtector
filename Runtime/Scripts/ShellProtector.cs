@@ -51,10 +51,18 @@ namespace Shell.Protector
 
         bool init = false;
 
+        struct ProcessedTexture
+        {
+            public Texture2D encrypted0;
+            public Texture2D encrypted1;
+            public Texture2D fallback;
+            public byte[] nonce;
+        }
+
         //Must clear them before start encrypting//
         HashSet<GameObject> meshes = new HashSet<GameObject>();
-        HashSet<Texture2D> fallbackTextures = new();
         Dictionary<Material, Material> encryptedMaterials = new Dictionary<Material, Material>();
+        Dictionary<Texture, ProcessedTexture> processedTextures = new();
         //////////////////////////////////
 
         [SerializeField] uint rounds = 20;
@@ -134,7 +142,6 @@ namespace Shell.Protector
             result = xxtea.Decrypt(result, key);
             Debug.Log("Decrypted data: " + string.Join(", ", result));
         }
-
         public void Test3()
         {
             byte[] data_byte = new byte[8] { 255, 255, 245, 240, 235, 230, 225, 220 };
@@ -279,6 +286,9 @@ namespace Shell.Protector
                 AssetDatabase.CreateFolder(Path.Combine(asset_dir, descriptor.gameObject.name), "shader");
             if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, descriptor.gameObject.name, "animations")))
                 AssetDatabase.CreateFolder(Path.Combine(asset_dir, descriptor.gameObject.name), "animations");
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
         }
 
         public List<Material> GetMaterials()
@@ -326,7 +336,7 @@ namespace Shell.Protector
         {
             meshes.Clear();
             encryptedMaterials.Clear();
-            fallbackTextures.Clear();
+            processedTextures.Clear();
 
             if(descriptor == null)
             {
@@ -478,96 +488,44 @@ namespace Shell.Protector
                         hasLimShadeTexture = true;
                 }
                 #endregion
-                string encrypt_tex_path = Path.Combine(asset_dir, descriptor.gameObject.name, "tex", main_texture.name + "_encrypt.asset");
-                string encrypt_tex2_path = Path.Combine(asset_dir, descriptor.gameObject.name, "tex", main_texture.name + "_encrypt2.asset");
-                string encrypted_mat_path = Path.Combine(asset_dir, descriptor.gameObject.name, "mat", mat.name + "_encrypted.mat");
-                string encrypted_shader_path = Path.Combine(asset_dir, descriptor.gameObject.name, "shader", mat.name);
-                Texture2D[] encrypted_tex = new Texture2D[2] { null, null };
-
-                #region Textures Duplicate Check
-                bool has_exist_encrypt_tex = false;
-                bool has_exist_encrypt_tex2 = false;
-                foreach (var mat_tmp in materials)
-                {
-                    try
-                {
-                    if (mat_tmp == mat)
-                        continue;
-
-                    Texture2D main_tex = mat_tmp.mainTexture as Texture2D;
-                    if (main_tex == null)
-                        continue;
-
-                    if(main_texture.GetInstanceID() == main_tex.GetInstanceID())
-                    {
-                        encrypted_tex[0] = AssetDatabase.LoadAssetAtPath(encrypt_tex_path, typeof(Texture2D)) as Texture2D;
-                        encrypted_tex[1] = AssetDatabase.LoadAssetAtPath(encrypt_tex2_path, typeof(Texture2D)) as Texture2D;
-                        if (encrypted_tex[0] != null)
-                            has_exist_encrypt_tex = true;
-                        if (encrypted_tex[1] != null)
-                            has_exist_encrypt_tex2 = true;
-                        break;
-                    }
-                    else
-                    {
-                        if(main_texture.name == main_tex.name)
-                        {
-                            encrypted_tex[0] = AssetDatabase.LoadAssetAtPath(encrypt_tex_path, typeof(Texture2D)) as Texture2D;
-                            int idx = 0;
-                            while (encrypted_tex[0] != null)
-                            {
-                                encrypt_tex_path = Path.Combine(asset_dir, descriptor.gameObject.name, "tex", main_texture.name + idx + "_encrypt.asset");
-                                encrypt_tex2_path = Path.Combine(asset_dir, descriptor.gameObject.name, "tex", main_texture.name + idx + "_encrypt2.asset");
-
-                                encrypted_tex[0] = AssetDatabase.LoadAssetAtPath(encrypt_tex_path, typeof(Texture2D)) as Texture2D;
-                                ++idx;
-                            }
-                        }
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        Debug.LogError(e.Message);
-                        continue;
-                    }
-                }
-                #endregion
-
-                #region Materials Duplicate Check
-                for (int i = 0; i < materials.Count; ++i)
-                {
-                    if (materials[i] == null)
-                        continue;
-                    if (mat.GetInstanceID() == materials[i].GetInstanceID())
-                        continue;
-                    else
-                    {
-                        if (mat.name == materials[i].name)
-                        {
-                            Material m = AssetDatabase.LoadAssetAtPath(encrypted_mat_path, typeof(Material)) as Material;
-                            int idx = 0;
-                            while(m != null)
-                            {
-                                encrypted_mat_path = Path.Combine(asset_dir, descriptor.gameObject.name, "mat", mat.name + idx + "_encrypted.mat");
-                                encrypted_shader_path = Path.Combine(asset_dir, descriptor.gameObject.name, "shader", mat.name + idx);
-                                m = AssetDatabase.LoadAssetAtPath(encrypted_mat_path, typeof(Material)) as Material;
-                                ++idx;
-                            }
-                        }
-                    }    
-                }
-                #endregion
+                string encrypt_tex_path = Path.Combine(asset_dir, descriptor.gameObject.name, "tex", main_texture.GetInstanceID() + "_encrypt.asset");
+                string encrypt_tex2_path = Path.Combine(asset_dir, descriptor.gameObject.name, "tex", main_texture.GetInstanceID() + "_encrypt2.asset");
+                string encrypted_mat_path = Path.Combine(asset_dir, descriptor.gameObject.name, "mat", mat.GetInstanceID() + "_encrypted.mat");
+                string encrypted_shader_path = Path.Combine(asset_dir, descriptor.gameObject.name, "shader", mat.GetInstanceID().ToString());
 
                 #region Make encrypted textures
+                Texture2D[] encrypted_tex = new Texture2D[2] { null, null };
+                bool processed = processedTextures.ContainsKey(main_texture);
+                ProcessedTexture processedTexture;
+                if (processed)
+                    processedTexture = processedTextures[main_texture];
+                else
+                    processedTexture = new ProcessedTexture
+                    {
+                        encrypted0 = null,
+                        encrypted1 = null,
+                        fallback = null,
+                        nonce = new byte[12]
+                    };
+
                 if (algorithm == 1)
                 {
                     Chacha20 chacha = encryptor as Chacha20;
-                    byte[] hashMat = KeyGenerator.GetHash(mat.GetInstanceID());
-                    for (int i = 0; i < chacha.nonce.Length; ++i)
-                        chacha.nonce[i] ^= hashMat[i];
+                    if (!processed)
+                    {
+                        byte[] hashMat = KeyGenerator.GetHash(mat.GetInstanceID());
+                        for (int i = 0; i < chacha.nonce.Length; ++i)
+                            chacha.nonce[i] ^= hashMat[i];
+                        Array.Copy(chacha.nonce, 0, processedTexture.nonce, 0, processedTexture.nonce.Length);
+                    }
+                    else
+                    {
+                        byte[] nonce = processedTextures[main_texture].nonce;
+                        Array.Copy(nonce, 0, chacha.nonce, 0, chacha.nonce.Length);
+                    }
                 }
 
-                if (has_exist_encrypt_tex == false)
+                if (processed == false)
                 {
                     encrypted_tex = encrypt.TextureEncrypt(main_texture, key_bytes, encryptor);
                     if (encrypted_tex == null)
@@ -582,11 +540,18 @@ namespace Shell.Protector
                     }
                     AssetDatabase.CreateAsset(encrypted_tex[0], encrypt_tex_path);
                     Debug.Log(encrypted_tex[0].name + ": " + AssetDatabase.GetAssetPath(encrypted_tex[0]));
-                }
-                if (has_exist_encrypt_tex2 == false)
-                {
+                    processedTexture.encrypted0 = encrypted_tex[0];
+
                     if (encrypted_tex[1] != null)
+                    {
                         AssetDatabase.CreateAsset(encrypted_tex[1], encrypt_tex2_path);
+                        processedTexture.encrypted1 = encrypted_tex[1];
+                    }
+                }
+                else
+                {
+                    encrypted_tex[0] = processedTexture.encrypted0;
+                    encrypted_tex[1] = processedTexture.encrypted1;
                 }
                 #endregion
 
@@ -606,25 +571,26 @@ namespace Shell.Protector
                     continue;
                 }
 
-                string fallbackDir = Path.Combine(asset_dir, descriptor.gameObject.name, "tex", main_texture.name + "_fallback.asset");
-                Texture2D fallback = null;
-                if (!fallbackTextures.Contains(main_texture))
+                #region FallbackTexture
+                /////////////////Generate fallback/////////////////////
+                string fallbackDir = Path.Combine(asset_dir, descriptor.gameObject.name, "tex", main_texture.GetInstanceID() + "_fallback.asset");
+                Texture2D fallback = processedTexture.fallback;
+                if (fallback == null)
                 {
                     fallback = encrypt.GenerateFallback(main_texture);
                     if (fallback != null)
                     {
-                        fallbackTextures.Add(main_texture);
+                        processedTexture.fallback = fallback;
                         AssetDatabase.CreateAsset(fallback, fallbackDir);
                         AssetDatabase.SaveAssets();
                         AssetDatabase.Refresh();
                     }
                 }
-                else
-                {
-                    fallback = AssetDatabase.LoadAssetAtPath<Texture2D>(fallbackDir);
-                }
+                ////////////////////////////////////////////////////////
+                #endregion
 
                 #region Material
+                //////////////////Create Material////////////////////////
                 Material new_mat = new Material(mat.shader);
                 new_mat.CopyPropertiesFromMaterial(mat);
                 new_mat.shader = encrypted_shader;
@@ -673,7 +639,6 @@ namespace Shell.Protector
                 {
                     new_mat.SetOverrideTag("VRCFallback", "Unlit");
                 }
-                #endregion
 
                 #region Remove Duplicate Textures
                 foreach (var name in new_mat.GetTexturePropertyNames()) 
@@ -689,6 +654,8 @@ namespace Shell.Protector
                 Debug.LogFormat("{0} : create encrypted material : {1}", mat.name, AssetDatabase.GetAssetPath(new_mat));
                 AssetDatabase.SaveAssets();
                 AssetDatabase.Refresh();
+                //////////////////////////////////////////////////////
+                #endregion
 
                 var renderers = avatar.GetComponentsInChildren<MeshRenderer>(true);
                 if (renderers != null)
@@ -733,7 +700,9 @@ namespace Shell.Protector
                     }
                 }
                 //////////////////////////////////////////////////
-                if(!encryptedMaterials.ContainsKey(mat))
+                if (!processed)
+                    processedTextures.Add(main_texture, processedTexture);
+                if (!encryptedMaterials.ContainsKey(mat))
                     encryptedMaterials.Add(mat, new_mat);
             }
             EditorUtility.ClearProgressBar();
