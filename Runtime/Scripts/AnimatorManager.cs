@@ -135,7 +135,7 @@ namespace Shell.Protector
                         continue;
 
                     string hr_path = obj.transform.GetHierarchyPath();
-                    hr_path = Regex.Replace(hr_path, ".*?/(.*)", "$1");
+                    hr_path = Regex.Replace(hr_path, ".*?/(.*)", "'$1'");
 
                     string curve;
 
@@ -171,7 +171,7 @@ namespace Shell.Protector
                     continue;
 
                 string hr_path = obj.transform.GetHierarchyPath();
-                hr_path = Regex.Replace(hr_path, ".*?/(.*)", "$1");
+                hr_path = Regex.Replace(hr_path, ".*?/(.*)", "'$1'");
 
                 string curve = Regex.Replace(curve3, "path: Body", "path: " + hr_path);
                 //SkinnedMeshRender classID:137
