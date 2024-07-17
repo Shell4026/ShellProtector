@@ -91,7 +91,7 @@ namespace Shell.Protector
             if (GUILayout.Button(Lang("Done & Reset")))
             {
                 root.ResetEncryption();
-                DestroyImmediate(root.GetComponent<ShellProtectorTester>());
+                //DestroyImmediate(root.GetComponent<ShellProtectorTester>());
             }
         }
     }
