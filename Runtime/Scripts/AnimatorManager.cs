@@ -444,7 +444,7 @@ namespace Shell.Protector
             EditorCurveBinding[] bindings = AnimationUtility.GetObjectReferenceCurveBindings(clip);
             foreach (EditorCurveBinding binding in bindings)
             {
-                if ((binding.type == typeof(Renderer) || binding.type == typeof(SkinnedMeshRenderer)) && binding.propertyName.StartsWith("m_Materials"))
+                if ((binding.type == typeof(MeshRenderer) || binding.type == typeof(SkinnedMeshRenderer)) && binding.propertyName.StartsWith("m_Materials"))
                 {
                     ObjectReferenceKeyframe[] keyframes = AnimationUtility.GetObjectReferenceCurve(clip, binding);
 
@@ -464,7 +464,7 @@ namespace Shell.Protector
             EditorCurveBinding[] bindings = AnimationUtility.GetObjectReferenceCurveBindings(clip);
             foreach (EditorCurveBinding binding in bindings)
             {
-                if ((binding.type == typeof(Renderer) || binding.type == typeof(SkinnedMeshRenderer)) && binding.propertyName.StartsWith("m_Materials"))
+                if ((binding.type == typeof(MeshRenderer) || binding.type == typeof(SkinnedMeshRenderer)) && binding.propertyName.StartsWith("m_Materials"))
                 {
                     ObjectReferenceKeyframe[] keyframes = AnimationUtility.GetObjectReferenceCurve(clip, binding);
                     ObjectReferenceKeyframe[] newKeyframes = new ObjectReferenceKeyframe[keyframes.Length];
