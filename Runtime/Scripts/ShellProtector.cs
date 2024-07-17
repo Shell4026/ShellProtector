@@ -278,6 +278,9 @@ namespace Shell.Protector
                     AssetDatabase.DeleteAsset(Path.Combine(asset_dir, descriptor.gameObject.name, "tex"));
                 }
             }
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
             if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, descriptor.gameObject.name, "tex")))
                 AssetDatabase.CreateFolder(Path.Combine(asset_dir, descriptor.gameObject.name), "tex");
             if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, descriptor.gameObject.name, "mat")))
@@ -396,7 +399,7 @@ namespace Shell.Protector
                     ++progress;
                     continue;
                 }
-                EditorUtility.DisplayProgressBar("Encrypt...", "Encrypt Progress " + ++progress + " of " + material_list.Count, (float)progress / (float)materials.Count);
+                EditorUtility.DisplayProgressBar("Encrypt...", "Encrypt Progress " + ++progress + " of " + materials.Count, (float)progress / (float)materials.Count);
                 injector = InjectorFactory.GetInjector(mat.shader);
                 if (injector == null)
                 {
@@ -561,7 +564,7 @@ namespace Shell.Protector
                     encrypted_shader = injector.Inject(mat, Path.Combine(asset_dir, "Decrypt.cginc"), encrypted_shader_path, encrypted_tex[0], has_lim_texture, has_lim_texture2, has_outline_texture);
                     if (encrypted_shader == null)
                     {
-                        Debug.LogWarning("Injection failed");
+                        Debug.LogErrorFormat("{0}: Injection failed", mat.name);
                         continue;
                     }
                 }
