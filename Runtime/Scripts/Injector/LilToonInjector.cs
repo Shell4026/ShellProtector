@@ -49,7 +49,7 @@ namespace Shell.Protector
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
-            Shader new_shader = AssetDatabase.LoadAssetAtPath(output_dir + "/" + shader_name + ".lilcontainer", typeof(Shader)) as Shader;
+            Shader new_shader = AssetDatabase.LoadAssetAtPath(Path.Combine(output_dir, shader_name + ".lilcontainer"), typeof(Shader)) as Shader;
             return new_shader;
         }
         private void CopyShaderFiles(string original_shader_name)
