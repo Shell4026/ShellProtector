@@ -53,7 +53,7 @@ namespace Shell.Protector
         //Must clear them before start encrypting//
         HashSet<GameObject> meshes = new HashSet<GameObject>();
         Dictionary<Material, Material> encryptedMaterials = new Dictionary<Material, Material>();
-        Dictionary<Texture, ProcessedTexture> processedTextures = new();
+        Dictionary<Texture2D, ProcessedTexture> processedTextures = new();
         //////////////////////////////////
 
         [SerializeField] uint rounds = 20;
@@ -434,27 +434,24 @@ namespace Shell.Protector
                 SetCrunchCompression(main_texture, false);
                 SetGenerateMipmap(main_texture, true);
 
-                Texture2D lim_texture = null;
-                Texture2D lim_texture2 = null;
-                Texture2D outline_texture = null;
+                Texture2D limTexture = null;
+                Texture2D limTexture2 = null;
+                Texture2D outlineTexture = null;
                 Texture2D limShadeTexture = null;
 
-                bool has_lim_texture = false;
-                bool has_lim_texture2 = false;
-                bool has_outline_texture = false;
-                bool hasLimShadeTexture = false;
                 #region Get lim, outline tex
+                ///////////////////Get lim, outline texture/////////////////
                 if (shader_manager.IsPoiyomi(mat.shader))
                 {
                     var tex_properties = mat.GetTexturePropertyNames();
                     foreach(var t in tex_properties)
                     {
                         if(t == "_RimTex")
-                            lim_texture = (Texture2D)mat.GetTexture(t);
+                            limTexture = (Texture2D)mat.GetTexture(t);
                         else if(t == "_Rim2Tex")
-                            lim_texture2 = (Texture2D)mat.GetTexture(t);
+                            limTexture2 = (Texture2D)mat.GetTexture(t);
                         else if(t == "_OutlineTexture")
-                            outline_texture = (Texture2D)mat.GetTexture(t);
+                            outlineTexture = (Texture2D)mat.GetTexture(t);
                     }
                 }
                 else if (shader_manager.IslilToon(mat.shader))
@@ -463,33 +460,14 @@ namespace Shell.Protector
                     foreach (var t in tex_properties)
                     {
                         if (t == "_RimColorTex")
-                            lim_texture = (Texture2D)mat.GetTexture(t);
+                            limTexture = (Texture2D)mat.GetTexture(t);
                         else if (t == "_OutlineTex")
-                            outline_texture = (Texture2D)mat.GetTexture(t);
+                            outlineTexture = (Texture2D)mat.GetTexture(t);
                         else if (t == "_RimShadeMask")
                             limShadeTexture = (Texture2D)mat.GetTexture(t);
                     }
                 }
-                if (lim_texture != null)
-                {
-                    if (main_texture.GetInstanceID() == lim_texture.GetInstanceID())
-                        has_lim_texture = true;
-                }
-                if (lim_texture2 != null)
-                {
-                    if (main_texture.GetInstanceID() == lim_texture2.GetInstanceID())
-                        has_lim_texture2 = true;
-                }
-                if (outline_texture != null)
-                {
-                    if (main_texture.GetInstanceID() == outline_texture.GetInstanceID())
-                        has_outline_texture = true;
-                }
-                if (limShadeTexture != null)
-                {
-                    if (main_texture.GetInstanceID() == limShadeTexture.GetInstanceID())
-                        hasLimShadeTexture = true;
-                }
+                ////////////////////////////////////////////////////////////////
                 #endregion
                 string encrypt_tex_path = Path.Combine(avatarDir, "tex", main_texture.GetInstanceID() + "_encrypt.asset");
                 string encrypt_tex2_path = Path.Combine(avatarDir, "tex", main_texture.GetInstanceID() + "_encrypt2.asset");
@@ -511,6 +489,7 @@ namespace Shell.Protector
                         nonce = new byte[12]
                     };
 
+                //Set chacha nonce
                 if (algorithm == 1)
                 {
                     Chacha20 chacha = encryptor as Chacha20;
@@ -561,7 +540,7 @@ namespace Shell.Protector
                 Shader encrypted_shader;
                 try
                 {
-                    encrypted_shader = injector.Inject(mat, Path.Combine(asset_dir, "Decrypt.cginc"), encrypted_shader_path, encrypted_tex[0], has_lim_texture, has_lim_texture2, has_outline_texture);
+                    encrypted_shader = injector.Inject(mat, Path.Combine(asset_dir, "Decrypt.cginc"), encrypted_shader_path, encrypted_tex[0], limTexture != null, limTexture2 != null, outlineTexture != null);
                     if (encrypted_shader == null)
                     {
                         Debug.LogErrorFormat("{0}: Injection failed", mat.name);
@@ -612,31 +591,6 @@ namespace Shell.Protector
                 if (encrypted_tex[1] != null)
                     new_mat.SetTexture("_EncryptTex1", encrypted_tex[1]);
 
-                if(has_lim_texture)
-                {
-                    if (shader_manager.IsPoiyomi(mat.shader))
-                        new_mat.SetTexture("_RimTex", encrypted_tex[0]);
-                    else if (shader_manager.IslilToon(mat.shader))
-                        new_mat.SetTexture("_RimColorTex", encrypted_tex[0]);
-                }
-                if(has_lim_texture2)
-                {
-                    if (shader_manager.IsPoiyomi(mat.shader))
-                        new_mat.SetTexture("_Rim2Tex", encrypted_tex[0]);
-                }
-                if(has_outline_texture)
-                {
-                    if (shader_manager.IsPoiyomi(mat.shader))
-                        new_mat.SetTexture("_OutlineTexture", fallback);
-                    else if(shader_manager.IslilToon(mat.shader))
-                        new_mat.SetTexture("_OutlineTex", fallback);
-                }
-                if(hasLimShadeTexture) //only liltoon
-                {
-                    if (shader_manager.IslilToon(mat.shader))
-                        new_mat.SetTexture("_RimShadeMask", fallback);
-                }
-
                 new_mat.renderQueue = mat.renderQueue;
                 if(turnOnAllSafetyFallback)
                 {
@@ -644,6 +598,53 @@ namespace Shell.Protector
                 }
 
                 #region Remove Duplicate Textures
+                ////////////////////Remove Duplicate Textures///////////////////////////////
+                if (limTexture != null)
+                {
+                    string texName = "";
+                    if (shader_manager.IsPoiyomi(mat.shader))
+                        texName = "_RimTex";
+                    else if (shader_manager.IslilToon(mat.shader))
+                        texName = "_RimColorTex";
+
+                    if (original_tex == limTexture)
+                        new_mat.SetTexture(texName, encrypted_tex[0]);
+                    else if(processedTextures.ContainsKey(limTexture))
+                        new_mat.SetTexture(texName, null);
+
+                }
+                if (limTexture2 != null) //only poiyomi
+                {
+                    string texName = "";
+                    if (shader_manager.IsPoiyomi(mat.shader))
+                        texName = "_Rim2Tex";
+
+                    if (original_tex == limTexture2)
+                        new_mat.SetTexture(texName, encrypted_tex[0]);
+                    else if(processedTextures.ContainsKey(limTexture2))
+                        new_mat.SetTexture(texName, null);
+                }
+                if (outlineTexture != null)
+                {
+                    string texName = "";
+                    if (shader_manager.IsPoiyomi(mat.shader))
+                        texName = "_OutlineTexture";
+                    else if (shader_manager.IslilToon(mat.shader))
+                        texName = "_OutlineTex";
+
+                    if (original_tex == outlineTexture)
+                        new_mat.SetTexture(texName, fallback);
+                    else if (processedTextures.ContainsKey(outlineTexture))
+                        new_mat.SetTexture(texName, processedTextures[outlineTexture].fallback);
+                }
+                if (limShadeTexture != null) //only liltoon
+                {
+                    string texName = "_RimShadeMask";
+                    if (original_tex == limShadeTexture)
+                        new_mat.SetTexture(texName, fallback);
+                    else if (processedTextures.ContainsKey(limShadeTexture))
+                        new_mat.SetTexture(texName, null);
+                }
                 foreach (var name in new_mat.GetTexturePropertyNames()) 
                 {
                     if (new_mat.GetTexture(name) == null)
@@ -651,6 +652,7 @@ namespace Shell.Protector
                     if (new_mat.GetTexture(name).GetInstanceID() == original_tex.GetInstanceID())
                         new_mat.SetTexture(name, null);
                 }
+                //////////////////////////////////////////////////////////////////
                 #endregion
 
                 AssetDatabase.CreateAsset(new_mat, encrypted_mat_path);
@@ -702,7 +704,6 @@ namespace Shell.Protector
                         skinned_renderers[i].sharedMaterials = mats;
                     }
                 }
-                //////////////////////////////////////////////////
                 if (!processed)
                     processedTextures.Add(main_texture, processedTexture);
                 if (!encryptedMaterials.ContainsKey(mat))
