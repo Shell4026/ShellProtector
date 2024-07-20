@@ -1,7 +1,9 @@
 ﻿#if UNITY_EDITOR
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
@@ -11,6 +13,38 @@ namespace Shell.Protector
     public class LilToonInjector : Injector
     {
         string output_dir;
+        string shaderCodePoint = @"\
+		    half4 mip_texture = tex2D(_MipTex, fd.uvMain);\
+			int mip = round(mip_texture.r * 255 / 10);\
+			int m[13] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10 };\
+\
+			half4 c00 = DecryptTexture(fd.uvMain, m[mip]);\
+\
+		    fd.col = c00;\
+";
+        string shaderCodeBilinear = @"\
+			half4 mip_texture = tex2D(_MipTex, fd.uvMain);\
+				\
+			half2 uv_unit = _EncryptTex0_TexelSize.xy;\
+			half2 uv_bilinear = fd.uvMain - 0.5 * uv_unit;\
+			int mip = round(mip_texture.r * 255 / 10);\
+			int m[13] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10 };\
+				\
+            half4 c00 = DecryptTexture(uv_bilinear + half2(uv_unit.x * 0, uv_unit.y * 0), m[mip]);\
+            half4 c10 = DecryptTexture(uv_bilinear + half2(uv_unit.x * 1, uv_unit.y * 0), m[mip]);\
+            half4 c01 = DecryptTexture(uv_bilinear + half2(uv_unit.x * 0, uv_unit.y * 1), m[mip]);\
+            half4 c11 = DecryptTexture(uv_bilinear + half2(uv_unit.x * 1, uv_unit.y * 1), m[mip]);\
+				\
+			half2 f = frac(uv_bilinear * _EncryptTex0_TexelSize.zw);\
+				\
+			half4 c0 = lerp(c00, c10, f.x);\
+			half4 c1 = lerp(c01, c11, f.x);\
+\
+			half4 bilinear = lerp(c0, c1, f.y);\
+				\
+			fd.col = bilinear;\
+";
+
         public override Shader Inject(Material mat, string decode_dir, string output_path, Texture2D tex, bool has_lim_texture = false, bool has_lim_texture2 = false, bool outline_tex = false)
         {
             if (!File.Exists(decode_dir))
@@ -90,30 +124,21 @@ namespace Shell.Protector
             if(lim)
                 custom = custom.Insert(0, "#define LIMLIGHT_ENCRYPTED\n");
 
-            int code = 0;
+            string injectCode = "";
             if (filter == 0)
-            {
-                if (tex.format == TextureFormat.DXT1 || tex.format == TextureFormat.DXT5)
-                    code = 5;
-                else
-                {
-                    code = 2;
-                    if (EncryptTexture.HasAlpha(tex))
-                        code = 3;
-                }
-            }
+                injectCode = shaderCodePoint;
             else if (filter == 1)
+                injectCode = shaderCodeBilinear;
+
+            if (tex.format == TextureFormat.DXT1 || tex.format == TextureFormat.DXT5)
+                injectCode = Regex.Replace(injectCode, "DecryptTexture", "DecryptTextureDXT");
+            else
             {
-                if (tex.format == TextureFormat.DXT1 || tex.format == TextureFormat.DXT5)
-                    code = 4;
-                else
-                {
-                    code = 0;
-                    if (EncryptTexture.HasAlpha(tex))
-                        code = 1;
-                }
+                if (EncryptTexture.HasAlpha(tex))
+                    injectCode = Regex.Replace(injectCode, "DecryptTexture", "DecryptTextureRGBA");
             }
-            custom = Regex.Replace(custom, "const int code = 0;", "const int code = " + code + ";");
+
+            custom = Regex.Replace(custom, "//inject", injectCode);
 
             File.WriteAllText(output_dir + "/custom.hlsl", custom);
         }
