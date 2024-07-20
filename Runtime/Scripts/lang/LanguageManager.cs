@@ -77,7 +77,8 @@ namespace Shell.Protector
             { "Fallback Options", "폴백 옵션" },
             { "Fallback wait time", "폴백 대기 시간" },
             { "After this time, the fallback is turned off. (Only who is Safety OFF)", "이 시간이 지나면 폴백 기능이 꺼집니다. (세이프티 꺼진 상대만)" },
-            { "Change all Safety Fallback settings of shader to Unlit.", "셰이더의 모든 Safety Fallback설정을 Unlit으로 바꿉니다." }
+            { "Change all Safety Fallback settings of shader to Unlit.", "셰이더의 모든 Safety Fallback설정을 Unlit으로 바꿉니다." },
+            { "If you're using liltoon and it looks strange, try restarting Unity and checking back.", "릴툰을 사용중이고 이상하게 보인다면 유니티를 재시작하고 다시 확인해보세요."}
         };
 
             var jpStrings = new Dictionary<string, string>()
@@ -137,7 +138,8 @@ namespace Shell.Protector
             { "Fallback Options", "フォールバックオプション" },
             { "Fallback wait time", "フォールバック待機時間" },
             { "After this time, the fallback is turned off. (Only who is Safety OFF)", "この時間が過ぎると、フォールバック機能がオフになります。( Safety off 相手のみ)" },
-            { "Change all Safety Fallback settings of shader to Unlit.", "シェーダーのすべての Safety Fallback 設定を Unlit に変更します。" }
+            { "Change all Safety Fallback settings of shader to Unlit.", "シェーダーのすべての Safety Fallback 設定を Unlit に変更します。" },
+            { "If you're using liltoon and it looks strange, try restarting Unity and checking back.", "もし「liltoon」を使っていて表示がおかしい場合は、Unityを再起動して確認してみてください。" }
         };
 
             languageMap.Add("kor", koreanStrings);

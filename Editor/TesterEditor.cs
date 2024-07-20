@@ -84,6 +84,7 @@ namespace Shell.Protector
             else
             {
                 GUILayout.Label(Lang("If it looks like its original appearance when pressed, it's a success."));
+                GUILayout.Label(Lang("If you're using liltoon and it looks strange, try restarting Unity and checking back."));
                 if (GUILayout.Button(Lang("Check encryption success")))
                     root.CheckEncryption();
             }
