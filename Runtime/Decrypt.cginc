@@ -1,14 +1,11 @@
 #ifndef Decrypt
 #define Decrypt
+#include "XXTEA.cginc"
 
 static const uint mw[13] = { 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1 };
 static const uint mh[13] = { 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1 };
-static const uint Delta = 0x9e3779b9;
 
 static const uint k[4] = { 0, 0, 0, 0 };
-static const uint ROUNDS = 6;
-static const uint CHACHA20_ROUNDS = 8;
-static const uint SUM = Delta * ROUNDS;
 
 static const uint WOFFSET = 0;
 static const uint HOFFSET = 0;
@@ -25,160 +22,11 @@ half3 GammaCorrection(half3 rgb)
 	return result;
 }
 
-void XXTEADecrypt(inout uint data[3], uint key[4])
-{
-	static const uint n = 3;
-	uint v0, v1, sum;
-	uint p, e;
-	
-	sum = SUM;
-
-	v0 = data[0];
-	for(int i = 0; i < ROUNDS; ++i)
-	{
-		e = (sum >> 2) & 3;
-		for (p = n-1; p > 0; p--)
-		{
-			v1 = data[p - 1];
-			data[p] -= (((v1 >> 5 ^ v0 << 2) + (v0 >> 3 ^ v1 << 4)) ^ ((sum ^ v0) + (key[(p & 3) ^ e] ^ v1)));
-			v0 = data[p];
-		}
-		v1 = data[n - 1];
-		data[0] -= (((v1 >> 5 ^ v0 << 2) + (v0 >> 3 ^ v1 << 4)) ^ ((sum ^ v0) + (key[(p & 3) ^ e] ^ v1)));
-		v0 = data[0];
-		sum -= Delta;
-	}
-}
-void XXTEADecrypt(inout uint data[2], uint key[4])
-{
-	static const uint n = 2;
-	uint v0, v1, sum;
-	uint p, e;
-
-	sum = SUM;
-
-	v0 = data[0];
-	for(int i = 0; i < ROUNDS; ++i)
-	{
-		e = (sum >> 2) & 3;
-		for (p = n-1; p > 0; p--)
-		{
-			v1 = data[p - 1];
-			data[p] -= (((v1 >> 5 ^ v0 << 2) + (v0 >> 3 ^ v1 << 4)) ^ ((sum ^ v0) + (key[(p & 3) ^ e] ^ v1)));
-			v0 = data[p];
-		}
-		v1 = data[n - 1];
-		data[0] -= (((v1 >> 5 ^ v0 << 2) + (v0 >> 3 ^ v1 << 4)) ^ ((sum ^ v0) + (key[(p & 3) ^ e] ^ v1)));
-		v0 = data[0];
-		sum -= Delta;
-	}	
-}
-
 half2 GetUV(int idx, int m, int woffset = 0, int hoffset = 0)
 {
 	int w = idx % mw[m + woffset];
 	int h = idx / mw[m + woffset];
 	return half2((half)w/mw[m + woffset], (half)h/mh[m + hoffset]);
-}
-
-uint Rotl32(uint x, int n)
-{
-    return x << n | (x >> (32 - n));
-}
-
-void Chacha20QuarterRound(inout uint state[16], int a, int b, int c, int d)
-{
-	state[a] += state[b]; state[d] = Rotl32(state[d] ^ state[a], 16);
-	state[c] += state[d]; state[b] = Rotl32(state[b] ^ state[c], 12);
-	state[a] += state[b]; state[d] = Rotl32(state[d] ^ state[a], 8);
-	state[c] += state[d]; state[b] = Rotl32(state[b] ^ state[c], 7);
-}
-
-void Chacha20XOR(inout uint data[2], uint key[4])
-{
-	uint4 state[4];
-	state[0] = uint4(0x61707865, 0x3320646e, 0x79622d32, 0x6b206574);
-	state[1] = uint4(key[0], key[1], key[2], key[3]);
-	state[2] = state[1];
-	state[3] = uint4(1, 0, 0, 0);
-
-	uint block[16];
-	//block
-	[unroll]
-	for(int i = 0; i < 4; ++i)
-	{
-		block[i * 4 + 0] = state[i].x;
-		block[i * 4 + 1] = state[i].y;
-		block[i * 4 + 2] = state[i].z;
-		block[i * 4 + 3] = state[i].w;
-	}
-	[unroll]
-    for (int i = 0; i < CHACHA20_ROUNDS; i += 2)
-    {
-		Chacha20QuarterRound(block, 0, 4, 8, 12);
-		Chacha20QuarterRound(block, 1, 5, 9, 13);
-		Chacha20QuarterRound(block, 2, 6, 10, 14);
-		Chacha20QuarterRound(block, 3, 7, 11, 15);
-		Chacha20QuarterRound(block, 0, 5, 10, 15);
-		Chacha20QuarterRound(block, 1, 6, 11, 12);
-		Chacha20QuarterRound(block, 2, 7, 8, 13);
-		Chacha20QuarterRound(block, 3, 4, 9, 14);
-    }
-	[unroll]
-	for(int i = 0; i < 4; ++i)
-	{
-		block[i * 4 + 0] += state[i].x;
-		block[i * 4 + 1] += state[i].y;
-		block[i * 4 + 2] += state[i].z;
-		block[i * 4 + 3] += state[i].w;
-	}
-	//
-	data[0] ^= block[0];
-	data[1] ^= block[1];
-}
-
-void Chacha20XOR(inout uint data[3], uint key[4])
-{
-	uint4 state[4];
-	state[0] = uint4(0x61707865, 0x3320646e, 0x79622d32, 0x6b206574);
-	state[1] = uint4(key[0], key[1], key[2], key[3]);
-	state[2] = state[1];
-	state[3] = uint4(1, 0, 0, 0);
-
-	uint block[16];
-	//block
-	[unroll]
-	for(int i = 0; i < 4; ++i)
-	{
-		block[i * 4 + 0] = state[i].x;
-		block[i * 4 + 1] = state[i].y;
-		block[i * 4 + 2] = state[i].z;
-		block[i * 4 + 3] = state[i].w;
-	}
-	[unroll]
-    for (int i = 0; i < CHACHA20_ROUNDS; i += 2)
-    {
-		Chacha20QuarterRound(block, 0, 4, 8, 12);
-		Chacha20QuarterRound(block, 1, 5, 9, 13);
-		Chacha20QuarterRound(block, 2, 6, 10, 14);
-		Chacha20QuarterRound(block, 3, 7, 11, 15);
-		Chacha20QuarterRound(block, 0, 5, 10, 15);
-		Chacha20QuarterRound(block, 1, 6, 11, 12);
-		Chacha20QuarterRound(block, 2, 7, 8, 13);
-		Chacha20QuarterRound(block, 3, 4, 9, 14);
-    }
-	[unroll]
-	for(int i = 0; i < 4; ++i)
-	{
-		block[i * 4 + 0] += state[i].x;
-		block[i * 4 + 1] += state[i].y;
-		block[i * 4 + 2] += state[i].z;
-		block[i * 4 + 3] += state[i].w;
-	}
-	//
-	data[0] ^= block[0];
-	data[1] ^= block[1];
-	data[2] ^= block[2];
 }
 
 half4 DecryptTexture(half2 uv, int m)

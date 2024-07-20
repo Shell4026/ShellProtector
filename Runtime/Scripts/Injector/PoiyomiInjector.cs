@@ -46,7 +46,7 @@ namespace Shell.Protector
             if (shader_data == null)
                 return null;
 
-            string declare = @"
+            const string declare = @"
             UNITY_DECLARE_TEX2D(_MainTex);
             UNITY_DECLARE_TEX2D(_MipTex);
             UNITY_DECLARE_TEX2D(_EncryptTex0);
@@ -132,16 +132,22 @@ namespace Shell.Protector
                 Debug.LogErrorFormat("{0} is unsupported Poiyomi version!", mat.name);
                 return null;
             }
-            File.WriteAllText(output_path + '/' + shader_name, shader_data);
+            File.WriteAllText(Path.Combine(output_path, shader_name), shader_data);
 
-            string decode_data = GenerateDecoder(decode_dir, tex);
+            Decoder decoder = GenerateDecoder(decode_dir, tex);
+            string decode_data = decoder.decrypt;
             if (decode_data == null)
                 return null;
 
-            File.WriteAllText(output_path + "/Decrypt.cginc", decode_data);
+            File.WriteAllText(Path.Combine(output_path, "Decrypt.cginc"), decode_data);
+            if(decoder.xxtea != null)
+                File.WriteAllText(Path.Combine(output_path, "XXTEA.cginc"), decoder.xxtea);
+            else if(decoder.chacha != null)
+                File.WriteAllText(Path.Combine(output_path, "Chacha.cginc"), decoder.chacha);
+
             AssetDatabase.Refresh();
 
-            Shader return_shader = AssetDatabase.LoadAssetAtPath(output_path + '/' + shader_name, typeof(Shader)) as Shader;
+            Shader return_shader = AssetDatabase.LoadAssetAtPath(Path.Combine(output_path, shader_name), typeof(Shader)) as Shader;
             return return_shader;
         }
 

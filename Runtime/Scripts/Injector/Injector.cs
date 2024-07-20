@@ -75,6 +75,19 @@ namespace Shell.Protector
         protected Texture2D main_tex;
         protected IEncryptor encryptor;
 
+        protected struct Decoder
+        {
+            public Decoder(string decrypt = null, string xxtea = null, string chacha = null)
+            {
+                this.decrypt = decrypt;
+                this.xxtea = xxtea;
+                this.chacha = chacha;
+            }
+            public string decrypt;
+            public string xxtea;
+            public string chacha;
+        }
+
         public void Init(GameObject target, Texture2D main_tex, byte[] key, int user_key_length, int filter, string asset_dir, IEncryptor encryptor)
         {
             if (key.Length != 16)
@@ -94,13 +107,15 @@ namespace Shell.Protector
             this.encryptor = encryptor;
         }
 
-        protected string GenerateDecoder(string decode_dir, Texture2D tex)
+        protected Decoder GenerateDecoder(string decode_dir, Texture2D tex)
         {
+            string dir = Path.GetDirectoryName(decode_dir);
             string data = File.ReadAllText(decode_dir);
+            
             if (data == null)
             {
                 Debug.LogError("Can't read decode.cginc");
-                return null;
+                return new Decoder();
             }
             string replace;
             string replace2;
@@ -231,20 +246,34 @@ namespace Shell.Protector
                 
 
             data = Regex.Replace(data, "static const uint k\\[4\\] = { 0, 0, 0, 0 };", replace);
+
+            Decoder decoder = new Decoder();
+
+            string cipherData = "";
             if(encryptor is XXTEA xxtea)
             {
-                data = Regex.Replace(data, "static const uint ROUNDS = 6;", "static const uint ROUNDS = " + xxtea.m_rounds + ";");
+                cipherData = File.ReadAllText(Path.Combine(dir, "XXTEA.cginc"));
+                cipherData = Regex.Replace(cipherData, "static const uint ROUNDS = 6;", "static const uint ROUNDS = " + xxtea.m_rounds + ";");
+                
+                decoder.xxtea = cipherData;
             }
+            else if(encryptor is Chacha20 chacha20)
+            {
+                uint[] nonce = chacha20.GetNonceUint3();
+                cipherData = File.ReadAllText(Path.Combine(dir, "Chacha.cginc"));
+                cipherData = Regex.Replace(cipherData, @"state\[3\] = uint4\(1, 0, 0, 0\);", "state[3] = uint4(1, " + nonce[0] + ", " + nonce[1] + ", " + nonce[2] + ");");
+
+                data = Regex.Replace(data, @"XXTEA\.cginc", "Chacha.cginc");
+                data = Regex.Replace(data, @"XXTEADecrypt\(data, key\);", "Chacha20XOR(data, key);");
+
+                decoder.chacha = cipherData;
+            }
+
             data = Regex.Replace(data, "//key make[\\w\\W]*?//key make end", replace2);
             data = Regex.Replace(data, @"\(uint\)\(\(idx >> 1\) << 1\);[\w\W]*?//4idx", "(uint)((idx >> 2) << 2);"); //DecryptRGB
 
-            if(encryptor is Chacha20 chacha20)
-            {
-                uint[] nonce = chacha20.GetNonceUint3();
-                data = Regex.Replace(data, @"state\[3\] = uint4\(1, 0, 0, 0\);", "state[3] = uint4(1, " + nonce[0] + ", " + nonce[1] + ", " + nonce[2] + ");");
-                data = Regex.Replace(data, @"XXTEADecrypt\(data, key\);", "Chacha20XOR(data, key);");
-            }
-            return data;
+            decoder.decrypt = data;
+            return decoder;
         }
 
         public bool WasInjected(Shader shader)

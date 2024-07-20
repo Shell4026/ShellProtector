@@ -73,8 +73,12 @@ namespace Shell.Protector
 
             ChangeShaderName();
 
-            string decode = GenerateDecoder(decode_dir, tex);
-            File.WriteAllText(output_dir + "/Decrypt.cginc", decode);
+            Decoder decoder = GenerateDecoder(decode_dir, tex);
+            File.WriteAllText(Path.Combine(output_dir, "Decrypt.cginc"), decoder.decrypt);
+            if (decoder.xxtea != null)
+                File.WriteAllText(Path.Combine(output_path, "XXTEA.cginc"), decoder.xxtea);
+            else if (decoder.chacha != null)
+                File.WriteAllText(Path.Combine(output_path, "Chacha.cginc"), decoder.chacha);
 
             shader_data = File.ReadAllText(Path.Combine(output_dir, shader_name + ".lilcontainer"));
             shader_data.Insert(0, "//ShellProtect\n");
