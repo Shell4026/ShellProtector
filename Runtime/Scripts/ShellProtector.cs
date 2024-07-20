@@ -721,7 +721,7 @@ namespace Shell.Protector
             {
                 descriptor.gameObject.SetActive(false);
 
-                var newDesriptor = avatar.transform.GetComponentInChildren<ShellProtector>().gameObject;
+                var newDesriptor = avatar.transform.GetComponentInChildren<ShellProtector>(true).gameObject;
                 var tester = newDesriptor.AddComponent<ShellProtectorTester>();
                 tester.lang = lang;
                 tester.lang_idx = lang_idx;
@@ -763,7 +763,7 @@ namespace Shell.Protector
 
         public void CleanComponent(GameObject avatar)
         {
-            DestroyImmediate(avatar.GetComponentInChildren<ShellProtector>());
+            DestroyImmediate(avatar.GetComponentInChildren<ShellProtector>(true));
         }
 
         public void ChangeMaterialsInAnims(GameObject avatar, bool clone)
