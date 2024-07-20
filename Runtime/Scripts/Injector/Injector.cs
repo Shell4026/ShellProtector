@@ -19,6 +19,8 @@ namespace Shell.Protector
 
         protected string shader_code_nofilter = @"
 				half4 mainTexture;
+
+                UNITY_BRANCH
                 if(_fallback == 0)
                 {
 				    half4 mip_texture = _MipTex.Sample(sampler_MipTex, mainUV);
@@ -37,6 +39,8 @@ namespace Shell.Protector
         ";
         protected string shader_code_bilinear = @"
                 half4 mainTexture;
+
+                UNITY_BRANCH
                 if(_fallback == 0)
                 {
 				    half4 mip_texture = _MipTex.Sample(sampler_MipTex, mainUV);
