@@ -79,12 +79,9 @@ namespace Shell.Protector
 
         public bool IsSupportShader(Shader shader)
         {
-            foreach (var version in support_version)
-            {
-                if (shader.name.Contains(version.Key))
-                    return true;
-            }
-            return false;
+            if(GetShaderType(shader) == -1)
+                return false;
+            return true;
         }
 
         public List<string> CheckShader()
