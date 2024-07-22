@@ -58,9 +58,12 @@ namespace lilToon
                 EditorGUILayout.LabelField(GetLoc("ShellProtector"), customToggleFont);
                 EditorGUILayout.BeginVertical(boxInnerHalf);
 
-                m_MaterialEditor.ShaderProperty(mip_tex, "Mip reference texture");
-                m_MaterialEditor.ShaderProperty(encrypted_tex0, "Encrypted texture0");
-                m_MaterialEditor.ShaderProperty(encrypted_tex1, "Encrypted texture1");
+                if (mip_tex != null)
+                    m_MaterialEditor.ShaderProperty(mip_tex, "Mip reference texture");
+                if(encrypted_tex0 != null)
+                    m_MaterialEditor.ShaderProperty(encrypted_tex0, "Encrypted texture0");
+                if (encrypted_tex1 != null)
+                    m_MaterialEditor.ShaderProperty(encrypted_tex1, "Encrypted texture1");
 
                 EditorGUILayout.EndVertical();
                 EditorGUILayout.EndVertical();
@@ -70,6 +73,8 @@ namespace lilToon
 				{
 					for(int i = 0; i < key.Length; ++i)
 					{
+                        if (key[i] == null)
+                            continue;
 						m_MaterialEditor.ShaderProperty(key[i], "Key" + i);
 					}
 				}
