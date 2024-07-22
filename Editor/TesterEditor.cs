@@ -67,10 +67,12 @@ namespace Shell.Protector
             GUILayout.BeginHorizontal();
             if (GUILayout.Button(Lang("Off fallback")))
             {
+                root.ResetEncryption();
                 ShellProtector.SetMaterialFallbackValue(root.transform.root.gameObject, false);
             }
             if (GUILayout.Button(Lang("On fallback")))
             {
+                root.ResetEncryption();
                 ShellProtector.SetMaterialFallbackValue(root.transform.root.gameObject, true);
             }
             GUILayout.EndHorizontal();
