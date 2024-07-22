@@ -118,10 +118,9 @@ namespace Shell.Protector
                     continue;
                 if (filename.Contains("FallbackOff"))
                     continue;
-
+                
                 string path = Path.Combine(new_dir, filename);
-                File.Copy(file, path, true);
-
+                AssetDatabase.CopyAsset(file, path);
                 string anim = File.ReadAllText(path);
 
                 Match match = Regex.Match(filename, "key(\\d+).*?\\.anim");
@@ -161,7 +160,8 @@ namespace Shell.Protector
         public static AnimationClip CreateFallbackAniamtions(string animation_dir, string new_dir, GameObject[] objs)
         {
             string newPath = Path.Combine(new_dir, "FallbackOff.anim");
-            File.Copy(animation_dir, newPath, true);
+
+            AssetDatabase.CopyAsset(animation_dir, newPath);
 
             string anim = File.ReadAllText(newPath);
 
