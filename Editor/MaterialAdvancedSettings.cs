@@ -10,6 +10,7 @@ namespace Shell.Protector
     public class MaterialAdvancedSettings : EditorWindow
     {
         ShellProtector protector;
+        AssetManager assetManager = AssetManager.GetInstance();
         readonly LanguageManager lang = LanguageManager.GetInstance();
 
         Vector2 scroll = Vector2.zero;
@@ -58,18 +59,24 @@ namespace Shell.Protector
                 GUILayout.FlexibleSpace();
                 GUILayout.EndHorizontal();
 
-                
-                if (mainTex == null)
+                if (!assetManager.IsSupportShader(option.Key.shader))
                 {
-                    GUILayout.Label(Lang("The main texture is empty."), redStyle);
+                    GUILayout.Label(Lang("Not supported shader"), redStyle);
                 }
-                else if (
-                    mainTex.format != TextureFormat.DXT1 &&
-                    mainTex.format != TextureFormat.DXT5 &&
-                    mainTex.format != TextureFormat.RGB24 &&
-                    mainTex.format != TextureFormat.RGBA32)
+                else
                 {
-                    GUILayout.Label(Lang("The main texture is not supported format."), redStyle);
+                    if (mainTex == null)
+                    {
+                        GUILayout.Label(Lang("The main texture is empty."), redStyle);
+                    }
+                    else if (
+                        mainTex.format != TextureFormat.DXT1 &&
+                        mainTex.format != TextureFormat.DXT5 &&
+                        mainTex.format != TextureFormat.RGB24 &&
+                        mainTex.format != TextureFormat.RGBA32)
+                    {
+                        GUILayout.Label(Lang("The main texture is not supported format."), redStyle);
+                    }
                 }
             }
             GUILayout.EndScrollView();

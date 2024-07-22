@@ -83,6 +83,7 @@ namespace Shell.Protector
             { "Material advanced settings", "메테리얼 상세 설정" },
             { "The main texture is empty.", "메인 텍스쳐가 비어있습니다." },
             { "The main texture is not supported format.", "메인 텍스쳐가 지원하지 않는 포멧입니다." },
+            { "Not supported shader", "지원하지 않는 셰이더" }
         };
 
             var jpStrings = new Dictionary<string, string>()
@@ -148,6 +149,7 @@ namespace Shell.Protector
             { "Material advanced settings", "マテリアルの詳細設定" },
             { "The main texture is empty.", "mainTextureが空です。" },
             { "The main texture is not supported format.", "mainTextureがサポートしていないフォーマットです。" },
+            { "Not supported shader", "対応していないシェーダー" }
         };
 
             languageMap.Add("kor", koreanStrings);
