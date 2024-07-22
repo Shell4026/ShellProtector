@@ -804,6 +804,7 @@ namespace Shell.Protector
 
             Obfuscator obfuscator = new Obfuscator();
             obfuscator.clone = clone;
+            obfuscator.bPreserveMMD = bPreserveMMD;
 
             var childRenderers = avatar.GetComponentsInChildren<SkinnedMeshRenderer>();
             foreach (var renderer in obfuscationRenderers)

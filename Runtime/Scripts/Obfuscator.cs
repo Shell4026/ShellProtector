@@ -22,6 +22,7 @@ namespace Shell.Protector
         HashSet<string> mmdShapes = new HashSet<string>();
 
         public bool clone = true;
+        public bool bPreserveMMD = true;
 
         public Obfuscator()
         {
@@ -82,11 +83,15 @@ namespace Shell.Protector
                     float weight = mesh.GetBlendShapeFrameWeight(shapeIndex, frameIndex);
                     string blendShapeName = mesh.GetBlendShapeName(shapeIndex);
 
-                    if (mmdShapes.Contains(blendShapeName))
+                    if (bPreserveMMD)
                     {
-                        obfuscatedMesh.AddBlendShapeFrame(blendShapeName, weight, deltaVertices, deltaNormals, deltaTangents);
-                        continue;
+                        if (mmdShapes.Contains(blendShapeName))
+                        {
+                            obfuscatedMesh.AddBlendShapeFrame(blendShapeName, weight, deltaVertices, deltaNormals, deltaTangents);
+                            continue;
+                        }
                     }
+
                     if (obfuscatedBlendShapeNames.ContainsKey(blendShapeName))
                     {
                         blendShapeName = obfuscatedBlendShapeNames[blendShapeName];
