@@ -61,7 +61,7 @@ namespace Shell.Protector
         [SerializeField] int algorithm = 1;
         [SerializeField] int key_size_idx = 3;
         [SerializeField] int key_size = 12;
-        [SerializeField] float animation_speed = 256.0f;
+        [SerializeField] float animation_speed = 128.0f;
         [SerializeField] bool delete_folders = true;
         [SerializeField] bool parameter_multiplexing = false;
         [SerializeField] bool bUseSmallMipTexture = true;
@@ -894,6 +894,41 @@ namespace Shell.Protector
                         }
                     }
                 }
+            }
+        }
+
+        public void DeleteEncyprtedFolders()
+        {
+            if (!Directory.Exists(asset_dir))
+            {
+                Debug.LogError($"The specified path does not exist: {asset_dir}");
+            }
+            else
+            {
+                string[] directories = Directory.GetDirectories(asset_dir);
+                int deletedCount = 0;
+
+                foreach (string dir in directories)
+                {
+                    string folderName = Path.GetFileName(dir);
+                    Debug.Log(folderName);
+                    if (Regex.IsMatch(folderName, @"^-*\d+$"))
+                    {
+                        try
+                        {
+                            AssetDatabase.DeleteAsset(dir);
+                            deletedCount++;
+                            Debug.Log($"Deleted folder: {dir}");
+                        }
+                        catch (System.Exception e)
+                        {
+                            Debug.LogError($"Failed to delete folder {dir}: {e.Message}");
+                        }
+                    }
+                }
+
+                Debug.Log($"Deletion complete. {deletedCount} folders were deleted.");
+                AssetDatabase.Refresh();
             }
         }
     }

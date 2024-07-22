@@ -304,7 +304,7 @@ namespace Shell.Protector
 
                 GUILayout.Label(Lang("Initial animation speed"), EditorStyles.boldLabel);
                 GUILayout.BeginHorizontal();
-                animation_speed.floatValue = GUILayout.HorizontalSlider(animation_speed.floatValue, 1.0f, 256.0f, GUILayout.Width(100));
+                animation_speed.floatValue = GUILayout.HorizontalSlider(animation_speed.floatValue, 1.0f, 128.0f, GUILayout.Width(100));
                 animation_speed.floatValue = EditorGUILayout.FloatField("", animation_speed.floatValue, GUILayout.Width(50));
                 GUILayout.FlexibleSpace();
                 GUILayout.Label(Lang("Avatar first load animation speed"), EditorStyles.wordWrappedLabel);
@@ -403,6 +403,11 @@ namespace Shell.Protector
             modularStyle.wordWrap = true;
             GUILayout.Label(Lang("Modular avatars exist. It is automatically encrypted on upload."), modularStyle);
 #endif
+
+            if (GUILayout.Button(Lang("Delete previously encrypted files")))
+            {
+                root.DeleteEncyprtedFolders();
+            }
 
             debug = EditorGUILayout.Foldout(debug, Lang("Debug"));
             if(debug)
