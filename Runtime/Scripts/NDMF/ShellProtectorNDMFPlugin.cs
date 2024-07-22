@@ -15,7 +15,7 @@ public class ShellProtectorNDMFPlugin : Plugin<ShellProtectorNDMFPlugin>
             Run("Encrypting", ctx =>
             {
                 Debug.Log("Encrypting Shell Protector");
-                var shellProtector = ctx.AvatarRootObject.GetComponentInChildren<ShellProtector>();
+                var shellProtector = ctx.AvatarRootObject.GetComponentInChildren<ShellProtector>(true);
                 if (shellProtector)
                 {
                     shellProtector.Encrypt(isModular: true);
@@ -26,7 +26,7 @@ public class ShellProtectorNDMFPlugin : Plugin<ShellProtectorNDMFPlugin>
             Run("Encrypting2", ctx =>
             {
                 Debug.Log("After encrypting Shell Protector");
-                var shellProtector = ctx.AvatarRootObject.GetComponentInChildren<ShellProtector>();
+                var shellProtector = ctx.AvatarRootObject.GetComponentInChildren<ShellProtector>(true);
                 if (shellProtector)
                 {
                     shellProtector.SetAnimations(ctx.AvatarRootObject, false);
