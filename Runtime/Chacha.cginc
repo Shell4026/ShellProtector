@@ -31,7 +31,8 @@ void Chacha20XOR(inout uint data[2], uint key[4])
 	uint block[16];
 	//block
 	[unroll]
-	for(int i = 0; i < 4; ++i)
+	int i = 0;
+	for(i = 0; i < 4; ++i)
 	{
 		block[i * 4 + 0] = state[i].x;
 		block[i * 4 + 1] = state[i].y;
@@ -39,7 +40,7 @@ void Chacha20XOR(inout uint data[2], uint key[4])
 		block[i * 4 + 3] = state[i].w;
 	}
 	[unroll]
-    for (int i = 0; i < CHACHA20_ROUNDS; i += 2)
+    for (i = 0; i < CHACHA20_ROUNDS; i += 2)
     {
 		Chacha20QuarterRound(block, 0, 4, 8, 12);
 		Chacha20QuarterRound(block, 1, 5, 9, 13);
@@ -51,7 +52,7 @@ void Chacha20XOR(inout uint data[2], uint key[4])
 		Chacha20QuarterRound(block, 3, 4, 9, 14);
     }
 	[unroll]
-	for(int i = 0; i < 4; ++i)
+	for(i = 0; i < 4; ++i)
 	{
 		block[i * 4 + 0] += state[i].x;
 		block[i * 4 + 1] += state[i].y;
@@ -73,8 +74,9 @@ void Chacha20XOR(inout uint data[3], uint key[4])
 
 	uint block[16];
 	//block
+	int i = 0;
 	[unroll]
-	for(int i = 0; i < 4; ++i)
+	for(i = 0; i < 4; ++i)
 	{
 		block[i * 4 + 0] = state[i].x;
 		block[i * 4 + 1] = state[i].y;
@@ -82,7 +84,7 @@ void Chacha20XOR(inout uint data[3], uint key[4])
 		block[i * 4 + 3] = state[i].w;
 	}
 	[unroll]
-    for (int i = 0; i < CHACHA20_ROUNDS; i += 2)
+    for (i = 0; i < CHACHA20_ROUNDS; i += 2)
     {
 		Chacha20QuarterRound(block, 0, 4, 8, 12);
 		Chacha20QuarterRound(block, 1, 5, 9, 13);
@@ -94,7 +96,7 @@ void Chacha20XOR(inout uint data[3], uint key[4])
 		Chacha20QuarterRound(block, 3, 4, 9, 14);
     }
 	[unroll]
-	for(int i = 0; i < 4; ++i)
+	for(i = 0; i < 4; ++i)
 	{
 		block[i * 4 + 0] += state[i].x;
 		block[i * 4 + 1] += state[i].y;
