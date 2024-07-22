@@ -43,7 +43,6 @@ namespace Shell.Protector
         bool fallbackOption = true;
 
         readonly string[] languages = new string[3];
-        readonly string[] filters = new string[2];
         readonly string[] enc_funcs = new string[2];
         readonly string[] key_lengths = new string[5];
 
@@ -117,9 +116,6 @@ namespace Shell.Protector
             fallbackTime = serializedObject.FindProperty("fallbackTime");
             turnOnAllSafetyFallback = serializedObject.FindProperty("turnOnAllSafetyFallback");
             #endregion
-
-            filters[0] = "Point";
-            filters[1] = "Bilinear";
 
             enc_funcs[0] = "XXTEA";
             enc_funcs[1] = "Chacha8";
@@ -255,6 +251,10 @@ namespace Shell.Protector
             serializedObject.Update();
             game_object_list.DoLayoutList();
             material_list.DoLayoutList();
+            if(GUILayout.Button(Lang("Material advanced settings")))
+            {
+                MaterialAdvancedSettings.ShowWindow(root);
+            }
 
             #region Options
             option = EditorGUILayout.Foldout(option, Lang("Options"));
@@ -298,8 +298,8 @@ namespace Shell.Protector
                 }
                 GUILayout.Space(10);
 
-                GUILayout.Label(Lang("Texture filter"), EditorStyles.boldLabel);
-                filter.intValue = EditorGUILayout.Popup(filter.intValue, filters, GUILayout.Width(100));
+                GUILayout.Label(Lang("Default texture filter"), EditorStyles.boldLabel);
+                filter.intValue = EditorGUILayout.Popup(filter.intValue, ShellProtector.filterStrings, GUILayout.Width(100));
                 GUILayout.Label(Lang("Setting it to 'Point' may result in aliasing, but performance is better."), EditorStyles.wordWrappedLabel);
 
                 GUILayout.Label(Lang("Initial animation speed"), EditorStyles.boldLabel);

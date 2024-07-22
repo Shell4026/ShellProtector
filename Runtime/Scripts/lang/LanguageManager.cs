@@ -32,7 +32,7 @@ namespace Shell.Protector
             { "Generate", "자동 생성" },
             { "Options", "옵션" },
             { "Encrytion algorithm", "암호 알고리즘" },
-            { "Texture filter", "텍스쳐 필터" },
+            { "Default texture filter", "기본 텍스쳐 필터" },
             { "Encrypt!", "암호화 시작!" },
             { "Debug", "디버그" },
             { "XXTEA test", "XXTEA 테스트" },
@@ -79,7 +79,10 @@ namespace Shell.Protector
             { "After this time, the fallback is turned off. (Only who is Safety OFF)", "이 시간이 지나면 폴백 기능이 꺼집니다. (세이프티 꺼진 상대만)" },
             { "Change all Safety Fallback settings of shader to Unlit.", "셰이더의 모든 Safety Fallback설정을 Unlit으로 바꿉니다." },
             { "It looks strange, try restarting Unity and checking back.", "이상하게 보인다면 유니티를 재시작하고 다시 확인해보세요."},
-            { "Delete previously encrypted files", "이전에 암호화 했던 파일들 삭제" }
+            { "Delete previously encrypted files", "이전에 암호화 했던 파일들 삭제" },
+            { "Material advanced settings", "메테리얼 상세 설정" },
+            { "The main texture is empty.", "메인 텍스쳐가 비어있습니다." },
+            { "The main texture is not supported format.", "메인 텍스쳐가 지원하지 않는 포멧입니다." },
         };
 
             var jpStrings = new Dictionary<string, string>()
@@ -94,7 +97,7 @@ namespace Shell.Protector
             { "Generate", "自動生成" },
             { "Options", "オプション" },
             { "Encrytion algorithm", "パスワードアルゴリズム" },
-            { "Texture filter", "テクスチャフィルター" },
+            { "Default texture filter", "基本テクスチャフィルター" },
             { "Encrypt!", "暗号化開始！" },
             { "Debug", "デバッグ" },
             { "XXTEA test", "XXTEA test" },
@@ -141,7 +144,10 @@ namespace Shell.Protector
             { "After this time, the fallback is turned off. (Only who is Safety OFF)", "この時間が過ぎると、フォールバック機能がオフになります。( Safety off 相手のみ)" },
             { "Change all Safety Fallback settings of shader to Unlit.", "シェーダーのすべての Safety Fallback 設定を Unlit に変更します。" },
             { "It looks strange, try restarting Unity and checking back.", "おかしい場合は、Unityを再起動してもう一度確認してください。" },
-            { "Delete previously encrypted files", "過去に暗号化されたファイルを削除する" }
+            { "Delete previously encrypted files", "過去に暗号化されたファイルを削除する" },
+            { "Material advanced settings", "マテリアルの詳細設定" },
+            { "The main texture is empty.", "mainTextureが空です。" },
+            { "The main texture is not supported format.", "mainTextureがサポートしていないフォーマットです。" },
         };
 
             languageMap.Add("kor", koreanStrings);

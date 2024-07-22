@@ -32,6 +32,7 @@ namespace Shell.Protector
         EncryptTexture encrypt = new EncryptTexture();
         Injector injector;
         AssetManager shader_manager = AssetManager.GetInstance();
+        bool init = false;
 
         public string asset_dir = "Assets/ShellProtect";
         public string pwd = "password"; // fixed password
@@ -39,8 +40,12 @@ namespace Shell.Protector
         public int lang_idx = 0;
         public string lang = "kor";
         public VRCAvatarDescriptor descriptor;
-
-        bool init = false;
+        public class MatOption
+        {
+            public bool active = true;
+            public int filter = -1;
+        }
+        public Dictionary<Material, MatOption> matOptions = new Dictionary<Material, MatOption>();
 
         struct ProcessedTexture
         {
@@ -70,6 +75,8 @@ namespace Shell.Protector
 
         [SerializeField] float fallbackTime = 5.0f;
         [SerializeField] bool turnOnAllSafetyFallback = true;
+
+        public static readonly string[] filterStrings = new string[2] { "Point", "Bilinear" };
 
         public void Init()
         {
@@ -409,7 +416,19 @@ namespace Shell.Protector
                 if (!ConditionCheck(mat))
                     continue;
 
-                Debug.LogFormat("{0} : start encrypt...", mat.name);
+                Debug.LogFormat("{0} : Start encrypt...", mat.name);
+
+                int filter = this.filter;
+                MatOption option = matOptions.GetValueOrDefault(mat, null);
+                if (option != null)
+                {
+                    if (option.active == false)
+                    {
+                        Debug.LogFormat("{0} : Skip", mat.name);
+                        continue;
+                    }
+                    filter = option.filter;
+                }
 
                 Texture2D main_texture = (Texture2D)mat.mainTexture;
                 injector.Init(descriptor.gameObject, main_texture, key_bytes, key_size, filter, asset_dir, encryptor);
@@ -912,7 +931,6 @@ namespace Shell.Protector
                 foreach (string dir in directories)
                 {
                     string folderName = Path.GetFileName(dir);
-                    Debug.Log(folderName);
                     if (Regex.IsMatch(folderName, @"^-*\d+$"))
                     {
                         try
@@ -931,6 +949,11 @@ namespace Shell.Protector
                 Debug.Log($"Deletion complete. {deletedCount} folders were deleted.");
                 AssetDatabase.Refresh();
             }
+        }
+
+        public int GetDefaultFilter()
+        {
+            return filter;
         }
     }
 }
