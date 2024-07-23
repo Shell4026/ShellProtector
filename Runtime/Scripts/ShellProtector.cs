@@ -560,6 +560,8 @@ namespace Shell.Protector
                 try
                 {
                     encrypted_shader = injector.Inject(mat, Path.Combine(asset_dir, "Decrypt.cginc"), encrypted_shader_path, encrypted_tex[0], limTexture != null, limTexture2 != null, outlineTexture != null);
+                    Selection.activeObject = encrypted_shader;
+                    EditorApplication.ExecuteMenuItem("Assets/Reimport");
                     if (encrypted_shader == null)
                     {
                         Debug.LogErrorFormat("{0}: Injection failed", mat.name);
