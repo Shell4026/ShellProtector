@@ -825,6 +825,8 @@ namespace Shell.Protector
                 var maMergeAnims = avatar.GetComponentsInChildren<ModularAvatarMergeAnimator>(true);
                 foreach (var maMergeAnim in maMergeAnims)
                 {
+                    if (maMergeAnim.animator == null)
+                        continue;
                     foreach (var pair in encryptedMaterials)
                     {
                         animManager.ChangeAnimationMaterial(maMergeAnim.animator as AnimatorController, pair.Key, pair.Value, clone, animationDir);
@@ -944,6 +946,15 @@ namespace Shell.Protector
                         }
 
                         maBlendshapeSync.Bindings[i] = binding;
+                    }
+                }
+
+                if(!modular)
+                {
+                    var maMergeAnims = avatar.GetComponentsInChildren<ModularAvatarMergeAnimator>(true);
+                    foreach (var maMergeAnim in maMergeAnims)
+                    {
+                        obfuscator.ObfuscateBlendshapeInAnim(maMergeAnim.animator as AnimatorController, selectRenderer.gameObject, animDir);
                     }
                 }
 #endif
