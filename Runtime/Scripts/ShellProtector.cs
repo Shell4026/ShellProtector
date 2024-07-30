@@ -12,6 +12,10 @@ using System.Linq;
 using VRC.SDKBase;
 using UnityEditor.Animations;
 
+#if MODULAR
+using nadena.dev.modular_avatar.core;
+#endif
+
 #if POIYOMI
 using Thry;
 #endif
@@ -751,7 +755,7 @@ namespace Shell.Protector
                 Selection.activeObject = tester;
 
                 SetAnimations(avatar, true);
-                ObfuscateBlendShape(avatar, true);
+                ObfuscateBlendShape(avatar, false);
                 ChangeMaterialsInAnims(avatar, true);
                 CleanComponent(avatar);    
             }
@@ -817,17 +821,21 @@ namespace Shell.Protector
             return av3.baseAnimationLayers[4].animatorController as AnimatorController;
         }
 
-        public void ObfuscateBlendShape(GameObject avatar, bool clone)
+        public void ObfuscateBlendShape(GameObject avatar, bool modular)
         {
             var av3 = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
             AnimatorController fx = Getfx(avatar);
             string animDir = Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString(), "animations");
 
             Obfuscator obfuscator = new Obfuscator();
-            obfuscator.clone = clone;
+            obfuscator.clone = !modular;
             obfuscator.bPreserveMMD = bPreserveMMD;
 
             var childRenderers = avatar.GetComponentsInChildren<SkinnedMeshRenderer>();
+
+#if MODULAR
+            var maBlendshapeSyncs = avatar.GetComponentsInChildren<ModularAvatarBlendshapeSync>(true);
+#endif
             foreach (var renderer in obfuscationRenderers)
             {
                 SkinnedMeshRenderer selectRenderer = null;
@@ -865,7 +873,33 @@ namespace Shell.Protector
                     selectRenderer.SetBlendShapeWeight(i, weights[obList[i]]);
                 }
                 /////////////////////////////////
-                obfuscator.ObfuscateBlendshapeInAnim(fx, animDir);
+#if MODULAR
+                //Change MA Blendshape Sync component
+                foreach (var maBlendshapeSync in maBlendshapeSyncs)
+                {
+                    for (int i = 0; i < maBlendshapeSync.Bindings.Count; ++i)
+                    {
+                        var binding = maBlendshapeSync.Bindings[i];
+
+                        GameObject targetObject = binding.ReferenceMesh.Get(maBlendshapeSync);
+                        SkinnedMeshRenderer targetRenderer = targetObject.GetComponent<SkinnedMeshRenderer>();
+                        SkinnedMeshRenderer syncRenderer = maBlendshapeSync.GetComponent<SkinnedMeshRenderer>();
+                        if (targetRenderer == null)
+                            continue;
+
+                        if (syncRenderer != null)
+                        {
+                            if (syncRenderer == selectRenderer)
+                                binding.LocalBlendshape = obfuscator.GetOriginalBlendShapeName(binding.LocalBlendshape);
+                        }
+                        if (targetRenderer.sharedMesh == newMesh)
+                            binding.Blendshape = obfuscator.GetOriginalBlendShapeName(binding.Blendshape);
+
+                        maBlendshapeSync.Bindings[i] = binding;
+                    }
+                }
+#endif
+                obfuscator.ObfuscateBlendshapeInAnim(fx, selectRenderer.gameObject, animDir);
                 obfuscator.ChangeObfuscatedBlendShapeInDescriptor(av3);
                 obfuscator.Clean();
             }

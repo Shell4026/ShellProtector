@@ -4,6 +4,7 @@
     "references": [
         "VRC.SDK3A",
         "VRC.SDKBase",
+        "nadena.dev.modular-avatar.core",
         "nadena.dev.ndmf",
         "ThryAssemblyDefinition",
         "ThryEditor"

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
@@ -136,7 +137,7 @@ namespace Shell.Protector
             
         }
 
-        public void ObfuscateBlendshapeInAnim(AnimatorController anim, string newDir)
+        public void ObfuscateBlendshapeInAnim(AnimatorController anim, GameObject obj, string newDir)
         {
             if (anim == null)
                 return;
@@ -153,16 +154,16 @@ namespace Shell.Protector
                 var stateMachine = layer.stateMachine;
                 if (stateMachine == null)
                     continue;
-                SearchStateMachine(stateMachine);
+                SearchStateMachine(stateMachine, obj);
             }
         }
 
-        void SearchStateMachine(AnimatorStateMachine stateMachine)
+        void SearchStateMachine(AnimatorStateMachine stateMachine, GameObject obj)
         {
             for (int i = 0; i < stateMachine.states.Length; i++)
             {
                 ChildAnimatorState state = stateMachine.states[i];
-                AnimationClip clip = SearchMotion(state.state.motion);
+                AnimationClip clip = SearchMotion(state.state.motion, obj);
                 if (clip != null)
                 {
                     state.state.motion = clip;
@@ -172,15 +173,15 @@ namespace Shell.Protector
 
             foreach (ChildAnimatorStateMachine childStateMachine in stateMachine.stateMachines)
             {
-                SearchStateMachine(childStateMachine.stateMachine);
+                SearchStateMachine(childStateMachine.stateMachine, obj);
             }
         }
 
-        AnimationClip SearchMotion(Motion motion)
+        AnimationClip SearchMotion(Motion motion, GameObject obj)
         {
             if (motion is AnimationClip clip)
             {
-                var tmp = ChangeBlendShapeInClip(clip);
+                var tmp = ChangeBlendShapeInClip(clip, obj);
                 if (clip == tmp)
                     return null;
                 return tmp;
@@ -190,7 +191,7 @@ namespace Shell.Protector
                 for (int i = 0; i < blendTree.children.Length; ++i)
                 {
                     ChildMotion childMotion = blendTree.children[i];
-                    var result = SearchMotion(childMotion.motion);
+                    var result = SearchMotion(childMotion.motion, obj);
                     if (result != null)
                     {
                         childMotion.motion = result;
@@ -203,19 +204,25 @@ namespace Shell.Protector
             }
             return null;
         }
-        public AnimationClip ChangeBlendShapeInClip(AnimationClip clip)
+        public AnimationClip ChangeBlendShapeInClip(AnimationClip clip, GameObject obj)
         {
             bool detect = false;
             EditorCurveBinding[] bindings = AnimationUtility.GetCurveBindings(clip);
+            Regex re = new Regex(".*?/(.*)");
 
             foreach (EditorCurveBinding binding in bindings)
             {
                 if (binding.type == typeof(SkinnedMeshRenderer) && binding.propertyName.StartsWith("blendShape."))
                 {
+                    Match m = re.Match(obj.transform.GetHierarchyPath());
+                    string hierarchyPath = m.Groups[1].Value;
+                    
+                    if (binding.path != hierarchyPath)
+                        continue;
                     string blendShapeName = binding.propertyName.Substring("blendShape.".Length);
                     if (obfuscatedBlendShapeNames.ContainsKey(blendShapeName))
                     {
-                        Debug.LogFormat("find: {0} in {1}", blendShapeName, clip.name);
+                        Debug.LogFormat("find: {0},{1} in {2}", binding.path, blendShapeName, clip.name);
                         detect = true;
                         break;
                     }
@@ -246,21 +253,26 @@ namespace Shell.Protector
             {
                 if (binding.type == typeof(SkinnedMeshRenderer) && binding.propertyName.StartsWith("blendShape."))
                 {
-                    string blendShapeName = binding.propertyName.Substring("blendShape.".Length);
-                    if (obfuscatedBlendShapeNames.ContainsKey(blendShapeName))
-                    {
-                        string newBlendShapeName = obfuscatedBlendShapeNames[blendShapeName];
-                        EditorCurveBinding newBinding = new EditorCurveBinding
-                        {
-                            path = binding.path,
-                            propertyName = $"blendShape.{newBlendShapeName}",
-                            type = binding.type
-                        };
+                    Match m = re.Match(obj.transform.GetHierarchyPath());
+                    string hierarchyPath = m.Groups[1].Value;
 
-                        AnimationCurve curve = AnimationUtility.GetEditorCurve(newClip, binding);
-                        AnimationUtility.SetEditorCurve(newClip, binding, null);
-                        AnimationUtility.SetEditorCurve(newClip, newBinding, curve);
-                    }
+                    string blendShapeName = binding.propertyName.Substring("blendShape.".Length);
+                    
+                    if (binding.path != hierarchyPath)
+                        continue;
+                    if (!obfuscatedBlendShapeNames.ContainsKey(blendShapeName))
+                        continue;
+                    string newBlendShapeName = obfuscatedBlendShapeNames[blendShapeName];
+                    EditorCurveBinding newBinding = new EditorCurveBinding
+                    {
+                        path = binding.path,
+                        propertyName = $"blendShape.{newBlendShapeName}",
+                        type = binding.type
+                    };
+
+                    AnimationCurve curve = AnimationUtility.GetEditorCurve(newClip, binding);
+                    AnimationUtility.SetEditorCurve(newClip, binding, null);
+                    AnimationUtility.SetEditorCurve(newClip, newBinding, curve);
                 }
             }
             return newClip;
@@ -269,6 +281,13 @@ namespace Shell.Protector
         public IList<int> GetObfuscatedBlendShapeIndex()
         {
             return obfuscatedBlendShapeIndex.AsReadOnly();
+        }
+
+        public string GetOriginalBlendShapeName(string obfuscatedBlendShape)
+        {
+            if (!obfuscatedBlendShapeNames.ContainsKey(obfuscatedBlendShape))
+                return null;
+            return obfuscatedBlendShapeNames[obfuscatedBlendShape];
         }
     }
 }
