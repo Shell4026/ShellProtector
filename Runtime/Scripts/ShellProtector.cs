@@ -31,7 +31,7 @@ namespace Shell.Protector
         [SerializeField]
         List<Texture2D> texture_list = new List<Texture2D>();
         [SerializeField]
-        List<SkinnedMeshRenderer> obfuscationRenderers = new();
+        List<SkinnedMeshRenderer> obfuscationRenderers = new List<SkinnedMeshRenderer>();
 
         EncryptTexture encrypt = new EncryptTexture();
         Injector injector;
@@ -62,7 +62,7 @@ namespace Shell.Protector
         //Must clear them before start encrypting//
         HashSet<GameObject> meshes = new HashSet<GameObject>();
         Dictionary<Material, Material> encryptedMaterials = new Dictionary<Material, Material>();
-        Dictionary<Texture2D, ProcessedTexture> processedTextures = new();
+        Dictionary<Texture2D, ProcessedTexture> processedTextures = new Dictionary<Texture2D, ProcessedTexture>();
         //////////////////////////////////
 
         [SerializeField] uint rounds = 20;
@@ -87,7 +87,7 @@ namespace Shell.Protector
             if (init)
                 return;
 
-            HashSet<SkinnedMeshRenderer> rednererSet = new();
+            HashSet<SkinnedMeshRenderer> rednererSet = new HashSet<SkinnedMeshRenderer>();
             Transform child = descriptor.transform.Find("Body");
             if (child != null)
             {
@@ -423,7 +423,13 @@ namespace Shell.Protector
                 Debug.LogFormat("{0} : Start encrypt...", mat.name);
 
                 int filter = this.filter;
+#if UNITY_2022
                 MatOption option = matOptions.GetValueOrDefault(mat, null);
+#else
+                MatOption option = null;
+                if (matOptions.ContainsKey(mat))
+                    option = matOptions[mat];
+#endif
                 if (option != null)
                 {
                     if (option.active == false)
@@ -797,7 +803,7 @@ namespace Shell.Protector
             var fx = av3.baseAnimationLayers[4].animatorController as AnimatorController;
             string animationDir = Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString(), "animations");
 
-            AnimatorManager animManager = new();
+            AnimatorManager animManager = new AnimatorManager();
             foreach (var pair in encryptedMaterials)
             {
                 Debug.LogFormat("{0}, {1}", pair.Key.name, pair.Value.name);
@@ -860,7 +866,7 @@ namespace Shell.Protector
                 selectRenderer.sharedMesh = newMesh;
 
                 ////////Change renderer component shape keys////////
-                List<float> weights = new();
+                List<float> weights = new List<float>();
                 for (int i = 0; i < newMesh.blendShapeCount; ++i)
                 {
                     weights.Add(selectRenderer.GetBlendShapeWeight(i));

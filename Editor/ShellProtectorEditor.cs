@@ -290,9 +290,15 @@ namespace Shell.Protector
                 {
                     GUILayout.Label(Lang("Rounds"), EditorStyles.boldLabel);
                     GUILayout.BeginHorizontal();
+#if UNITY_2022
                     rounds.uintValue = (uint)Mathf.RoundToInt(GUILayout.HorizontalSlider(rounds.uintValue, 6, 32, GUILayout.Width(100)));
                     rounds.uintValue = (uint)EditorGUILayout.IntField("", (int)rounds.uintValue, GUILayout.Width(50));
                     rounds.uintValue = Math.Clamp(rounds.uintValue, 6, 32);
+#else
+                    rounds.intValue = Mathf.RoundToInt(GUILayout.HorizontalSlider(rounds.intValue, 6, 32, GUILayout.Width(100)));
+                    rounds.intValue = EditorGUILayout.IntField("", (int)rounds.intValue, GUILayout.Width(50));
+                    rounds.intValue = Mathf.Clamp(rounds.intValue, 6, 32);
+#endif
                     GUILayout.FlexibleSpace();
                     GUILayout.EndHorizontal();
                     GUILayout.Label(Lang("Number of encryption iterations. Higher values provide better security, but at the expense of performance."), EditorStyles.wordWrappedLabel);
@@ -361,8 +367,10 @@ namespace Shell.Protector
                 GUILayout.BeginHorizontal();
                 fallbackTime.floatValue = GUILayout.HorizontalSlider(fallbackTime.floatValue, 0.0f, 10.0f, GUILayout.Width(100));
                 fallbackTime.floatValue = EditorGUILayout.FloatField("", fallbackTime.floatValue, GUILayout.Width(50));
-                fallbackTime.floatValue = Math.Clamp(fallbackTime.floatValue, 0.0f, 10.0f);
+                fallbackTime.floatValue = Mathf.Clamp(fallbackTime.floatValue, 0.0f, 10.0f);
+#if UNITY_2022
                 fallbackTime.floatValue = MathF.Round(fallbackTime.floatValue, 1);
+#endif
                 GUILayout.FlexibleSpace();
                 GUILayout.Label(Lang("After this time, the fallback is turned off. (Only who is Safety OFF)"), EditorStyles.wordWrappedLabel);
                 GUILayout.EndHorizontal();
@@ -375,7 +383,7 @@ namespace Shell.Protector
                 GUILayout.FlexibleSpace();
                 GUILayout.EndHorizontal();
             }
-            #endregion
+#endregion
 
             if (free_parameter - using_parameter < 0)
             {

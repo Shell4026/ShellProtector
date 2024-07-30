@@ -15,8 +15,8 @@ namespace Shell.Protector
             int w_level, h_level;
             if (w < 1 || h <= 1)
                 return 0;
-            w_level = (int)MathF.Log(w, 2);
-            h_level = (int)MathF.Log(h, 2);
+            w_level = (int)Mathf.Log(w, 2);
+            h_level = (int)Mathf.Log(h, 2);
             return Math.Max(w_level, h_level);
         }
         public int GetDXT1Length(int w, int h, int m)

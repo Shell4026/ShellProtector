@@ -17,8 +17,11 @@ namespace Shell.Protector
 
         public static void ShowWindow(ShellProtector protector)
         {
+#if UNITY_2022
             Rect main = EditorGUIUtility.GetMainWindowPosition();
-
+#else
+            Rect main = new Rect(0, 0, 1024, 768);
+#endif
             MaterialAdvancedSettings window = GetWindow<MaterialAdvancedSettings>("Material advanced settings");
             Rect pos = window.position;
             pos.x = main.x + main.width / 2 - 200;

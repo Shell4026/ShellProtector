@@ -17,9 +17,9 @@ namespace Shell.Protector
     {
         string animDir = "";
 
-        Dictionary<string, string> obfuscatedBlendShapeNames = new();
-        List<int> obfuscatedBlendShapeIndex = new();
-        Dictionary<AnimationClip, AnimationClip> obfuscatedClip = new();
+        Dictionary<string, string> obfuscatedBlendShapeNames = new Dictionary<string, string>();
+        List<int> obfuscatedBlendShapeIndex = new List<int>();
+        Dictionary<AnimationClip, AnimationClip> obfuscatedClip = new Dictionary<AnimationClip, AnimationClip>();
         HashSet<string> mmdShapes = new HashSet<string>();
 
         public bool clone = true;
