@@ -12,7 +12,7 @@ namespace Shell.Protector
 {
     public class AnimatorManager : ScriptableObject
     {
-        Dictionary<AnimationClip, AnimationClip> encryptedClip = new();
+        Dictionary<AnimationClip, AnimationClip> encryptedClip = new Dictionary<AnimationClip, AnimationClip>();
 
         static string curve1 = @"
   - curve:
