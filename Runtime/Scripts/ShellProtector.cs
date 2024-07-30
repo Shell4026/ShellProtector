@@ -812,10 +812,10 @@ namespace Shell.Protector
             }
 
 #if MODULAR
-            if(clone)
+            if (clone)
             {
                 var maMergeAnims = avatar.GetComponentsInChildren<ModularAvatarMergeAnimator>(true);
-                foreach(var maMergeAnim in maMergeAnims)
+                foreach (var maMergeAnim in maMergeAnims)
                 {
                     foreach (var pair in encryptedMaterials)
                     {
@@ -869,7 +869,7 @@ namespace Shell.Protector
                 }
             }
 #endif
-                foreach (var renderer in obfuscationRenderers)
+            foreach (var renderer in obfuscationRenderers)
             {
                 SkinnedMeshRenderer selectRenderer = null;
                 foreach (var childRenderer in childRenderers)
