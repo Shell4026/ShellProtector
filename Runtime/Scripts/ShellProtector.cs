@@ -14,6 +14,7 @@ using UnityEditor.Animations;
 
 #if MODULAR
 using nadena.dev.modular_avatar.core;
+
 #endif
 
 #if POIYOMI
@@ -840,9 +841,21 @@ namespace Shell.Protector
             var childRenderers = avatar.GetComponentsInChildren<SkinnedMeshRenderer>();
 
 #if MODULAR
+            //Check localblendshape is empty in MA Blendshape Sync
             var maBlendshapeSyncs = avatar.GetComponentsInChildren<ModularAvatarBlendshapeSync>(true);
+            foreach (var maBlendshapeSync in maBlendshapeSyncs)
+            {
+                for (int i = 0; i < maBlendshapeSync.Bindings.Count; ++i)
+                {
+                    var binding = maBlendshapeSync.Bindings[i];
+                    if (binding.LocalBlendshape == null || binding.LocalBlendshape == "")
+                        binding.LocalBlendshape = string.Copy(binding.Blendshape);
+
+                    maBlendshapeSync.Bindings[i] = binding;
+                }
+            }
 #endif
-            foreach (var renderer in obfuscationRenderers)
+                foreach (var renderer in obfuscationRenderers)
             {
                 SkinnedMeshRenderer selectRenderer = null;
                 foreach (var childRenderer in childRenderers)
@@ -873,7 +886,6 @@ namespace Shell.Protector
                     selectRenderer.SetBlendShapeWeight(i, 0.0f);
                 }
                 var obList = obfuscator.GetObfuscatedBlendShapeIndex();
-                Debug.LogFormat("size: {0}, {1}", newMesh.blendShapeCount, obList.Count);
                 for (int i = 0; i < newMesh.blendShapeCount; ++i)
                 {
                     selectRenderer.SetBlendShapeWeight(i, weights[obList[i]]);
@@ -890,16 +902,24 @@ namespace Shell.Protector
                         GameObject targetObject = binding.ReferenceMesh.Get(maBlendshapeSync);
                         SkinnedMeshRenderer targetRenderer = targetObject.GetComponent<SkinnedMeshRenderer>();
                         SkinnedMeshRenderer syncRenderer = maBlendshapeSync.GetComponent<SkinnedMeshRenderer>();
+
                         if (targetRenderer == null)
                             continue;
-
-                        if (syncRenderer != null)
+                        if (targetRenderer == selectRenderer)
                         {
-                            if (syncRenderer == selectRenderer)
+                            string obfuscatedShape = obfuscator.GetOriginalBlendShapeName(binding.Blendshape);
+                            if (obfuscatedShape != null)
+                                binding.Blendshape = obfuscatedShape;
+                        }
+
+                        if (syncRenderer == null)
+                            continue;
+                        if (syncRenderer == selectRenderer)
+                        {
+                            string obfuscatedShape = obfuscator.GetOriginalBlendShapeName(binding.LocalBlendshape);
+                            if (obfuscatedShape != null)
                                 binding.LocalBlendshape = obfuscator.GetOriginalBlendShapeName(binding.LocalBlendshape);
                         }
-                        if (targetRenderer.sharedMesh == newMesh)
-                            binding.Blendshape = obfuscator.GetOriginalBlendShapeName(binding.Blendshape);
 
                         maBlendshapeSync.Bindings[i] = binding;
                     }
