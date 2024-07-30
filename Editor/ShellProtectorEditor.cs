@@ -251,6 +251,7 @@ namespace Shell.Protector
             serializedObject.Update();
             game_object_list.DoLayoutList();
             material_list.DoLayoutList();
+            GUILayout.Label(Lang("Encrypting too many objects can cause lag when loading avatars in-game."));
             if(GUILayout.Button(Lang("Material advanced settings")))
             {
                 MaterialAdvancedSettings.ShowWindow(root);
