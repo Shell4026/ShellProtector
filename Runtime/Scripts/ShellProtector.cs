@@ -810,6 +810,20 @@ namespace Shell.Protector
                 Debug.LogFormat("{0}, {1}", pair.Key.name, pair.Value.name);
                 animManager.ChangeAnimationMaterial(fx, pair.Key, pair.Value, clone, animationDir);
             }
+
+#if MODULAR
+            if(clone)
+            {
+                var maMergeAnims = avatar.GetComponentsInChildren<ModularAvatarMergeAnimator>(true);
+                foreach(var maMergeAnim in maMergeAnims)
+                {
+                    foreach (var pair in encryptedMaterials)
+                    {
+                        animManager.ChangeAnimationMaterial(maMergeAnim.animator as AnimatorController, pair.Key, pair.Value, clone, animationDir);
+                    }
+                }
+            }
+#endif
         }
 
         public VRCExpressionParameters GetParameter()
