@@ -761,6 +761,14 @@ namespace Shell.Protector
                 tester.user_key_length = key_size;
                 Selection.activeObject = tester;
 
+#if MODULAR
+                var maMergeAnims = avatar.GetComponentsInChildren<ModularAvatarMergeAnimator>(true);
+                foreach (var maMergeAnim in maMergeAnims)
+                {
+                    AnimatorController newAnim = AnimatorManager.DuplicateAnimator(maMergeAnim.animator, Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString()));
+                    maMergeAnim.animator = newAnim;
+                }
+#endif
                 SetAnimations(avatar, true);
                 ObfuscateBlendShape(avatar, false);
                 ChangeMaterialsInAnims(avatar, true);
