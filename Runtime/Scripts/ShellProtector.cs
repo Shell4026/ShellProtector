@@ -1012,6 +1012,29 @@ namespace Shell.Protector
             }
         }
 
+        public int GetEncyryptedFoldersCount()
+        {
+            if (!Directory.Exists(asset_dir))
+            {
+                Debug.LogError($"The specified path does not exist: {asset_dir}");
+                return 0;
+            }
+            else
+            {
+                string[] directories = Directory.GetDirectories(asset_dir);
+                int deletedCount = 0;
+
+                foreach (string dir in directories)
+                {
+                    string folderName = Path.GetFileName(dir);
+                    if (Regex.IsMatch(folderName, @"^-*\d+$"))
+                    {
+                        deletedCount++;
+                    }
+                }
+                return deletedCount;
+            }
+        }
         public void DeleteEncyprtedFolders()
         {
             if (!Directory.Exists(asset_dir))

@@ -413,7 +413,7 @@ namespace Shell.Protector
             GUILayout.Label(Lang("Modular avatars exist. It is automatically encrypted on upload."), modularStyle);
 #endif
 
-            if (GUILayout.Button(Lang("Delete previously encrypted files")))
+            if (GUILayout.Button(Lang("Delete previously encrypted files") + String.Format("({0})", root.GetEncyryptedFoldersCount())))
             {
                 root.DeleteEncyprtedFolders();
             }
