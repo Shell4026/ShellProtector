@@ -20,7 +20,7 @@ OSC 소스 코드: https://github.com/Shell4026/ShellProtectorOSC
 
 ## 지원 셰이더
 - Poiyomi 7.3(불안정), 8.0, 8.1, 8.2, 9.0, 9.1(pro), PCSS(테스트 더 필요)
-- lilToon (1.3.8 ~ 1.7.3)
+- lilToon (1.3.8 ~ 1.7.3)(VCC)
 
 ## 지원 텍스쳐 형식
 - RGB24, RGBA32
