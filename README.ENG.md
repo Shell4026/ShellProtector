@@ -20,7 +20,7 @@ Source code of OSC: https://github.com/Shell4026/ShellProtectorOSC
 
 ## Supported shaders
 - Poiyomi 7.3(Unstable), 8.0, 8.1, 8.2, 9.0, 9.1(pro), PCSS(Need to more testing)
-- lilToon (1.3.8 ~ 1.7.3)
+- lilToon (1.3.8 ~ 1.7.3)(VCC)
 
 ## Supported texture formats
 - RGB24, RGBA32
