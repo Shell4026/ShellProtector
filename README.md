@@ -27,6 +27,12 @@ OSC 소스 코드: https://github.com/Shell4026/ShellProtectorOSC
 - DXT1, DXT5
 - Crunch Compression 포멧은 자동으로 DXT1이나 DXT5로 변환 됩니다.
 
+## 지원하는 기능
+- 텍스쳐 암호화
+- 암호화를 풀기 위한 OSC 프로그램
+- 쉐이프키 난독화
+- 폴백: 친구가 아닌 유저에게는 암호화 노이즈 대신 16x16 텍스쳐로 보이게 하는 기능
+
 ## 사용법
 1. 아바타를 우클릭해 'Shell Protector'를 눌러 컴포넌트를 추가합니다.
 2. 비밀번호를 설정해주고 암호화 할 메테리얼이나 게임오브젝트를 지정해줍니다.
@@ -61,6 +67,10 @@ OSC 소스 코드: https://github.com/Shell4026/ShellProtectorOSC
 ![fallback](https://github.com/user-attachments/assets/d3ca69b0-ff08-4793-a4e4-73269bc8efd3)
 
 ## 문제해결
+**<릴툰) 인게임에서 특정 부위만 암호화가 안 풀리는 경우>**
+
+정확한 원인은 파악중이지만 VCC용 릴툰을 사용하지 않는 경우와 백라이트를 사용하고 있는 경우 생길 수 있는 것 같습니다. 문제 발견 시 Issues에 올려주시면 감사하겠습니다.
+
 **<is not supported texture format! 에러>**
 
 텍스쳐를 선택 후 Inspector에서 압축 포멧을 DXT1이나 DXT5중 하나로 바꿔주세요. (투명도가 있는 텍스쳐는 DXT5)
