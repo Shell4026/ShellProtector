@@ -128,17 +128,16 @@ This may not seem like a huge difference, but for performance reasons, I recomme
 ## How secure is it?
 By default, it has 16 bytes of keys, split between keys stored inside the shader and keys that the user can enter using VRC parameters. (I'll call these user keys.)
 
-A user key of 0 bytes can be figured out by simply turning the compiled shader into an assembler and analyzing it.
-
-A 4-byte user key can be figured out if someone takes the time to do so. (4-byte key = 32 parameters / 11 parameters(using parameter-multiplexing))
-
-An 8-byte user key would take a long time to crack on a personal computer. (8-byte key = 64 parameters / 12 parameters)
-
+A user key of 0 bytes can be figured out by simply turning the compiled shader into an assembler and analyzing it.</br>
+A 4-byte user key can be figured out if someone takes the time to do so. (4-byte key = 32 parameters / 11 parameters(using parameter-multiplexing))</br>
+An 8-byte user key would take a long time to crack on a personal computer. (8-byte key = 64 parameters / 12 parameters)</br>
 User keys starting at 12 bytes are impossible to crack on a modern computer. (12-byte key = 96 parameter / 13 parameters)
 
-It is safe to increase the number of user keys by using a minimum of 96 parameter spaces(13 when using parameter multiplexing). Please be mindful of your parameter space when setting your keys.
-
+It is safe to increase the number of user keys by using a minimum of 96 parameter spaces(13 when using parameter multiplexing). Please be mindful of your parameter space when setting your keys.</br>
 A 0-byte user key is a minimal defense, and should be effective against toolkiddies using simple tools.
+<br/><br/><br/>
+There is no such thing as perfect security, and while this method is not straightforward, there is a possibility that someone persistently analyzing a their network packets within the same world could find keys.<br/> 
+However, if you use a sufficiently large key size, it is possible to completely prevent someone from indiscriminately extracting and sharing a user's avatar.
 
 ## feature
 - Support BC7
