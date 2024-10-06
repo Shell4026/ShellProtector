@@ -29,6 +29,12 @@ OSCのソースコード： https://github.com/Shell4026/ShellProtectorOSC
 - DXT1, DXT5
 - Crunch Compressionフォーマットは自動的にDXT1またはDXT5に変換されます。
 
+## サポートする機能
+- テクスチャ暗号化
+- 暗号を解読するためのOSCプログラム
+- Blendshape難読化
+- フォールバック: 友達以外のユーザーには、暗号化ノイズの代わりに16x16テクスチャで見えるようにする機能。
+
 ## 使用方法
 1. アバターを右クリックして「Shell Protector」を押してコンポーネントを追加します。
 2. パスワードを設定し、暗号化するマテリアルやゲームオブジェクトを指定します。
@@ -63,6 +69,10 @@ OSCのソースコード： https://github.com/Shell4026/ShellProtectorOSC
 ![fallback](https://github.com/user-attachments/assets/d3ca69b0-ff08-4793-a4e4-73269bc8efd3)
 
 ## 問題解決
+**<liltoon) ゲーム内で特定の部分だけ暗号化が解除されない場合>**
+
+正確な原因は把握中ですが、VCC用liltoonを使用していない場合とバックライトを使用している場合、発生する可能性があるようです。 問題発見時、Issuesに上げていただければ幸いです。
+
 **<is not supported texture format!>**
 
 テクスチャを選択後、Inspectorで圧縮フォーマットをDXT1またはDXT5のいずれかに変更してください。 (透明度のあるテクスチャはDXT5)
