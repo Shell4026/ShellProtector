@@ -26,6 +26,12 @@ Source code of OSC: https://github.com/Shell4026/ShellProtectorOSC
 - RGB24, RGBA32
 - DXT1, DXT5
 - The Crunch Compression format will auto-convert to DXT1 or DXT5.
+
+## Features
+- Texture Encryption
+- OSC programs for descryption
+- Blendshape obfuscation
+- Fallback: the ability to make non-friends see a 16x16 texture instead of encryption noise
   
 ## Usage
 
@@ -58,11 +64,14 @@ When using parameter multiplexing, depending on the server or network conditions
 In this case, try increasing the refresh rate slightly, which was added in OSC 1.5.0.
 
 ### Avatar fallback
-암호화가 걸려있을 때 세이프티가 켜져있는 사람은 아바타를 볼 때 열화된 버전으로 보이게 하는 기능입니다.
 A feature that allows anyone with Safety On when encryption is in place to appear as a degraded version of themselves when viewing your avatar.
 ![fallback](https://github.com/user-attachments/assets/d3ca69b0-ff08-4793-a4e4-73269bc8efd3)
 
 ## Troubleshooting
+**<liltoon) If only certain parts of your in-game are unencrypted>**
+
+I'm trying to figure out the exact cause, but it seems to happen if you're not using liltoon for VCC and if you're using backlighting. If you find the issue, please raise it in Issues.
+
 **[is not supported texture format! Error]**
 
 Select the texture and change the compression format to either DXT1 or DXT5 in the Inspector. (DXT5 for textures with transparency)
