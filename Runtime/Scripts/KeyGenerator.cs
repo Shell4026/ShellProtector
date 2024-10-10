@@ -1,36 +1,31 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Text;
 using System.Security.Cryptography;
 using System;
+using UnityEngine;
 public class KeyGenerator
 {
     //key1 is fixed key
     //key2 is user key
-    public static byte[] MakeKeyBytes(string _key1, string _key2, int key2_length = 4)
+    public static byte[] MakeKeyBytes(string fixedKey, string userKey, int userKeylength = 4)
     {
         byte[] key = new byte[16] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-        byte[] key_bytes = Encoding.ASCII.GetBytes(_key1);
-        byte[] key_bytes2 = Encoding.ASCII.GetBytes(_key2);
-        byte[] hash = GetKeyHash(key_bytes2);
+        byte[] fixedKeyBytes = Encoding.ASCII.GetBytes(fixedKey);
+        byte[] userKeyBytes = Encoding.ASCII.GetBytes(userKey);
+        byte[] hash = GetKeyHash(userKeyBytes);
 
-        for (int i = 0; i < key_bytes.Length; ++i)
-            key[i] = key_bytes[i];
+        for (int i = 0; i < fixedKeyBytes.Length; ++i)
+            key[i] = fixedKeyBytes[i];
 
-        if (key2_length > 0)
+        if (userKeylength > 0)
         {
-            if (key2_length == 16)
+            for (int i = (16 - userKeylength), j = 0; i < key.Length; ++i, ++j)
             {
-                for (int i = 0; i < key_bytes2.Length; ++i)
-                    key[i] = key_bytes2[i];
+                if (j < userKeyBytes.Length)
+                    key[i] = userKeyBytes[j] ^= hash[j];
+                else
+                    key[i] = hash[j];
             }
-            else
-            {
-                for (int i = 0; i < key_bytes2.Length; ++i)
-                    key[i + (16 - key2_length)] = key_bytes2[i];
-            }
-            for (int i = 0; i < key2_length; ++i)
-                key[i + (16 - key2_length)] ^= hash[i];
+                
         }
         return key;
     }

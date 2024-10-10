@@ -36,7 +36,7 @@ namespace Shell.Protector
             GUILayout.BeginHorizontal();
             GUILayout.Label(Lang("Max password length"));
             GUILayout.FlexibleSpace();
-            root.user_key_length = EditorGUILayout.IntField(root.user_key_length, GUILayout.Width(50));
+            root.userKeyLength = EditorGUILayout.IntField(root.userKeyLength, GUILayout.Width(50));
             GUILayout.EndHorizontal();
 
             GUILayout.Space(10);
@@ -79,7 +79,7 @@ namespace Shell.Protector
 
             GUILayout.Space(10);
 
-            if (root.user_key_length == 0)
+            if (root.userKeyLength == 0)
             {
                 GUILayout.Label(Lang("It's okay for the 0-digit password to be the same as the original."));
             }

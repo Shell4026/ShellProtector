@@ -11,7 +11,7 @@ namespace Shell.Protector
     {
         public string lang = "eng";
         public int lang_idx = 0;
-        public int user_key_length = 4;
+        public int userKeyLength = 4;
 
         public ShellProtector protector;
 
