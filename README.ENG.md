@@ -26,6 +26,12 @@ Source code of OSC: https://github.com/Shell4026/ShellProtectorOSC
 - RGB24, RGBA32
 - DXT1, DXT5
 - The Crunch Compression format will auto-convert to DXT1 or DXT5.
+
+## Features
+- Texture Encryption
+- OSC programs for descryption
+- Blendshape obfuscation
+- Fallback: the ability to make non-friends see a 16x16 texture instead of encryption noise
   
 ## Usage
 
@@ -58,11 +64,14 @@ When using parameter multiplexing, depending on the server or network conditions
 In this case, try increasing the refresh rate slightly, which was added in OSC 1.5.0.
 
 ### Avatar fallback
-암호화가 걸려있을 때 세이프티가 켜져있는 사람은 아바타를 볼 때 열화된 버전으로 보이게 하는 기능입니다.
 A feature that allows anyone with Safety On when encryption is in place to appear as a degraded version of themselves when viewing your avatar.
 ![fallback](https://github.com/user-attachments/assets/d3ca69b0-ff08-4793-a4e4-73269bc8efd3)
 
 ## Troubleshooting
+**<liltoon) If only certain parts of your in-game are unencrypted>**
+
+I'm trying to figure out the exact cause, but it seems to happen if you're not using liltoon for VCC and if you're using backlighting. If you find the issue, please raise it in Issues.
+
 **[is not supported texture format! Error]**
 
 Select the texture and change the compression format to either DXT1 or DXT5 in the Inspector. (DXT5 for textures with transparency)
@@ -128,17 +137,16 @@ This may not seem like a huge difference, but for performance reasons, I recomme
 ## How secure is it?
 By default, it has 16 bytes of keys, split between keys stored inside the shader and keys that the user can enter using VRC parameters. (I'll call these user keys.)
 
-A user key of 0 bytes can be figured out by simply turning the compiled shader into an assembler and analyzing it.
-
-A 4-byte user key can be figured out if someone takes the time to do so. (4-byte key = 32 parameters / 11 parameters(using parameter-multiplexing))
-
-An 8-byte user key would take a long time to crack on a personal computer. (8-byte key = 64 parameters / 12 parameters)
-
+A user key of 0 bytes can be figured out by simply turning the compiled shader into an assembler and analyzing it.</br>
+A 4-byte user key can be figured out if someone takes the time to do so. (4-byte key = 32 parameters / 11 parameters(using parameter-multiplexing))</br>
+An 8-byte user key would take a long time to crack on a personal computer. (8-byte key = 64 parameters / 12 parameters)</br>
 User keys starting at 12 bytes are impossible to crack on a modern computer. (12-byte key = 96 parameter / 13 parameters)
 
-It is safe to increase the number of user keys by using a minimum of 96 parameter spaces(13 when using parameter multiplexing). Please be mindful of your parameter space when setting your keys.
-
+It is safe to increase the number of user keys by using a minimum of 96 parameter spaces(13 when using parameter multiplexing). Please be mindful of your parameter space when setting your keys.</br>
 A 0-byte user key is a minimal defense, and should be effective against toolkiddies using simple tools.
+<br/><br/><br/>
+There is no such thing as perfect security, and while this method is not straightforward, there is a possibility that someone persistently analyzing a their network packets within the same world could find keys.<br/> 
+However, if you use a sufficiently large key size, it is possible to completely prevent someone from indiscriminately extracting and sharing a user's avatar.
 
 ## feature
 - Support BC7
