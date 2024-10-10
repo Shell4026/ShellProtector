@@ -170,55 +170,14 @@ namespace Shell.Protector
             result = chacha.Encrypt(result, key);
             Debug.Log("Decrypted data: " + string.Join(", ", result));
         }
-        public static void SetRWEnableTexture(Texture2D texture)
-        {
-            if (texture.isReadable)
-                return;
-            string path = AssetDatabase.GetAssetPath(texture);
-            string meta = File.ReadAllText(path + ".meta");
-
-            meta = Regex.Replace(meta, "isReadable: 0", "isReadable: 1");
-            File.WriteAllText(path + ".meta", meta);
-
-            AssetDatabase.Refresh();
         }
-        public static void SetCrunchCompression(Texture2D texture, bool crunch)
         {
-            string path = AssetDatabase.GetAssetPath(texture);
-            string meta = File.ReadAllText(path + ".meta");
-
-            if (crunch == false)
             {
-                if (texture.format == TextureFormat.DXT1Crunched)
-                {
-                    int format = 10;
-                    meta = Regex.Replace(meta, "textureFormat: \\d+", "textureFormat: " + format);
-                }
-                else if (texture.format == TextureFormat.DXT5Crunched)
-                {
-                    int format = 12;
-                    meta = Regex.Replace(meta, "textureFormat: \\d+", "textureFormat: " + format);
-                }
             }
-            int enable = crunch ? 1 : 0;
-            meta = Regex.Replace(meta, "crunchedCompression: \\d+", "crunchedCompression: " + enable);
-            File.WriteAllText(path + ".meta", meta);
 
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
         }
-        public static void SetGenerateMipmap(Texture2D texture, bool generate)
         {
-            string path = AssetDatabase.GetAssetPath(texture);
-            string meta = File.ReadAllText(path + ".meta");
-
-            int enable = generate ? 1 : 0;
-            meta = Regex.Replace(meta, "enableMipMap: \\d+", "enableMipMap: " + enable);
-            File.WriteAllText(path + ".meta", meta);
-
-            AssetDatabase.Refresh();
         }
-
         public GameObject DuplicateAvatar(GameObject avatar)
         {
             GameObject cpy = Instantiate(avatar);
@@ -460,9 +419,9 @@ namespace Shell.Protector
                     }
                 }
                 #endregion
-                SetRWEnableTexture(main_texture);
-                SetCrunchCompression(main_texture, false);
-                SetGenerateMipmap(main_texture, true);
+                TextureSettings.SetRWEnableTexture(main_texture);
+                TextureSettings.SetCrunchCompression(main_texture, false);
+                TextureSettings.SetGenerateMipmap(main_texture, true);
 
                 Texture2D limTexture = null;
                 Texture2D limTexture2 = null;
@@ -624,7 +583,7 @@ namespace Shell.Protector
                     new_mat.SetTexture("_EncryptTex1", encrypted_tex[1]);
 
                 new_mat.renderQueue = mat.renderQueue;
-                if(turnOnAllSafetyFallback)
+                if (turnOnAllSafetyFallback)
                 {
                     new_mat.SetOverrideTag("VRCFallback", "Unlit");
                 }

@@ -398,6 +398,7 @@ namespace Shell.Protector
             if (game_object_list.count == 0 && material_list.count == 0)
                 GUI.enabled = false;
 
+            
 #if MODULAR
             if (GUILayout.Button(Lang("Manual Encrypt!")))
 #else
@@ -438,7 +439,7 @@ namespace Shell.Protector
                         SerializedProperty element = texture_list.serializedProperty.GetArrayElementAtIndex(i);
                         Texture2D texture = element.objectReferenceValue as Texture2D;
 
-                        ShellProtector.SetRWEnableTexture(texture);
+                        TextureSettings.SetRWEnableTexture(texture);
 
                         Texture2D[] encrypted_texture = root.GetEncryptTexture().TextureEncrypt(texture, KeyGenerator.MakeKeyBytes(root.pwd, root.pwd2, key_size.intValue), new XXTEA());
 
