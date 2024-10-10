@@ -426,7 +426,6 @@ namespace Shell.Protector
                 if (GUILayout.Button(Lang("XXTEA test")))
                     Test.XXTEATest(root.pwd, root.pwd2, root.GetKeySize());
                 if (GUILayout.Button(Lang("Chacha8 test")))
-                    root.Test3();
                     Test.ChachaTest(root.pwd, root.pwd2, root.GetKeySize());
                 GUILayout.Space(10);
 

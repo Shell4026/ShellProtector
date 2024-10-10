@@ -89,9 +89,14 @@ namespace Shell.Protector
                 Init();
             }
         }
+        private void OnLostFocus()
+        {
+            protector.SaveMatOption();
+        }
 
         private void Init()
         {
+            protector.SyncMatOption();
             var mats = protector.GetMaterials();
             HashSet<Material> matSets = new HashSet<Material>();
             foreach (var mat in mats)

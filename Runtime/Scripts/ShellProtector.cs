@@ -51,11 +51,22 @@ namespace Shell.Protector
         public int lang_idx = 0;
         public string lang = "kor";
         public VRCAvatarDescriptor descriptor;
+
+        [Serializable]
         public class MatOption
         {
             public bool active = true;
             public int filter = -1;
+            public bool notChanged = false;
         }
+        [Serializable]
+        public class MaterialOptionPair
+        {
+            public Material material;
+            public MatOption option;
+        }
+
+        private List<MaterialOptionPair> matOptionSaved = new List<MaterialOptionPair>();
         public Dictionary<Material, MatOption> matOptions = new Dictionary<Material, MatOption>();
 
         struct ProcessedTexture
@@ -116,6 +127,22 @@ namespace Shell.Protector
             init = true;
         }
 
+        public void SyncMatOption()
+        {
+            foreach(var pair in matOptionSaved)
+            {
+                if (pair.material != null)
+                    matOptions[pair.material] = pair.option;
+            }
+        }
+        public void SaveMatOption()
+        {
+            foreach(var pair in matOptions)
+            {
+                matOptionSaved.Add(new MaterialOptionPair { material = pair.Key, option = pair.Value });
+            }
+        }
+
         public byte[] GetKeyBytes()
         {
             return KeyGenerator.MakeKeyBytes(pwd, pwd2, key_size);
@@ -123,15 +150,6 @@ namespace Shell.Protector
         public EncryptTexture GetEncryptTexture()
         {
             return encrypt;
-        }
-        {
-        }
-        {
-            {
-            }
-
-        }
-        {
         }
         public GameObject DuplicateAvatar(GameObject avatar)
         {
@@ -672,7 +690,7 @@ namespace Shell.Protector
                 tester.lang = lang;
                 tester.lang_idx = lang_idx;
                 tester.protector = this;
-                tester.user_key_length = key_size;
+                tester.userKeyLength = key_size;
                 Selection.activeObject = tester;
 
 #if MODULAR
@@ -689,6 +707,7 @@ namespace Shell.Protector
                 CleanComponent(avatar);    
             }
 
+            
             return avatar;
         }
 
@@ -986,6 +1005,10 @@ namespace Shell.Protector
         public int GetDefaultFilter()
         {
             return filter;
+        }
+        public int GetKeySize()
+        {
+            return key_size;
         }
     }
 }
