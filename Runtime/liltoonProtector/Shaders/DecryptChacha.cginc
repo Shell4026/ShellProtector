@@ -1,5 +1,5 @@
 #pragma once
-#include "XXTEA.cginc"
+#include "Chacha.cginc"
 
 static const uint mw[13] = { 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1 };
 static const uint mh[13] = { 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1 };
@@ -57,7 +57,7 @@ half4 DecryptTexture(half2 uv, int m)
 	data[1] = ((uint)round(pixels[1].g * 255.0f) | ((uint)round(pixels[1].b * 255.0f) << 8) | ((uint)round(pixels[2].r * 255.0f) << 16) | ((uint)round(pixels[2].g * 255.0f) << 24));
 	data[2] = ((uint)round(pixels[2].b * 255.0f) | ((uint)round(pixels[3].r * 255.0f) << 8) | ((uint)round(pixels[3].g * 255.0f) << 16) | ((uint)round(pixels[3].b * 255.0f) << 24));
 
-	XXTEADecrypt(data, key);
+	Chacha20XOR(data, key);
 
 	half r[4] = { (data[0] & 0x000000FF)/255.0f, ((data[0] & 0xFF000000) >> 24)/255.0f, ((data[1] & 0x00FF0000) >> 16)/255.0f, ((data[2] & 0x0000FF00) >> 8)/255.0f };
 	half g[4] = { ((data[0] & 0x0000FF00) >> 8)/255.0f, ((data[1] & 0x000000FF) >> 0)/255.0f, ((data[1] & 0xFF000000) >> 24)/255.0f, ((data[2] & 0x00FF0000) >> 16)/255.0f };
@@ -91,7 +91,7 @@ half4 DecryptTextureRGBA(half2 uv, int m)
 	data[0] = ((uint)round(pixels[0].r * 255.0f) | ((uint)round(pixels[0].g * 255.0f) << 8) | ((uint)round(pixels[0].b * 255.0f) << 16) | ((uint)round(pixels[0].a * 255.0f) << 24));
 	data[1] = ((uint)round(pixels[1].r * 255.0f) | ((uint)round(pixels[1].g * 255.0f) << 8) | ((uint)round(pixels[1].b * 255.0f) << 16) | ((uint)round(pixels[1].a * 255.0f) << 24));
 
-	XXTEADecrypt(data, key);
+	Chacha20XOR(data, key);
 
 	half r = ((data[idx & 1] & 0x000000FF) >>  0)/255.0f;
 	half g = ((data[idx & 1] & 0x0000FF00) >>  8)/255.0f;
@@ -107,6 +107,8 @@ half4 DecryptTextureDXT(half2 uv, int m)
 	half x = frac_uv.x;
 	half y = frac_uv.y;
 
+	int miplv = 0;
+	
 	half4 col = _EncryptTex0.SampleLevel(sampler_EncryptTex0, uv, m);
 	
 	uint w = mw[m + (uint)_Woffset];
@@ -132,7 +134,7 @@ half4 DecryptTextureDXT(half2 uv, int m)
 	data[0] = ((uint)round(pixels[0].r * 255.0f) | ((uint)round(pixels[0].g * 255.0f) << 8) | ((uint)round(pixels[0].b * 255.0f) << 16) | ((uint)round(pixels[0].a * 255.0f) << 24));
 	data[1] = ((uint)round(pixels[1].r * 255.0f) | ((uint)round(pixels[1].g * 255.0f) << 8) | ((uint)round(pixels[1].b * 255.0f) << 16) | ((uint)round(pixels[1].a * 255.0f) << 24));
 	
-	XXTEADecrypt(data, key);
+	Chacha20XOR(data, key);
 	
 	uint r = (data[idx & 1] & 0x000000FF) >> 0;
 	uint g = (data[idx & 1] & 0x0000FF00) >> 8;

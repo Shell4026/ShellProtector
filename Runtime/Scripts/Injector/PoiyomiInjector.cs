@@ -92,7 +92,7 @@ namespace Shell.Protector
                 shader_data = Regex.Replace(shader_data, "POI2D_SAMPLER_PAN\\((.*?), _MainTex", "POI2D_SAMPLER_PAN($1, _MipTex");
                 shader_data = Regex.Replace(shader_data, "UNITY_SAMPLE_TEX2D_SAMPLER_LOD\\((.*?), _MainTex", "UNITY_SAMPLE_TEX2D_SAMPLER_LOD($1, _MipTex");
                 shader_data = Regex.Replace(shader_data, "UNITY_SAMPLE_TEX2D_SAMPLER\\((.*?), _MainTex", "UNITY_SAMPLE_TEX2D_SAMPLER($1, _MipTex");
-                shader_data = Regex.Replace(shader_data, "float4 frag\\(", "#include \"Decrypt.cginc\"\n\t\t\tfloat4 frag(");
+                shader_data = Regex.Replace(shader_data, "float4 frag\\(", "#include \"" + decode_dir + "\"\n\t\t\tfloat4 frag(");
                 string shader_code = shader_code_nofilter;
                 if (filter == 0)
                     shader_code = shader_code_nofilter;
@@ -134,17 +134,6 @@ namespace Shell.Protector
             }
             File.WriteAllText(Path.Combine(output_path, shader_name), shader_data);
 
-            Decoder decoder = GenerateDecoder(decode_dir, tex);
-            string decode_data = decoder.decrypt;
-            if (decode_data == null)
-                return null;
-
-            File.WriteAllText(Path.Combine(output_path, "Decrypt.cginc"), decode_data);
-            if(decoder.xxtea != null)
-                File.WriteAllText(Path.Combine(output_path, "XXTEA.cginc"), decoder.xxtea);
-            else if(decoder.chacha != null)
-                File.WriteAllText(Path.Combine(output_path, "Chacha.cginc"), decoder.chacha);
-
             AssetDatabase.Refresh();
 
             Shader return_shader = AssetDatabase.LoadAssetAtPath(Path.Combine(output_path, shader_name), typeof(Shader)) as Shader;
@@ -165,9 +154,14 @@ namespace Shell.Protector
         _EncryptTex0 (""Encrypted0"", 2D) = ""white"" { }
         _EncryptTex1 (""Encrypted1"", 2D) = ""white"" { }
         [MaterialToggle] _fallback(""Fallback"", float) = 0
+        _Woffset (""Woffset"", integer) = 0
+        _Hoffset (""Hoffset"", integer) = 0
+        _Nonce0 (""Nonce"", integer) = 0
+        _Nonce1 (""Nonce"", integer) = 0
+        _Nonce2 (""Nonce"", integer) = 0
 ";
 
-                for (int i = 0; i < user_key_length; ++i)
+                for (int i = 0; i < 16; ++i)
                     properties += "_Key" + i + " (\"key" + i + "\", float) = 0\n";
 
                 data = data.Insert(suffix_idx, properties);

@@ -26,7 +26,7 @@ namespace Shell.Protector
 				    half4 mip_texture = _MipTex.Sample(sampler_MipTex, mainUV);
 				
 				    int mip = round(mip_texture.r * 255 / 10); //fucking precision problems
-				    int m[13] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10 }; // max size 4k
+				    const int m[13] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10 }; // max size 4k
 
 				    half4 c00 = DecryptTexture(mainUV, m[mip]);
 
@@ -49,7 +49,7 @@ namespace Shell.Protector
 				    //bilinear interpolation
 				    half2 uv_bilinear = poiMesh.uv[0] - 0.5 * uv_unit;
 				    int mip = round(mip_texture.r * 255 / 10); //fucking precision problems
-				    int m[13] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10 }; // max size 4k
+				    const int m[13] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10 }; // max size 4k
 				
                     half4 c00 = DecryptTexture(uv_bilinear + half2(uv_unit.x * 0, uv_unit.y * 0), m[mip]);
                     half4 c10 = DecryptTexture(uv_bilinear + half2(uv_unit.x * 1, uv_unit.y * 0), m[mip]);
@@ -105,175 +105,6 @@ namespace Shell.Protector
             this.asset_dir = asset_dir;
             this.user_key_length = user_key_length;
             this.encryptor = encryptor;
-        }
-
-        protected Decoder GenerateDecoder(string decode_dir, Texture2D tex)
-        {
-            string dir = Path.GetDirectoryName(decode_dir);
-            string data = File.ReadAllText(decode_dir);
-            
-            if (data == null)
-            {
-                Debug.LogError("Can't read decode.cginc");
-                return new Decoder();
-            }
-            string replace;
-            string replace2;
-            uint k0 = (uint)(keys[0] + (keys[1] << 16));
-            uint k1 = (uint)(keys[2] + (keys[3] << 16));
-            uint k2 = (uint)(keys[4] + (keys[5] << 16));
-            uint k3 = (uint)(keys[6] + (keys[7] << 16));
-            //uint k3 = (uint)(keys[6] + (keys[7] << 16));
-            switch(user_key_length)
-            {
-                case 0:
-                    replace = "static const uint k[4] = { " + k0 + ", " + k1 + ", " + k2 + ", " + k3 + " };";
-
-                    replace2 = @"
-	uint key[4];
-	key[0] = k[0];
-	key[1] = k[1];
-	key[2] = k[2];
-	key[3] = k[3] ^ (uint)(floor(idx / 2) * 2);";
-                    break;
-                case 4:
-                    replace = "static const uint k[4] = { " + k0 + ", " + k1 + ", " + k2 + ", 0 };\n";
-                    replace += "float _Key0, _Key1, _Key2, _Key3;";
-
-                    replace2 = @"
-    uint key0 = round(_Key0);
-    uint key1 = round(_Key1);
-    uint key2 = round(_Key2);
-    uint key3 = round(_Key3);
-
-	uint key[4];
-	key[0] = k[0];
-	key[1] = k[1];
-	key[2] = k[2];
-	key[3] = ((uint)(key0) | (uint)(key1 << 8) | (uint)(key2 << 16) | (uint)(key3 << 24)) ^ (uint)(floor(idx / 2) * 2);";
-                    break;
-                case 8:
-                    replace = "static const uint k[4] = { " + k0 + ", " + k1 + ", 0, 0 };\n";
-                    replace += "float _Key0, _Key1, _Key2, _Key3, _Key4, _Key5, _Key6, _Key7;";
-
-                    replace2 = @"
-    uint key0 = round(_Key0);
-    uint key1 = round(_Key1);
-    uint key2 = round(_Key2);
-    uint key3 = round(_Key3);
-    uint key4 = round(_Key4);
-    uint key5 = round(_Key5);
-    uint key6 = round(_Key6);
-    uint key7 = round(_Key7);
-
-	uint key[4];
-	key[0] = k[0];
-	key[1] = k[1];
-	key[2] = ((uint)(key0) | (uint)(key1 << 8) | (uint)(key2 << 16) | (uint)(key3 << 24));
-	key[3] = ((uint)(key4) | (uint)(key5 << 8) | (uint)(key6 << 16) | (uint)(key7 << 24)) ^ (uint)((idx >> 1) << 1);";
-                    break;
-                case 12:
-                    replace = "static const uint k[4] = { " + k0 + ", 0, 0, 0 };\n";
-                    replace += "float _Key0, _Key1, _Key2, _Key3, _Key4, _Key5, _Key6, _Key7, _Key8, _Key9, _Key10, _Key11;";
-
-                    replace2 = @"
-    uint key0 = round(_Key0);
-    uint key1 = round(_Key1);
-    uint key2 = round(_Key2);
-    uint key3 = round(_Key3);
-    uint key4 = round(_Key4);
-    uint key5 = round(_Key5);
-    uint key6 = round(_Key6);
-    uint key7 = round(_Key7);
-    uint key8 = round(_Key8);
-    uint key9 = round(_Key9);
-    uint key10 = round(_Key10);
-    uint key11 = round(_Key11);
-
-	uint key[4];
-	key[0] = k[0];
-	key[1] = ((uint)(key0) | (uint)(key1 << 8) | (uint)(key2 << 16) | (uint)(key3 << 24));
-	key[2] = ((uint)(key4) | (uint)(key5 << 8) | (uint)(key6 << 16) | (uint)(key7 << 24));
-	key[3] = ((uint)(key8) | (uint)(key9 << 8) | (uint)(key10 << 16) | (uint)(key11 << 24)) ^ (uint)((idx >> 1) << 1);";
-                    break;
-                default:
-                    replace = "static const uint k[4] = { 0, 0, 0, 0 };\n";
-                    replace += "float _Key0, _Key1, _Key2, _Key3, _Key4, _Key5, _Key6, _Key7, _Key8, _Key9, _Key10, _Key11, _Key12, _Key13, _Key14, _Key15;";
-
-                    replace2 = @"
-    uint key0 = round(_Key0);
-    uint key1 = round(_Key1);
-    uint key2 = round(_Key2);
-    uint key3 = round(_Key3);
-    uint key4 = round(_Key4);
-    uint key5 = round(_Key5);
-    uint key6 = round(_Key6);
-    uint key7 = round(_Key7);
-    uint key8 = round(_Key8);
-    uint key9 = round(_Key9);
-    uint key10 = round(_Key10);
-    uint key11 = round(_Key11);
-    uint key12 = round(_Key12);
-    uint key13 = round(_Key13);
-    uint key14 = round(_Key14);
-    uint key15 = round(_Key15);
-
-	uint key[4];
-	key[0] = ((uint)(key0) | (uint)(key1 << 8) | (uint)(key2 << 16) | (uint)(key3 << 24));
-	key[1] = ((uint)(key4) | (uint)(key5 << 8) | (uint)(key6 << 16) | (uint)(key7 << 24));
-	key[2] = ((uint)(key8) | (uint)(key9 << 8) | (uint)(key10 << 16) | (uint)(key11 << 24));
-	key[3] = ((uint)(key12) | (uint)(key13 << 8) | (uint)(key14 << 16) | (uint)(key15 << 24)) ^ (uint)((idx >> 1) << 1);";
-                    break;
-            }
-
-            if(main_tex != null)
-            {
-                if(main_tex.format == TextureFormat.DXT1 || main_tex.format == TextureFormat.DXT5)
-                {
-                    int woffset = 13 - (int)Mathf.Log(main_tex.width, 2) -1 + 2;
-                    int hoffset = 13 - (int)Mathf.Log(main_tex.height, 2) - 1 + 2;
-                    data = Regex.Replace(data, "static const uint WOFFSET = 0;", "static const uint WOFFSET = " + woffset + ";");
-                    data = Regex.Replace(data, "static const uint HOFFSET = 0;", "static const uint HOFFSET = " + hoffset + ";");
-                }
-                else
-                {
-                    int woffset = 13 - (int)Mathf.Log(main_tex.width, 2) - 1;
-                    int hoffset = 13 - (int)Mathf.Log(main_tex.height, 2) - 1;
-                    data = Regex.Replace(data, "static const uint WOFFSET = 0;", "static const uint WOFFSET = " + woffset + ";");
-                    data = Regex.Replace(data, "static const uint HOFFSET = 0;", "static const uint HOFFSET = " + hoffset + ";");
-                }
-            }
-                
-
-            data = Regex.Replace(data, "static const uint k\\[4\\] = { 0, 0, 0, 0 };", replace);
-
-            Decoder decoder = new Decoder();
-
-            string cipherData = "";
-            if(encryptor is XXTEA xxtea)
-            {
-                cipherData = File.ReadAllText(Path.Combine(dir, "XXTEA.cginc"));
-                cipherData = Regex.Replace(cipherData, "static const uint ROUNDS = 6;", "static const uint ROUNDS = " + xxtea.m_rounds + ";");
-                
-                decoder.xxtea = cipherData;
-            }
-            else if(encryptor is Chacha20 chacha20)
-            {
-                uint[] nonce = chacha20.GetNonceUint3();
-                cipherData = File.ReadAllText(Path.Combine(dir, "Chacha.cginc"));
-                cipherData = Regex.Replace(cipherData, @"state\[3\] = uint4\(1, 0, 0, 0\);", "state[3] = uint4(1, " + nonce[0] + ", " + nonce[1] + ", " + nonce[2] + ");");
-
-                data = Regex.Replace(data, @"XXTEA\.cginc", "Chacha.cginc");
-                data = Regex.Replace(data, @"XXTEADecrypt\(data, key\);", "Chacha20XOR(data, key);");
-
-                decoder.chacha = cipherData;
-            }
-
-            data = Regex.Replace(data, "//key make[\\w\\W]*?//key make end", replace2);
-            data = Regex.Replace(data, @"\(uint\)\(\(idx >> 1\) << 1\);[\w\W]*?//4idx", "(uint)((idx >> 2) << 2);"); //DecryptRGB
-
-            decoder.decrypt = data;
-            return decoder;
         }
 
         public bool WasInjected(Shader shader)

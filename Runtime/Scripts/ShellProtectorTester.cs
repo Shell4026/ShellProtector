@@ -44,8 +44,8 @@ namespace Shell.Protector
                             continue;
                         if (mat.name.Contains("_encrypted"))
                         {
-                            for (int i = 0; i < user_key_length; ++i)
-                                mat.SetInt("_Key" + i, pwd_bytes[16 - user_key_length + i]);
+                            for (int i = 0; i < 16; ++i)
+                                mat.SetInt("_Key" + i, pwd_bytes[i]);
                         }
                     }
                 }
@@ -67,8 +67,8 @@ namespace Shell.Protector
                             continue;
                         if (mat.name.Contains("_encrypted"))
                         {
-                            for (int i = 0; i < user_key_length; ++i)
-                                mat.SetInt("_Key" + i, pwd_bytes[16 - user_key_length + i]);
+                            for (int i = 0; i < 16; ++i)
+                                mat.SetInt("_Key" + i, pwd_bytes[i]);
                         }
                     }
                 }
@@ -93,7 +93,7 @@ namespace Shell.Protector
                         continue;
                     if (mat.name.Contains("_encrypted"))
                     {
-                        for (int i = 0; i < 16; ++i)
+                        for (int i = 16 - userKeyLength; i < 16; ++i)
                             mat.SetInt("_Key" + i, 0);
                     }
                 }
@@ -113,7 +113,7 @@ namespace Shell.Protector
                         continue;
                     if (mat.name.Contains("_encrypted"))
                     {
-                        for (int i = 0; i < 16; ++i)
+                        for (int i = 16 - userKeyLength; i < 16; ++i)
                             mat.SetInt("_Key" + i, 0);
                     }
                 }

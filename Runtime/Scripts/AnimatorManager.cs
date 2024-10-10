@@ -193,6 +193,7 @@ namespace Shell.Protector
         private static BlendTree[] CreateKeyTree(string animation_dir, int key_length, float speed)
         {
             BlendTree[] tree = new BlendTree[key_length];
+            int offset = 16 - key_length;
             for (int i = 0; i < key_length; ++i)
             {
                 BlendTree tree_key = new BlendTree();
@@ -203,8 +204,8 @@ namespace Shell.Protector
                 tree_key.blendParameter = "pkey" + i;
                 tree_key.useAutomaticThresholds = false;
 
-                Motion motion0 = AssetDatabase.LoadAssetAtPath(Path.Combine(animation_dir, "key" + i + ".anim"), typeof(AnimationClip)) as AnimationClip;
-                Motion motion1 = AssetDatabase.LoadAssetAtPath(Path.Combine(animation_dir, "key" + i + "_2.anim"), typeof(AnimationClip)) as AnimationClip;
+                Motion motion0 = AssetDatabase.LoadAssetAtPath(Path.Combine(animation_dir, "key" + (i + offset) + ".anim"), typeof(AnimationClip)) as AnimationClip;
+                Motion motion1 = AssetDatabase.LoadAssetAtPath(Path.Combine(animation_dir, "key" + (i + offset) + "_2.anim"), typeof(AnimationClip)) as AnimationClip;
 
                 tree_key.AddChild(motion0, -1);
                 tree_key.AddChild(motion1, 1);
@@ -428,6 +429,7 @@ namespace Shell.Protector
 
             var layer = anim.layers[anim.layers.Length - 1];
             var state = layer.stateMachine.AddState("empty");
+            state.writeDefaultValues = true;
             var fallbackState = layer.stateMachine.AddState("fallbackState");
 
             var transition = state.AddTransition(fallbackState);

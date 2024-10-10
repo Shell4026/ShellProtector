@@ -502,7 +502,13 @@ namespace Shell.Protector
                 Shader encrypted_shader;
                 try
                 {
-                    encrypted_shader = injector.Inject(mat, Path.Combine(asset_dir, "Decrypt.cginc"), encrypted_shader_path, encrypted_tex[0], limTexture != null, limTexture2 != null, outlineTexture != null);
+                    string decodeDir = "";
+                    if(algorithm == (int)Algorithm.xxtea)
+                        decodeDir = Path.Combine(asset_dir, "Decrypt.cginc");
+                    else if(algorithm == (int)Algorithm.chacha)
+                        decodeDir = Path.Combine(asset_dir, "DecryptChacha.cginc");
+
+                    encrypted_shader = injector.Inject(mat, decodeDir, encrypted_shader_path, encrypted_tex[0], limTexture != null, limTexture2 != null, outlineTexture != null);
                     Selection.activeObject = encrypted_shader;
                     EditorApplication.ExecuteMenuItem("Assets/Reimport");
                     if (encrypted_shader == null)
@@ -559,6 +565,31 @@ namespace Shell.Protector
                 if (turnOnAllSafetyFallback)
                 {
                     new_mat.SetOverrideTag("VRCFallback", "Unlit");
+                }
+
+                int woffset = 0;
+                int hoffset = 0;
+                if (main_texture.format == TextureFormat.DXT1 || main_texture.format == TextureFormat.DXT5)
+                {
+                    woffset = 13 - (int)Mathf.Log(main_texture.width, 2) - 1 + 2;
+                    hoffset = 13 - (int)Mathf.Log(main_texture.height, 2) - 1 + 2;
+                }
+                else
+                {
+                    woffset = 13 - (int)Mathf.Log(main_texture.width, 2) - 1;
+                    hoffset = 13 - (int)Mathf.Log(main_texture.height, 2) - 1;
+                }
+                new_mat.SetInteger("_Woffset", woffset);
+                new_mat.SetInteger("_Hoffset", hoffset);
+                for (int i = 0; i < 16 - key_size; ++i)
+                    new_mat.SetFloat("_Key" + i, key_bytes[i]);
+
+                if (algorithm == (int)Algorithm.chacha)
+                {
+                    Chacha20 chacha = encryptor as Chacha20;
+                    new_mat.SetInteger("_Nonce0", (int)chacha.GetNonceUint3()[0]);
+                    new_mat.SetInteger("_Nonce1", (int)chacha.GetNonceUint3()[1]);
+                    new_mat.SetInteger("_Nonce2", (int)chacha.GetNonceUint3()[2]);
                 }
 
                 #region Remove Duplicate Textures

@@ -397,12 +397,6 @@ namespace Shell.Protector
 
             Texture2D[] result = new Texture2D[2];
 
-            uint[] key_uint = new uint[4];
-            key_uint[0] = (uint)(key[0] | (key[1] << 8) | (key[2] << 16) | (key[3] << 24));
-            key_uint[1] = (uint)(key[4] | (key[5] << 8) | (key[6] << 16) | (key[7] << 24));
-            key_uint[2] = (uint)(key[8] | (key[9] << 8) | (key[10] << 16) | (key[11] << 24));
-            key_uint[3] = 0;
-
             if (texture.format == TextureFormat.DXT1 || 
                 texture.format == TextureFormat.DXT1Crunched ||
                 texture.format == TextureFormat.DXT5 ||
