@@ -424,9 +424,10 @@ namespace Shell.Protector
             {
                 GUILayout.Space(10);
                 if (GUILayout.Button(Lang("XXTEA test")))
-                    root.Test2();
+                    Test.XXTEATest(root.pwd, root.pwd2, root.GetKeySize());
                 if (GUILayout.Button(Lang("Chacha8 test")))
                     root.Test3();
+                    Test.ChachaTest(root.pwd, root.pwd2, root.GetKeySize());
                 GUILayout.Space(10);
 
                 texture_list.DoLayoutList();
