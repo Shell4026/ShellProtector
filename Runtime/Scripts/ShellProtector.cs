@@ -39,6 +39,12 @@ namespace Shell.Protector
         AssetManager shader_manager = AssetManager.GetInstance();
         bool init = false;
 
+        enum Algorithm
+        {
+            xxtea = 0,
+            chacha = 1
+        }
+
         public string asset_dir = "Assets/ShellProtect";
         public string pwd = "password"; // fixed password
         public string pwd2 = "pass"; // user password
@@ -297,13 +303,13 @@ namespace Shell.Protector
 
             ///////////////////Select crypto algorithm/////////////////////
             IEncryptor encryptor = new XXTEA();
-            if (algorithm == 0)
+            if (algorithm == (int)Algorithm.xxtea)
             {
                 XXTEA xxtea = new XXTEA();
                 xxtea.m_rounds = rounds;
                 encryptor = xxtea;
             }
-            else if(algorithm == 1) 
+            else if(algorithm == (int)Algorithm.chacha) 
             {
                 Chacha20 chacha = new Chacha20();
                 byte[] hash1 = KeyGenerator.GetKeyHash(key_bytes, KeyGenerator.GenerateRandomString(chacha.nonce.Length));
@@ -428,7 +434,7 @@ namespace Shell.Protector
                     };
 
                 //Set chacha nonce
-                if (algorithm == 1)
+                if (algorithm == (int)Algorithm.chacha)
                 {
                     Chacha20 chacha = encryptor as Chacha20;
                     if (!processed)
