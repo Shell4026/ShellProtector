@@ -130,9 +130,6 @@ namespace Shell.Protector
 
                 foreach (var obj in objs)
                 {
-                    if (obj.name == "Body")
-                        continue;
-
                     string hr_path = obj.transform.GetHierarchyPath();
                     hr_path = Regex.Replace(hr_path, ".*?/(.*)", "'$1'");
 
