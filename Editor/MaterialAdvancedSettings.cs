@@ -93,7 +93,7 @@ namespace Shell.Protector
             GUILayout.EndScrollView();
             if(GUILayout.Button(Lang("Reset")))
             {
-                protector.matOptions.Clear();
+                protector.ResetMaterialOptions();
                 Init();
             }
         }

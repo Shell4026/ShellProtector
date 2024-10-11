@@ -69,6 +69,8 @@ namespace Shell.Protector
         List<MaterialOptionPair> matOptionSaved = new List<MaterialOptionPair>();
         public Dictionary<Material, MatOption> matOptions = new Dictionary<Material, MatOption>();
 
+        EncryptedHistory history;
+
         struct ProcessedTexture
         {
             public Texture2D encrypted0;
@@ -335,6 +337,18 @@ namespace Shell.Protector
                 encryptor = chacha;
             }
             ///////////////////////////////////////////////////////////////
+
+            if (history == null)
+            {
+                history = AssetDatabase.LoadAssetAtPath(Path.Combine(asset_dir, "EncryptedHistory.asset"), typeof(EncryptedHistory)) as EncryptedHistory;
+                if (history == null)
+                {
+                    history = new EncryptedHistory();
+                    AssetDatabase.CreateAsset(history, Path.Combine(asset_dir, "EncryptedHistory.asset"));
+                }
+            }
+            history.LoadData();
+
             int progress = 0;
             int maxprogress = 0;
             foreach(var option in matOptions)
@@ -344,23 +358,6 @@ namespace Shell.Protector
             }
             foreach (var mat in materials)
             {
-                if (mat == null)
-                {
-                    ++progress;
-                    continue;
-                }
-                EditorUtility.DisplayProgressBar("Encrypt...", "Encrypt Progress " + ++progress + " of " + materials.Count, (float)progress / (float)maxprogress);
-                injector = InjectorFactory.GetInjector(mat.shader);
-                if (injector == null)
-                {
-                    Debug.LogWarning(mat.shader + " is a unsupported shader! supported type:lilToon, poiyomi");
-                    continue;
-                }
-                if (!ConditionCheck(mat))
-                    continue;
-
-                Debug.LogFormat("{0} : Start encrypt...", mat.name);
-
                 int filter = this.filter;
 #if UNITY_2022
                 MatOption option = matOptions.GetValueOrDefault(mat, null);
@@ -369,7 +366,6 @@ namespace Shell.Protector
                 if (matOptions.ContainsKey(mat))
                     option = matOptions[mat];
 #endif
-                bool notShaderChanged = false;
                 if (option != null)
                 {
                     if (option.active == false)
@@ -379,6 +375,20 @@ namespace Shell.Protector
                     }
                     filter = option.filter;
                 }
+                if (mat == null)
+                {
+                    continue;
+                }
+                EditorUtility.DisplayProgressBar("Encrypt...", "Encrypt Progress " + ++progress + " of " + maxprogress, (float)progress / (float)maxprogress);
+                injector = InjectorFactory.GetInjector(mat.shader);
+                if (injector == null)
+                {
+                    Debug.LogWarning(mat.shader + " is a unsupported shader! supported type:lilToon, poiyomi");
+                    continue;
+                }
+                if (!ConditionCheck(mat))
+                    continue;
+                Debug.LogFormat("{0} : Start encrypt...", mat.name);
 
                 Texture2D main_texture = (Texture2D)mat.mainTexture;
                 injector.Init(descriptor.gameObject, main_texture, key_bytes, key_size, filter, asset_dir, encryptor);
@@ -506,6 +516,7 @@ namespace Shell.Protector
                 }
                 #endregion
 
+                //////////////////////Inject shader///////////////////////
                 Shader encrypted_shader = IsEncryptedBefore(mat.shader);
                 if (encrypted_shader == null)
                 {
@@ -525,6 +536,7 @@ namespace Shell.Protector
                             Debug.LogErrorFormat("{0}: Injection failed", mat.name);
                             continue;
                         }
+                        history.Save(mat.shader);
                     }
                     catch (UnityException e)
                     {
@@ -1051,9 +1063,25 @@ namespace Shell.Protector
             return key_size;
         }
 
+        public void ResetMaterialOptions()
+        {
+            matOptionSaved.Clear();
+            matOptions.Clear();
+        }
+
         public Shader IsEncryptedBefore(Shader shader)
         {
-            return Shader.Find(shader.name + "_encrypted");
+            if (history == null)
+            {
+                history = AssetDatabase.LoadAssetAtPath(Path.Combine(asset_dir, "EncryptedHistory.asset"), typeof(EncryptedHistory)) as EncryptedHistory;
+                if (history == null)
+                {
+                    history = new EncryptedHistory();
+                    AssetDatabase.CreateAsset(history, Path.Combine(asset_dir, "EncryptedHistory.asset"));
+                }
+            }
+            history.LoadData();
+            return history.IsEncryptedBefore(shader);
         }
     }
 }
