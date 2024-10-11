@@ -12,20 +12,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 149efc81fd5603d41ad0cdd19d9e568e, type: 3}
   m_Name: EncryptedHistory
   m_EditorClassIdentifier: 
-  shaderHistory:
-  - shader: Hidden/Locked/.poiyomi/Poiyomi Pro/56b260e178ed03b4b8b74e1b89bcb9c7
-    size: 497102
-  - shader: Hidden/Locked/.poiyomi/Poiyomi Pro/56b260e178ed03b4b8b74e1b89bcb9c7
-    size: 497102
-  - shader: Hidden/Locked/.poiyomi/Poiyomi Pro/8c1972552ee07d14da95e2fe23773c29
-    size: 479768
-  - shader: Hidden/Locked/.poiyomi/Poiyomi Pro/7f12329f26f3e2e47a2c960aaa824cdd
-    size: 447846
-  - shader: Hidden/Locked/.poiyomi/Poiyomi Pro/43c00e233f7f9894887e919c60364b66
-    size: 431107
-  - shader: Hidden/Locked/.poiyomi/Poiyomi Pro/f84adea5f4a9d204589145113049a7a5
-    size: 430984
-  - shader: Hidden/Locked/.poiyomi/Poiyomi Pro/932f4be0b400aaf4c895b8496c9d803a
-    size: 430969
-  - shader: Hidden/Locked/.poiyomi/Poiyomi Pro/7be00ab28dc46784c950b81782474d61
-    size: 430712
+  shaderHistory: []
