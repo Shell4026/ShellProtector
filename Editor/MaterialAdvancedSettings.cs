@@ -59,6 +59,12 @@ namespace Shell.Protector
                 if (option.Value.filter == -1)
                     option.Value.filter = protector.GetDefaultFilter();
                 option.Value.filter = EditorGUILayout.Popup(option.Value.filter, ShellProtector.filterStrings, GUILayout.Width(100));
+
+                if(protector.IsEncryptedBefore(option.Key.shader))
+                    GUILayout.Label(Lang("Exist shader"));
+                else
+                    GUILayout.Label(Lang("New shader"));
+
                 GUILayout.FlexibleSpace();
                 GUILayout.EndHorizontal();
 

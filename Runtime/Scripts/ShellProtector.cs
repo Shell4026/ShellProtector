@@ -57,7 +57,6 @@ namespace Shell.Protector
         {
             public bool active = true;
             public int filter = -1;
-            public bool notChanged = false;
         }
         [Serializable]
         public class MaterialOptionPair
@@ -66,7 +65,8 @@ namespace Shell.Protector
             public MatOption option;
         }
 
-        private List<MaterialOptionPair> matOptionSaved = new List<MaterialOptionPair>();
+        [SerializeField]
+        List<MaterialOptionPair> matOptionSaved = new List<MaterialOptionPair>();
         public Dictionary<Material, MatOption> matOptions = new Dictionary<Material, MatOption>();
 
         struct ProcessedTexture
@@ -363,6 +363,7 @@ namespace Shell.Protector
                 if (matOptions.ContainsKey(mat))
                     option = matOptions[mat];
 #endif
+                bool notShaderChanged = false;
                 if (option != null)
                 {
                     if (option.active == false)
@@ -499,30 +500,32 @@ namespace Shell.Protector
                 }
                 #endregion
 
-                Shader encrypted_shader;
-                try
+                Shader encrypted_shader = IsEncryptedBefore(mat.shader);
+                if (encrypted_shader == null)
                 {
-                    string decodeDir = "";
-                    if(algorithm == (int)Algorithm.xxtea)
-                        decodeDir = Path.Combine(asset_dir, "Decrypt.cginc");
-                    else if(algorithm == (int)Algorithm.chacha)
-                        decodeDir = Path.Combine(asset_dir, "DecryptChacha.cginc");
-
-                    encrypted_shader = injector.Inject(mat, decodeDir, encrypted_shader_path, encrypted_tex[0], limTexture != null, limTexture2 != null, outlineTexture != null);
-                    Selection.activeObject = encrypted_shader;
-                    EditorApplication.ExecuteMenuItem("Assets/Reimport");
-                    if (encrypted_shader == null)
+                    try
                     {
-                        Debug.LogErrorFormat("{0}: Injection failed", mat.name);
+                        string decodeDir = "";
+                        if (algorithm == (int)Algorithm.xxtea)
+                            decodeDir = Path.Combine(asset_dir, "Decrypt.cginc");
+                        else if (algorithm == (int)Algorithm.chacha)
+                            decodeDir = Path.Combine(asset_dir, "DecryptChacha.cginc");
+
+                        encrypted_shader = injector.Inject(mat, decodeDir, encrypted_shader_path, encrypted_tex[0], limTexture != null, limTexture2 != null, outlineTexture != null);
+                        Selection.activeObject = encrypted_shader;
+                        EditorApplication.ExecuteMenuItem("Assets/Reimport");
+                        if (encrypted_shader == null)
+                        {
+                            Debug.LogErrorFormat("{0}: Injection failed", mat.name);
+                            continue;
+                        }
+                    }
+                    catch (UnityException e)
+                    {
+                        Debug.LogError(e.Message);
                         continue;
                     }
                 }
-                catch (UnityException e)
-                {
-                    Debug.LogError(e.Message);
-                    continue;
-                }
-
                 #region FallbackTexture
                 /////////////////Generate fallback/////////////////////
                 string fallbackDir = Path.Combine(avatarDir, "tex", main_texture.GetInstanceID() + "_fallback.asset");
@@ -1040,6 +1043,11 @@ namespace Shell.Protector
         public int GetKeySize()
         {
             return key_size;
+        }
+
+        public Shader IsEncryptedBefore(Shader shader)
+        {
+            return Shader.Find(shader.name + "_encrypted");
         }
     }
 }
