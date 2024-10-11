@@ -336,6 +336,12 @@ namespace Shell.Protector
             }
             ///////////////////////////////////////////////////////////////
             int progress = 0;
+            int maxprogress = 0;
+            foreach(var option in matOptions)
+            {
+                if (option.Value.active)
+                    ++maxprogress;
+            }
             foreach (var mat in materials)
             {
                 if (mat == null)
@@ -343,7 +349,7 @@ namespace Shell.Protector
                     ++progress;
                     continue;
                 }
-                EditorUtility.DisplayProgressBar("Encrypt...", "Encrypt Progress " + ++progress + " of " + materials.Count, (float)progress / (float)materials.Count);
+                EditorUtility.DisplayProgressBar("Encrypt...", "Encrypt Progress " + ++progress + " of " + materials.Count, (float)progress / (float)maxprogress);
                 injector = InjectorFactory.GetInjector(mat.shader);
                 if (injector == null)
                 {
