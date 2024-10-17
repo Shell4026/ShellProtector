@@ -57,6 +57,9 @@ public class EncryptedHistory : ScriptableObject
             shaderHistoryDic.Add(shader, shaderInfo);
             shaderHistory.Add(shaderInfo);
         }
+
+        EditorUtility.SetDirty(this);
+        AssetDatabase.SaveAssets();
     }
     public Shader IsEncryptedBefore(Shader originalShader)
     {
