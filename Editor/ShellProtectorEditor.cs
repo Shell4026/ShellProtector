@@ -313,6 +313,7 @@ namespace Shell.Protector
                 GUILayout.BeginHorizontal();
                 animation_speed.floatValue = GUILayout.HorizontalSlider(animation_speed.floatValue, 2.0f, 5.0f, GUILayout.Width(100));
                 animation_speed.floatValue = EditorGUILayout.FloatField("", animation_speed.floatValue, GUILayout.Width(50));
+                animation_speed.floatValue = Math.Clamp(animation_speed.floatValue, 2.0f, 5.0f);
                 GUILayout.FlexibleSpace();
                 GUILayout.Label(Lang("Avatar first load animation speed"), EditorStyles.wordWrappedLabel);
                 GUILayout.EndHorizontal();
