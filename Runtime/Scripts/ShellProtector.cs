@@ -90,7 +90,7 @@ namespace Shell.Protector
         [SerializeField] int algorithm = 1;
         [SerializeField] int key_size_idx = 3;
         [SerializeField] int key_size = 12;
-        [SerializeField] float animation_speed = 128.0f;
+        [SerializeField] float animation_speed = 4.0f;
         [SerializeField] bool delete_folders = true;
         [SerializeField] bool parameter_multiplexing = false;
         [SerializeField] bool bUseSmallMipTexture = true;
