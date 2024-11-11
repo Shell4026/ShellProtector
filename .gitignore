@@ -74,3 +74,4 @@ Runtime/[0-9]*/*
 Runtime/[0-9]*.meta
 Runtime/-[0-9]*/*
 Runtime/-[0-9]*.meta
+Runtime/EncryptedHistory.asset*
