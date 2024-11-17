@@ -86,7 +86,8 @@ namespace Shell.Protector
             { "Not supported shader", "지원하지 않는 셰이더" },
             { "Encrypting too many objects can cause lag when loading avatars in-game.", "너무 많은 오브젝트를 암호화 하면 인게임에서 아바타 로딩 시 렉이 걸릴 수 있습니다." },
             { "Encrypted shader", "암호화된 셰이더" },
-            { "New shader", "새로운 셰이더" }
+            { "New shader", "새로운 셰이더" },
+            {"The main texture is not Texture2D.", "메인 텍스쳐가 Texture2D가 아닙니다." }
         };
 
             var jpStrings = new Dictionary<string, string>()
@@ -155,7 +156,8 @@ namespace Shell.Protector
             { "Not supported shader", "対応していないシェーダー" },
             { "Encrypting too many objects can cause lag when loading avatars in-game.", "あまりにも多くのオブジェクトを暗号化すると、ゲーム内でアバターをロードする際にラグが発生する可能性があります。" },
             { "Encrypted shader", "暗号化されたシェーダー" },
-            { "New shader", "新しいシェーダー" }
+            { "New shader", "新しいシェーダー" },
+            {"The main texture is not Texture2D.", "メインテクスチャがTexture2Dではありません。" }
         };
 
             languageMap.Add("kor", koreanStrings);

@@ -80,6 +80,10 @@ namespace Shell.Protector
                     {
                         GUILayout.Label(Lang("The main texture is empty."), redStyle);
                     }
+                    else if ((mainTex is Texture2D) == false)
+                    {
+                        GUILayout.Label(Lang("The main texture is not Texture2D."), redStyle);
+                    }
                     else if (
                         mainTex.format != TextureFormat.DXT1 &&
                         mainTex.format != TextureFormat.DXT5 &&

@@ -177,6 +177,11 @@ namespace Shell.Protector
                 Debug.LogWarningFormat("{0} : The mainTexture is empty. it will be skip.", mat.name);
                 return false;
             }
+            if ((mat.mainTexture is Texture2D) == false)
+            {
+                Debug.LogErrorFormat("MainTexture in {0} is not texture2D", mat.name);
+                return false;
+            }
             if (mat.mainTexture.width % 2 != 0 && mat.mainTexture.height % 2 != 0)
             {
                 Debug.LogErrorFormat("{0} : The texture size must be a multiple of 2!", mat.mainTexture.name);
@@ -376,9 +381,8 @@ namespace Shell.Protector
                     filter = option.filter;
                 }
                 if (mat == null)
-                {
                     continue;
-                }
+
                 EditorUtility.DisplayProgressBar("Encrypt...", "Encrypt Progress " + ++progress + " of " + maxprogress, (float)progress / (float)maxprogress);
                 injector = InjectorFactory.GetInjector(mat.shader);
                 if (injector == null)
