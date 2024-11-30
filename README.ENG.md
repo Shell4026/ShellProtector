@@ -68,9 +68,7 @@ A feature that allows anyone with Safety On when encryption is in place to appea
 ![fallback](https://github.com/user-attachments/assets/d3ca69b0-ff08-4793-a4e4-73269bc8efd3)
 
 ## Troubleshooting
-**<liltoon) If only certain parts of your in-game are unencrypted>**
-
-I'm trying to figure out the exact cause, but it seems to happen if you're not using liltoon for VCC and if you're using backlighting. If you find the issue, please raise it in Issues.
+If you find the issue, please raise it in Issues.
 
 **[is not supported texture format! Error]**
 
@@ -88,9 +86,7 @@ It's a bug in lilToon, so ignore it and upload it, or try one of three ways
 
 **[If certain areas look monochromatic]**
 
-For lilToon, check if the encrypted texture is missing from the main color part of the material and the Encrypted texture part of the custom properties and add it.
-
-For Poiyomi, try encrypting it again.
+Try encrypting it again, and restart Unity.
 
 **[If not decryption when viewed by others in-game]**
 
@@ -109,11 +105,11 @@ When using a texture such as a main color/texture, it will be stripped for secur
 The exceptions are the limlight and outline textures, which will not be removed and will still use the encrypted texture.
    
 ## How it works
-Encrypt the texture using an XXTEA algorithm after transforming the key with SHA-256.
+Encrypt the texture using an XXTEA/Chacha8 algorithm after transforming the key with SHA-256.
 
 After encrypting the texture itself, it is uploaded to the VRChat server. The texture is then decrypted in the game via shaders.
 
-Shaders and Materials are copied, so the original is not affected.
+Shaders, Materials and animations are copied, so the original is not affected.
 
 Only the MainTexture is encrypted, so if you use the same texture elsewhere in the Material as the MainTexture, it will automatically be removed for security purposes. Fill in the gaps with the appropriate texture.
 
