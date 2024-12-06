@@ -15,23 +15,14 @@ public static class ParameterManager
     }
     public static string GetKeyName(int index) => Prefix + "key" + index;
     public static string GetSavedKeyName(int index) => Prefix + "saved_key" + index;
-    public static string GetSyncEnabledName() => Prefix + "sync_enabled";
     public static string GetSyncSwitchName(int index) => Prefix + "sync_switch" + index;
     public static string GetSyncLockName() => Prefix + "sync_lock";
+    public static string GetIsLocalName() => "IsLocal";
 
 
     public static VRCExpressionParameters AddKeyParameter(VRCExpressionParameters vrcParameters, int keyLength, int syncSize,  bool useMultiplexing)
     {
         var parameters = new List<VRCExpressionParameters.Parameter>();
-
-        parameters.Add(new VRCExpressionParameters.Parameter
-        {
-            name = GetSyncEnabledName(),
-            saved = false,
-            networkSynced = false,
-            valueType = VRCExpressionParameters.ValueType.Bool,
-            defaultValue = 1.0f
-        });
 
         if (useMultiplexing == false)
         {

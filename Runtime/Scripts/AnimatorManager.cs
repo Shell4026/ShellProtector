@@ -247,12 +247,15 @@ namespace Shell.Protector
                 type = AnimatorControllerParameterType.Float
             });
 
-            anim.AddParameter(new AnimatorControllerParameter
+            if (anim.parameters.All(p => p.name != ParameterManager.GetIsLocalName()))
             {
-                defaultBool = true,
-                name = ParameterManager.GetSyncEnabledName(),
-                type = AnimatorControllerParameterType.Bool
-            });
+                anim.AddParameter(new AnimatorControllerParameter
+                {
+                    defaultBool = false,
+                    name = ParameterManager.GetIsLocalName(),
+                    type = AnimatorControllerParameterType.Bool
+                });
+            }
 
             for (var i = 0; i < keyLength; ++i)
                 anim.AddParameter(ParameterManager.GetKeyName(i), AnimatorControllerParameterType.Float);
@@ -317,7 +320,7 @@ namespace Shell.Protector
 
         private static void AddSyncEnabledCondition(AnimatorStateTransition transition)
         {
-            transition.AddCondition(AnimatorConditionMode.If, 0, ParameterManager.GetSyncEnabledName());
+            transition.AddCondition(AnimatorConditionMode.If, 0, ParameterManager.GetIsLocalName());
         }
 
         private static void AddMuxLayer(AnimatorController anim, int keyLength, int syncSize, float unlockDelay, float interval, float delay)
