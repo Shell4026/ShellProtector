@@ -7,19 +7,31 @@ using VRC.SDK3.Avatars.ScriptableObjects;
 
 public static class ParameterManager
 {
-    public static string GetPKeySyncParameterName(int index)
+    private const string Prefix = "SHELL_PROTECTOR_";
+    public static string GetSyncedKeyNAme(int index)
     {
-        if (index == 0) return "pkey"; // For backward compatibility
-        return "pkey_sync" + index;
+        if (index == 0) return "pkey"; // For backward compatibility (before commit e8080de)
+        return Prefix + "synced_key" + index;
     }
-    public static string GetPKeyParameterName(int index) => "pkey" + index;
-    public static string GetSyncSwitchParameterName(int index) => "encrypt_switch" + index;
-    public static string GetSyncLockParameterName() => "encrypt_lock";
+    public static string GetKeyName(int index) => Prefix + "key" + index;
+    public static string GetSavedKeyName(int index) => Prefix + "saved_key" + index;
+    public static string GetSyncEnabledName() => Prefix + "sync_enabled";
+    public static string GetSyncSwitchName(int index) => Prefix + "sync_switch" + index;
+    public static string GetSyncLockName() => Prefix + "sync_lock";
 
 
     public static VRCExpressionParameters AddKeyParameter(VRCExpressionParameters vrcParameters, int keyLength, int syncSize,  bool useMultiplexing)
     {
         var parameters = new List<VRCExpressionParameters.Parameter>();
+
+        parameters.Add(new VRCExpressionParameters.Parameter
+        {
+            name = GetSyncEnabledName(),
+            saved = false,
+            networkSynced = false,
+            valueType = VRCExpressionParameters.ValueType.Bool,
+            defaultValue = 1.0f
+        });
 
         if (useMultiplexing == false)
         {
@@ -27,7 +39,7 @@ public static class ParameterManager
             {
                 parameters.Add(new VRCExpressionParameters.Parameter
                 {
-                    name = GetPKeyParameterName(i),
+                    name = GetKeyName(i),
                     saved = true,
                     networkSynced = true,
                     valueType = VRCExpressionParameters.ValueType.Float,
@@ -39,7 +51,7 @@ public static class ParameterManager
         {
             parameters.Add(new VRCExpressionParameters.Parameter
             {
-                name = GetSyncLockParameterName(),
+                name = GetSyncLockName(),
                 saved = true,
                 networkSynced = true,
                 valueType = VRCExpressionParameters.ValueType.Bool,
@@ -50,7 +62,7 @@ public static class ParameterManager
             {
                 parameters.Add(new VRCExpressionParameters.Parameter
                 {
-                    name = GetPKeySyncParameterName(i),
+                    name = GetSyncedKeyNAme(i),
                     saved = true,
                     networkSynced = true,
                     valueType = VRCExpressionParameters.ValueType.Float,
@@ -62,7 +74,7 @@ public static class ParameterManager
             {
                 parameters.Add(new VRCExpressionParameters.Parameter
                 {
-                    name = GetSyncSwitchParameterName(i),
+                    name = GetSyncSwitchName(i),
                     saved = true,
                     networkSynced = true,
                     valueType = VRCExpressionParameters.ValueType.Bool,
@@ -74,8 +86,17 @@ public static class ParameterManager
             {
                 parameters.Add(new VRCExpressionParameters.Parameter
                 {
-                    name = GetPKeyParameterName(i),
+                    name = GetKeyName(i),
                     saved = false,
+                    networkSynced = false,
+                    valueType = VRCExpressionParameters.ValueType.Float,
+                    defaultValue = 0.0f
+                });
+
+                parameters.Add(new VRCExpressionParameters.Parameter
+                {
+                    name = GetSavedKeyName(i),
+                    saved = true,
                     networkSynced = false,
                     valueType = VRCExpressionParameters.ValueType.Float,
                     defaultValue = 0.0f

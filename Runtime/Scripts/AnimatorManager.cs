@@ -2,11 +2,13 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
 using VRC.SDK3.Avatars.Components;
+using VRC.SDKBase;
 
 namespace Shell.Protector
 {
@@ -118,7 +120,7 @@ namespace Shell.Protector
                     continue;
                 if (filename.Contains("FallbackOff"))
                     continue;
-                
+
                 string path = Path.Combine(new_dir, filename);
                 AssetDatabase.CopyAsset(file, path);
                 string anim = File.ReadAllText(path);
@@ -196,7 +198,7 @@ namespace Shell.Protector
                 BlendTree tree_key = new BlendTree();
                 tree_key.name = "key" + i;
                 tree_key.blendType = BlendTreeType.Simple1D;
-                tree_key.blendParameter = ParameterManager.GetPKeyParameterName(i);
+                tree_key.blendParameter = ParameterManager.GetKeyName(i);
                 tree_key.useAutomaticThresholds = false;
 
                 Motion motion0 = AssetDatabase.LoadAssetAtPath(Path.Combine(animation_dir, "key" + (i + offset) + ".anim"), typeof(AnimationClip)) as AnimationClip;
@@ -230,50 +232,53 @@ namespace Shell.Protector
 
         private static void AddTransition(AnimatorStateTransition transition, int keyLength, int syncSize, int idx)
         {
-            transition.AddCondition(AnimatorConditionMode.IfNot, 0, ParameterManager.GetSyncLockParameterName());
+            transition.AddCondition(AnimatorConditionMode.IfNot, 0, ParameterManager.GetSyncLockName());
             AnimatorConditionMode[] switchConditions = GetSwitchConditions(ShellProtector.GetRequiredSwitchCount(keyLength, syncSize), idx);
             for (int i = 0; i < switchConditions.Length; ++i)
-                transition.AddCondition(switchConditions[i], 0, ParameterManager.GetSyncSwitchParameterName(i));
+                transition.AddCondition(switchConditions[i], 0, ParameterManager.GetSyncSwitchName(i));
         }
-        public static void AddParameter(AnimatorController anim, int key_length, int sync_size, bool optimize)
+
+        private static void AddParameters(AnimatorController anim, int keyLength, int syncSize, bool useMultiplexing)
         {
-            var paramters = anim.parameters;
-            for (int i = 0; i < paramters.Length; ++i)
+            anim.AddParameter(new AnimatorControllerParameter
             {
-                string name = paramters[i].name;
-                if (name == "key_weight")
-                    return;
-            }
-            anim.AddParameter(new AnimatorControllerParameter() { defaultFloat = 1.0f, name = "key_weight", type = AnimatorControllerParameterType.Float });
+                defaultFloat = 1.0f,
+                name = "key_weight",
+                type = AnimatorControllerParameterType.Float
+            });
 
-            for (int i = 0; i < key_length; ++i)
-                anim.AddParameter(ParameterManager.GetPKeyParameterName(i), AnimatorControllerParameterType.Float);
-
-            if (optimize)
+            anim.AddParameter(new AnimatorControllerParameter
             {
-                for(int i = 0; i < sync_size; i++)
-                    anim.AddParameter(ParameterManager.GetPKeySyncParameterName(i), AnimatorControllerParameterType.Float);
-                anim.AddParameter(ParameterManager.GetSyncLockParameterName(), AnimatorControllerParameterType.Bool);
-                int switch_count = ShellProtector.GetRequiredSwitchCount(key_length, sync_size);
-                for (int i = 0; i < switch_count; ++i)
-                    anim.AddParameter(ParameterManager.GetSyncSwitchParameterName(i), AnimatorControllerParameterType.Bool);
+                defaultBool = true,
+                name = ParameterManager.GetSyncEnabledName(),
+                type = AnimatorControllerParameterType.Bool
+            });
+
+            for (var i = 0; i < keyLength; ++i)
+                anim.AddParameter(ParameterManager.GetKeyName(i), AnimatorControllerParameterType.Float);
+
+            if (useMultiplexing)
+            {
+                anim.AddParameter(ParameterManager.GetSyncLockName(), AnimatorControllerParameterType.Bool);
+                var switchCount = ShellProtector.GetRequiredSwitchCount(keyLength, syncSize);
+                for (var i = 0; i < keyLength; ++i)
+                    anim.AddParameter(ParameterManager.GetSavedKeyName(i), AnimatorControllerParameterType.Float);
+                for(var i = 0; i < syncSize; ++i)
+                    anim.AddParameter(ParameterManager.GetSyncedKeyNAme(i), AnimatorControllerParameterType.Float);
+                for (var i = 0; i < switchCount; ++i)
+                    anim.AddParameter(ParameterManager.GetSyncSwitchName(i), AnimatorControllerParameterType.Bool);
             }
         }
-        public static void AddKeyLayer(AnimatorController anim, string animation_dir, int key_length, int sync_size, float speed = 10.0f, bool optimize = false)
+        public static void AddKeyLayer(AnimatorController anim, string animationDir, int keyLength, int syncSize, float speed, bool useMultiplexing)
         {
-            AddParameter(anim, key_length, sync_size,  optimize);
+            AddParameters(anim, keyLength, syncSize, useMultiplexing);
 
-            if (optimize)
-            {
-                AddKeyLayerMultiplexing(anim, animation_dir, key_length, sync_size, speed);
-                return;
-            }
+            if (anim.layers.Any(l => l.name == "ShellProtector")) return;
 
-            var layers = anim.layers;
-            foreach (var _layer in layers)
+            if (useMultiplexing)
             {
-                if (_layer.name == "ShellProtector")
-                    return;
+                AddMuxLayer(anim, keyLength, syncSize, 0.15f, 0.1f, 1f); // 10hz
+                AddDemuxLayer(anim, keyLength, syncSize);
             }
 
             AnimatorStateMachine stateMachine = new AnimatorStateMachine
@@ -296,8 +301,8 @@ namespace Shell.Protector
             AssetDatabase.AddObjectToAsset(tree_root, anim);
             state.motion = tree_root;
 
-            var key_tree = CreateKeyTree(animation_dir, key_length, speed);
-            for (int i = 0; i < key_length; ++i)
+            var key_tree = CreateKeyTree(animationDir, keyLength, speed);
+            for (int i = 0; i < keyLength; ++i)
             {
                 tree_root.AddChild(key_tree[i]);
                 AssetDatabase.AddObjectToAsset(key_tree[i], anim);
@@ -310,18 +315,127 @@ namespace Shell.Protector
             tree_root.children = children;
         }
 
-        public static void AddKeyLayerMultiplexing(AnimatorController anim, string animation_dir, int key_length, int sync_size, float speed = 10.0f)
+        private static void AddSyncEnabledCondition(AnimatorStateTransition transition)
         {
-            var layers = anim.layers;
-            foreach (var _layer in layers)
-            {
-                if (_layer.name == "ShellProtectorDriver")
-                    return;
-            }
+            transition.AddCondition(AnimatorConditionMode.If, 0, ParameterManager.GetSyncEnabledName());
+        }
 
-            AnimatorStateMachine stateMachine = new AnimatorStateMachine
+        private static void AddMuxLayer(AnimatorController anim, int keyLength, int syncSize, float unlockDelay, float interval, float delay)
+        {
+            if (anim.layers.Any(l => l.name == "ShellProtectorMux")) return;
+
+            var stateMachine = new AnimatorStateMachine
             {
-                name = anim.MakeUniqueLayerName("ShellProtectorDriver"),
+                name = anim.MakeUniqueLayerName("ShellProtectorMux"),
+                hideFlags = HideFlags.HideInHierarchy
+            };
+
+            AssetDatabase.AddObjectToAsset(stateMachine, anim);
+
+            anim.AddLayer(new AnimatorControllerLayer { name = stateMachine.name, defaultWeight = 1.0f, stateMachine = stateMachine });
+
+            var layer = anim.layers[anim.layers.Length - 1];
+            var idle = layer.stateMachine.AddState("Idle", new Vector3(0, 0));
+            layer.stateMachine.AddEntryTransition(idle);
+
+            var steps = keyLength / syncSize;
+            var syncStates = new AnimatorState[steps];
+            var lockStates = new AnimatorState[steps];
+            var unlockStates = new AnimatorState[steps];
+            const int x = 250;
+            const int y = 80;
+            layer.stateMachine.entryPosition = new Vector3(-x, 0);
+            layer.stateMachine.exitPosition = new Vector3(x * 4, y * (steps - 1));
+            for (var step = 0; step < steps; step++)
+            {
+                var lockState = layer.stateMachine.AddState("mux" + step + "_lock", new Vector3(x * 1, y * step));
+                var syncState = layer.stateMachine.AddState("mux" + step + "_sync", new Vector3(x * 2, y * step));
+                var unlockState = layer.stateMachine.AddState("mux" + step + "_unlock", new Vector3(x * 3, y * step));
+
+                var lockToSync = lockState.AddTransition(syncState);
+                lockToSync.hasExitTime = false;
+                lockToSync.duration = 0;
+                AddSyncEnabledCondition(lockToSync);
+
+                var syncToUnlock = syncState.AddTransition(unlockState);
+                syncToUnlock.hasExitTime = false;
+                syncToUnlock.duration = unlockDelay;
+                AddSyncEnabledCondition(syncToUnlock);
+
+                if (step == 0) // first step
+                {
+                    var transition = idle.AddTransition(lockState);
+                    transition.hasExitTime = false;
+                    transition.duration = delay;
+                    AddSyncEnabledCondition(transition);
+                }
+                else
+                {
+                    if (step == steps - 1)
+                    {
+                        var exit = unlockState.AddExitTransition(); // last step exit
+                        exit.hasExitTime = false;
+                        exit.duration = 0;
+                        AddSyncEnabledCondition(exit);
+                    }
+                    var previousUnlock = unlockStates[step - 1];
+                    var transition = previousUnlock.AddTransition(lockState);
+                    transition.hasExitTime = false;
+                    transition.duration = interval;
+                    AddSyncEnabledCondition(transition);
+                }
+
+                var lockDriver = lockState.AddStateMachineBehaviour<VRCAvatarParameterDriver>();
+                var syncDriver = syncState.AddStateMachineBehaviour<VRCAvatarParameterDriver>();
+                var unlockDriver = unlockState.AddStateMachineBehaviour<VRCAvatarParameterDriver>();
+
+                lockDriver.parameters.Add(new VRC_AvatarParameterDriver.Parameter
+                {
+                    type = VRC_AvatarParameterDriver.ChangeType.Set,
+                    name = ParameterManager.GetSyncLockName(),
+                    value = 1
+                });
+
+                for (var i = 0; i < syncSize; i++)
+                {
+                    syncDriver.parameters.Add(new VRC_AvatarParameterDriver.Parameter
+                    {
+                        type = VRC_AvatarParameterDriver.ChangeType.Copy,
+                        name = ParameterManager.GetSyncedKeyNAme(i),
+                        source = ParameterManager.GetSavedKeyName(step * syncSize + i)
+                    });
+                }
+
+                for (var i = 0; i < ShellProtector.GetRequiredSwitchCount(keyLength, syncSize); i++)
+                {
+                    syncDriver.parameters.Add(new VRC_AvatarParameterDriver.Parameter
+                    {
+                        type = VRC_AvatarParameterDriver.ChangeType.Set,
+                        name = ParameterManager.GetSyncSwitchName(i),
+                        value = (step & (1 << i)) != 0 ? 1 : 0
+                    });
+                }
+
+                unlockDriver.parameters.Add(new VRC_AvatarParameterDriver.Parameter
+                {
+                    type = VRC_AvatarParameterDriver.ChangeType.Set,
+                    name = ParameterManager.GetSyncLockName(),
+                    value = 0
+                });
+
+                syncStates[step] = syncState;
+                lockStates[step] = lockState;
+                unlockStates[step] = unlockState;
+            }
+        }
+
+        private static void AddDemuxLayer(AnimatorController anim, int keyLength, int syncSize)
+        {
+            if (anim.layers.Any(l => l.name == "ShellProtectorDemux")) return;
+
+            var stateMachine = new AnimatorStateMachine
+            {
+                name = anim.MakeUniqueLayerName("ShellProtectorDemux"),
                 hideFlags = HideFlags.HideInHierarchy
             };
             AssetDatabase.AddObjectToAsset(stateMachine, anim);
@@ -335,33 +449,30 @@ namespace Shell.Protector
             transition.exitTime = 0;
             transition.duration = 0;
             transition.hasExitTime = false;
-            transition.AddCondition(AnimatorConditionMode.If, 0, ParameterManager.GetSyncLockParameterName());
+            transition.AddCondition(AnimatorConditionMode.If, 0, ParameterManager.GetSyncLockName());
 
-            for (int i = 0; i < key_length / sync_size; ++i)
+            for (var i = 0; i < keyLength / syncSize; ++i)
             {
-                var key_state = layer.stateMachine.AddState("key" + i);
+                var keyState = layer.stateMachine.AddState("key" + i);
 
-                for (var j = 0; j < sync_size; j++)
+                for (var j = 0; j < syncSize; j++)
                 {
-                    var behaviour = key_state.AddStateMachineBehaviour<VRCAvatarParameterDriver>();
-                    var behaviour_param = new VRCAvatarParameterDriver.Parameter
+                    var behaviour = keyState.AddStateMachineBehaviour<VRCAvatarParameterDriver>();
+                    behaviour.parameters.Add(new VRCAvatarParameterDriver.Parameter
                     {
-                        type = VRC.SDKBase.VRC_AvatarParameterDriver.ChangeType.Copy,
-                        name = ParameterManager.GetPKeyParameterName(i * sync_size + j),
-                        source = ParameterManager.GetPKeySyncParameterName(j)
-                    };
-                    behaviour.parameters.Add(behaviour_param);
+                        type = VRC_AvatarParameterDriver.ChangeType.Copy,
+                        name = ParameterManager.GetKeyName(i * syncSize + j),
+                        source = ParameterManager.GetSyncedKeyNAme(j)
+                    });
                 }
 
-                transition = layer.stateMachine.AddAnyStateTransition(key_state);
+                transition = layer.stateMachine.AddAnyStateTransition(keyState);
                 transition.canTransitionToSelf = false;
                 transition.exitTime = 0;
                 transition.duration = 0;
                 transition.hasExitTime = false;
-                AddTransition(transition, key_length, sync_size, i);
+                AddTransition(transition, keyLength, syncSize, i);
             }
-
-            AddKeyLayer(anim, animation_dir, key_length, sync_size, speed, false);
         }
 
         public static void AddFallbackLayer(AnimatorController anim, AnimationClip fallbackAnimation, float time = 3)

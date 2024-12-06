@@ -232,9 +232,8 @@ namespace Shell.Protector
             if(parameter_multiplexing.boolValue == true)
             {
                 int lock_size = 1;
-                int pkey_count = sync_size.intValue;
                 int switch_count = ShellProtector.GetRequiredSwitchCount(key_size.intValue, sync_size.intValue);
-                using_parameter = switch_count + lock_size + pkey_count * 8;
+                using_parameter = switch_count + lock_size + sync_size.intValue * 8;
             }
             GUILayout.Label(Lang("Parameters to be used:") + using_parameter, EditorStyles.wordWrappedLabel);
 
