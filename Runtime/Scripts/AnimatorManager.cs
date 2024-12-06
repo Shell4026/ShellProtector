@@ -195,10 +195,8 @@ namespace Shell.Protector
             {
                 BlendTree tree_key = new BlendTree();
                 tree_key.name = "key" + i;
-                tree_key.blendType = BlendTreeType.Direct;
-                tree_key.blendParameter = "key_weight";
                 tree_key.blendType = BlendTreeType.Simple1D;
-                tree_key.blendParameter = "pkey" + i;
+                tree_key.blendParameter = ParameterManager.GetPKeyParameterName(i);
                 tree_key.useAutomaticThresholds = false;
 
                 Motion motion0 = AssetDatabase.LoadAssetAtPath(Path.Combine(animation_dir, "key" + (i + offset) + ".anim"), typeof(AnimationClip)) as AnimationClip;
@@ -232,10 +230,10 @@ namespace Shell.Protector
 
         private static void AddTransition(AnimatorStateTransition transition, int keyLength, int syncSize, int idx)
         {
-            transition.AddCondition(AnimatorConditionMode.IfNot, 0, "encrypt_lock");
+            transition.AddCondition(AnimatorConditionMode.IfNot, 0, ParameterManager.GetSyncLockParameterName());
             AnimatorConditionMode[] switchConditions = GetSwitchConditions(ShellProtector.GetRequiredSwitchCount(keyLength, syncSize), idx);
             for (int i = 0; i < switchConditions.Length; ++i)
-                transition.AddCondition(switchConditions[i], 0, "encrypt_switch" + i);
+                transition.AddCondition(switchConditions[i], 0, ParameterManager.GetSyncSwitchParameterName(i));
         }
         public static void AddParameter(AnimatorController anim, int key_length, int sync_size, bool optimize)
         {
@@ -249,16 +247,16 @@ namespace Shell.Protector
             anim.AddParameter(new AnimatorControllerParameter() { defaultFloat = 1.0f, name = "key_weight", type = AnimatorControllerParameterType.Float });
 
             for (int i = 0; i < key_length; ++i)
-                anim.AddParameter("pkey" + i, AnimatorControllerParameterType.Float);
+                anim.AddParameter(ParameterManager.GetPKeyParameterName(i), AnimatorControllerParameterType.Float);
 
             if (optimize)
             {
                 for(int i = 0; i < sync_size; i++)
                     anim.AddParameter(ParameterManager.GetPKeySyncParameterName(i), AnimatorControllerParameterType.Float);
-                anim.AddParameter("encrypt_lock", AnimatorControllerParameterType.Bool);
+                anim.AddParameter(ParameterManager.GetSyncLockParameterName(), AnimatorControllerParameterType.Bool);
                 int switch_count = ShellProtector.GetRequiredSwitchCount(key_length, sync_size);
                 for (int i = 0; i < switch_count; ++i)
-                    anim.AddParameter("encrypt_switch" + i, AnimatorControllerParameterType.Bool);
+                    anim.AddParameter(ParameterManager.GetSyncSwitchParameterName(i), AnimatorControllerParameterType.Bool);
             }
         }
         public static void AddKeyLayer(AnimatorController anim, string animation_dir, int key_length, int sync_size, float speed = 10.0f, bool optimize = false)
@@ -337,7 +335,7 @@ namespace Shell.Protector
             transition.exitTime = 0;
             transition.duration = 0;
             transition.hasExitTime = false;
-            transition.AddCondition(AnimatorConditionMode.If, 0, "encrypt_lock");
+            transition.AddCondition(AnimatorConditionMode.If, 0, ParameterManager.GetSyncLockParameterName());
 
             for (int i = 0; i < key_length / sync_size; ++i)
             {
@@ -349,7 +347,7 @@ namespace Shell.Protector
                     var behaviour_param = new VRCAvatarParameterDriver.Parameter
                     {
                         type = VRC.SDKBase.VRC_AvatarParameterDriver.ChangeType.Copy,
-                        name = "pkey" + (i * sync_size + j),
+                        name = ParameterManager.GetPKeyParameterName(i * sync_size + j),
                         source = ParameterManager.GetPKeySyncParameterName(j)
                     };
                     behaviour.parameters.Add(behaviour_param);

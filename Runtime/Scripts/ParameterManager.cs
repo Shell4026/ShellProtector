@@ -1,114 +1,91 @@
 ﻿#if UNITY_EDITOR
-using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using Shell.Protector;
 using UnityEngine;
-using VRC.SDK3.Avatars;
 using VRC.SDK3.Avatars.ScriptableObjects;
 
 public static class ParameterManager
 {
-    public static VRCExpressionParameters.Parameter CloneParameter(VRCExpressionParameters.Parameter parameter)
-    {
-        var tmp = new VRCExpressionParameters.Parameter();
-        tmp.saved = parameter.saved;
-        tmp.name = parameter.name;
-        tmp.networkSynced = parameter.networkSynced;
-        tmp.valueType = parameter.valueType;
-        tmp.defaultValue = parameter.defaultValue;
-        return tmp;
-    }
-
     public static string GetPKeySyncParameterName(int index)
     {
         if (index == 0) return "pkey"; // For backward compatibility
         return "pkey_sync" + index;
     }
+    public static string GetPKeyParameterName(int index) => "pkey" + index;
+    public static string GetSyncSwitchParameterName(int index) => "encrypt_switch" + index;
+    public static string GetSyncLockParameterName() => "encrypt_lock";
 
-    public static VRCExpressionParameters AddKeyParameter(VRCExpressionParameters vrc_parameters, int key_length, int sync_size,  bool use_multiplexing = false)
+
+    public static VRCExpressionParameters AddKeyParameter(VRCExpressionParameters vrcParameters, int keyLength, int syncSize,  bool useMultiplexing)
     {
-        VRCExpressionParameters result = ScriptableObject.CreateInstance<VRCExpressionParameters>();
-        result.name = vrc_parameters.name + "_encrypted";
+        var parameters = new List<VRCExpressionParameters.Parameter>();
 
-        var parameters = vrc_parameters.parameters;
-
-        int etc = 0;
-        if (use_multiplexing)
+        if (useMultiplexing == false)
         {
-            etc = 1 + sync_size; // encrypt_lock + pkey_sync
-        }
-
-        VRCExpressionParameters.Parameter[] tmp = new VRCExpressionParameters.Parameter[parameters.Length + ShellProtector.GetRequiredSwitchCount(key_length, sync_size) + key_length + etc];
-        int idx;
-        for(idx = 0; idx < parameters.Length; ++idx)
-            tmp[idx] = CloneParameter(parameters[idx]);
-
-        if (use_multiplexing == false)
-        {
-            for (int i = 0; i < key_length; ++i)
+            for (var i = 0; i < keyLength; ++i)
             {
-                var para = new VRCExpressionParameters.Parameter
+                parameters.Add(new VRCExpressionParameters.Parameter
                 {
-                    name = "pkey" + i,
+                    name = GetPKeyParameterName(i),
                     saved = true,
                     networkSynced = true,
                     valueType = VRCExpressionParameters.ValueType.Float,
                     defaultValue = 0.0f
-                };
-
-                tmp[idx++] = para;
+                });
             }
         }
         else
         {
-            for (int i = 0; i < sync_size; i++)
+            parameters.Add(new VRCExpressionParameters.Parameter
             {
-                var para = new VRCExpressionParameters.Parameter
+                name = GetSyncLockParameterName(),
+                saved = true,
+                networkSynced = true,
+                valueType = VRCExpressionParameters.ValueType.Bool,
+                defaultValue = 0.0f
+            });
+
+            for (var i = 0; i < syncSize; i++)
+            {
+                parameters.Add(new VRCExpressionParameters.Parameter
                 {
                     name = GetPKeySyncParameterName(i),
                     saved = true,
                     networkSynced = true,
                     valueType = VRCExpressionParameters.ValueType.Float,
                     defaultValue = 0.0f
-                };
-                tmp[idx++] = para;
+                });
             }
-            for (int i = 0; i < key_length; ++i)
-            {
-                var para = new VRCExpressionParameters.Parameter
-                {
-                    name = "pkey" + i,
-                    saved = false,
-                    networkSynced = false,
-                    valueType = VRCExpressionParameters.ValueType.Float,
-                    defaultValue = 0.0f
-                };
 
-                tmp[idx++] = para;
-            }
-            var plock = new VRCExpressionParameters.Parameter
+            for (var i = 0; i < ShellProtector.GetRequiredSwitchCount(keyLength, syncSize); ++i)
             {
-                name = "encrypt_lock",
-                saved = true,
-                networkSynced = true,
-                valueType = VRCExpressionParameters.ValueType.Bool,
-                defaultValue = 0.0f
-            };
-            tmp[idx++] = plock;
-            for (int i = 0; i < ShellProtector.GetRequiredSwitchCount(key_length, sync_size); ++i)
-            {
-                var para = new VRCExpressionParameters.Parameter
+                parameters.Add(new VRCExpressionParameters.Parameter
                 {
-                    name = "encrypt_switch" + i,
+                    name = GetSyncSwitchParameterName(i),
                     saved = true,
                     networkSynced = true,
                     valueType = VRCExpressionParameters.ValueType.Bool,
                     defaultValue = 0.0f
-                };
-                tmp[idx++] = para;
+                });
+            }
+
+            for (var i = 0; i < keyLength; ++i)
+            {
+                parameters.Add(new VRCExpressionParameters.Parameter
+                {
+                    name = GetPKeyParameterName(i),
+                    saved = false,
+                    networkSynced = false,
+                    valueType = VRCExpressionParameters.ValueType.Float,
+                    defaultValue = 0.0f
+                });
             }
         }
-        result.parameters = tmp;
+
+        var result = ScriptableObject.CreateInstance<VRCExpressionParameters>();
+        result.name = vrcParameters.name + "_encrypted";
+        result.parameters = vrcParameters.parameters.Concat(parameters).ToArray();;
         return result;
     }
 }
