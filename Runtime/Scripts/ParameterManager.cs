@@ -1,6 +1,7 @@
 ﻿#if UNITY_EDITOR
 using System.Collections;
 using System.Collections.Generic;
+using Shell.Protector;
 using UnityEngine;
 using VRC.SDK3.Avatars;
 using VRC.SDK3.Avatars.ScriptableObjects;
@@ -18,42 +19,25 @@ public static class ParameterManager
         return tmp;
     }
 
-    public static VRCExpressionParameters AddKeyParameter(VRCExpressionParameters vrc_parameters, int key_length, bool optimize = false)
+    public static VRCExpressionParameters AddKeyParameter(VRCExpressionParameters vrc_parameters, int key_length, int sync_size,  bool use_multiplexing = false)
     {
-        VRCExpressionParameters result = new VRCExpressionParameters();
+        VRCExpressionParameters result = ScriptableObject.CreateInstance<VRCExpressionParameters>();
         result.name = vrc_parameters.name + "_encrypted";
 
         var parameters = vrc_parameters.parameters;
 
-        int switch_size = 0;
         int etc = 0;
-        if (optimize == true)
+        if (use_multiplexing)
         {
-            etc = 2; //lock + pkey(sync)
-            switch(key_length)
-            {
-                case 4:
-                    switch_size = 2;
-                    break;
-                case 8:
-                    switch_size = 3;
-                    break;
-                case 12:
-                case 16:
-                    switch_size = 4;
-                    break;
-                default:
-                    Debug.LogErrorFormat("ParameterManager: key_length = {} is wrong!", key_length);
-                    return result;
-            }  
+            etc = 1 + sync_size; // encrypt_lock + pkey_sync
         }
 
-        VRCExpressionParameters.Parameter[] tmp = new VRCExpressionParameters.Parameter[parameters.Length + switch_size + key_length + etc];
+        VRCExpressionParameters.Parameter[] tmp = new VRCExpressionParameters.Parameter[parameters.Length + ShellProtector.GetRequiredSwitchCount(key_length, sync_size) + key_length + etc];
         int idx;
         for(idx = 0; idx < parameters.Length; ++idx)
             tmp[idx] = CloneParameter(parameters[idx]);
 
-        if (optimize == false)
+        if (use_multiplexing == false)
         {
             for (int i = 0; i < key_length; ++i)
             {
@@ -71,15 +55,18 @@ public static class ParameterManager
         }
         else
         {
-            var pkey = new VRCExpressionParameters.Parameter
+            for (int i = 0; i < sync_size; i++)
             {
-                name = "pkey",
-                saved = true,
-                networkSynced = true,
-                valueType = VRCExpressionParameters.ValueType.Float,
-                defaultValue = 0.0f
-            };
-            tmp[idx++] = pkey;
+                var para = new VRCExpressionParameters.Parameter
+                {
+                    name = $"pkey_sync{i}",
+                    saved = true,
+                    networkSynced = true,
+                    valueType = VRCExpressionParameters.ValueType.Float,
+                    defaultValue = 0.0f
+                };
+                tmp[idx++] = para;
+            }
             for (int i = 0; i < key_length; ++i)
             {
                 var para = new VRCExpressionParameters.Parameter
@@ -102,7 +89,7 @@ public static class ParameterManager
                 defaultValue = 0.0f
             };
             tmp[idx++] = plock;
-            for (int i = 0; i < switch_size; ++i)
+            for (int i = 0; i < ShellProtector.GetRequiredSwitchCount(key_length, sync_size); ++i)
             {
                 var para = new VRCExpressionParameters.Parameter
                 {

@@ -217,56 +217,27 @@ namespace Shell.Protector
             return tree;
         }
 
-        private static void AddTransition(AnimatorStateTransition transition, int key_length, int idx)
+        private static AnimatorConditionMode[] GetSwitchConditions(int switchCount, int index)
+        {
+            AnimatorConditionMode[] mode = new AnimatorConditionMode[switchCount];
+            for (int i = 0; i < switchCount; ++i)
+                mode[i] = AnimatorConditionMode.IfNot;
+            for (int i = 0; i < switchCount; ++i)
+            {
+                if ((index & (1 << i)) != 0)
+                    mode[i] = AnimatorConditionMode.If;
+            }
+            return mode;
+        }
+
+        private static void AddTransition(AnimatorStateTransition transition, int keyLength, int syncSize, int idx)
         {
             transition.AddCondition(AnimatorConditionMode.IfNot, 0, "encrypt_lock");
-            if (key_length == 4)
-            {
-                int n = 2;
-                AnimatorConditionMode[] mode = new AnimatorConditionMode[n];
-                for (int i = 0; i < n; ++i)
-                    mode[i] = AnimatorConditionMode.IfNot;
-                if ((idx & 0b0001) == 1)
-                    mode[0] = AnimatorConditionMode.If;
-                if ((idx & 0b0010) == 2)
-                    mode[1] = AnimatorConditionMode.If;
-                for (int i = 0; i < n; ++i)
-                    transition.AddCondition(mode[i], 0, "encrypt_switch" + i);
-            }
-            else if (key_length == 8)
-            {
-                int n = 3;
-                AnimatorConditionMode[] mode = new AnimatorConditionMode[n];
-                for (int i = 0; i < n; ++i)
-                    mode[i] = AnimatorConditionMode.IfNot;
-                if ((idx & 0b0001) == 1)
-                    mode[0] = AnimatorConditionMode.If;
-                if ((idx & 0b0010) == 2)
-                    mode[1] = AnimatorConditionMode.If;
-                if ((idx & 0b0100) == 4)
-                    mode[2] = AnimatorConditionMode.If;
-                for (int i = 0; i < n; ++i)
-                    transition.AddCondition(mode[i], 0, "encrypt_switch" + i);
-            }
-            else
-            {
-                int n = 4;
-                AnimatorConditionMode[] mode = new AnimatorConditionMode[n];
-                for (int i = 0; i < n; ++i)
-                    mode[i] = AnimatorConditionMode.IfNot;
-                if ((idx & 0b0001) == 1)
-                    mode[0] = AnimatorConditionMode.If;
-                if ((idx & 0b0010) == 2)
-                    mode[1] = AnimatorConditionMode.If;
-                if ((idx & 0b0100) == 4)
-                    mode[2] = AnimatorConditionMode.If;
-                if ((idx & 0b1000) == 8)
-                    mode[3] = AnimatorConditionMode.If;
-                for (int i = 0; i < n; ++i)
-                    transition.AddCondition(mode[i], 0, "encrypt_switch" + i);
-            }
+            AnimatorConditionMode[] switchConditions = GetSwitchConditions(ShellProtector.GetRequiredSwitchCount(keyLength, syncSize), idx);
+            for (int i = 0; i < switchConditions.Length; ++i)
+                transition.AddCondition(switchConditions[i], 0, "encrypt_switch" + i);
         }
-        public static void AddParameter(AnimatorController anim, int key_length, bool optimize)
+        public static void AddParameter(AnimatorController anim, int key_length, int sync_size, bool optimize)
         {
             var paramters = anim.parameters;
             for (int i = 0; i < paramters.Length; ++i)
@@ -282,37 +253,21 @@ namespace Shell.Protector
 
             if (optimize)
             {
-                anim.AddParameter("pkey", AnimatorControllerParameterType.Float);
+                for(int i = 0; i < sync_size; i++)
+                    anim.AddParameter("pkey_sync" + i, AnimatorControllerParameterType.Float);
                 anim.AddParameter("encrypt_lock", AnimatorControllerParameterType.Bool);
-                int switch_count = 1;
-                switch (key_length)
-                {
-                    case 4:
-                        switch_count = 2;
-                        break;
-                    case 8:
-                        switch_count = 3;
-                        break;
-                    case 12:
-                    case 16:
-                        switch_count = 4;
-                        break;
-                    default:
-                        Debug.LogErrorFormat("AnimatorManager-AddParameter: key_length = {} is wrong!", key_length);
-                        return;
-                }
-
+                int switch_count = ShellProtector.GetRequiredSwitchCount(key_length, sync_size);
                 for (int i = 0; i < switch_count; ++i)
                     anim.AddParameter("encrypt_switch" + i, AnimatorControllerParameterType.Bool);
             }
         }
-        public static void AddKeyLayer(AnimatorController anim, string animation_dir, int key_length, float speed = 10.0f, bool optimize = false)
+        public static void AddKeyLayer(AnimatorController anim, string animation_dir, int key_length, int sync_size, float speed = 10.0f, bool optimize = false)
         {
-            AddParameter(anim, key_length, optimize);
+            AddParameter(anim, key_length, sync_size,  optimize);
 
             if (optimize)
             {
-                AddKeyLayerMultiplexing(anim, animation_dir, key_length, speed);
+                AddKeyLayerMultiplexing(anim, animation_dir, key_length, sync_size, speed);
                 return;
             }
 
@@ -356,7 +311,8 @@ namespace Shell.Protector
 
             tree_root.children = children;
         }
-        public static void AddKeyLayerMultiplexing(AnimatorController anim, string animation_dir, int key_length, float speed = 10.0f)
+
+        public static void AddKeyLayerMultiplexing(AnimatorController anim, string animation_dir, int key_length, int sync_size, float speed = 10.0f)
         {
             var layers = anim.layers;
             foreach (var _layer in layers)
@@ -383,28 +339,31 @@ namespace Shell.Protector
             transition.hasExitTime = false;
             transition.AddCondition(AnimatorConditionMode.If, 0, "encrypt_lock");
 
-            for (int i = 0; i < key_length; ++i)
+            for (int i = 0; i < key_length / sync_size; ++i)
             {
                 var key_state = layer.stateMachine.AddState("key" + i);
 
-                var behaviour = key_state.AddStateMachineBehaviour<VRCAvatarParameterDriver>();
-                var behaviour_param = new VRCAvatarParameterDriver.Parameter
+                for (var j = 0; j < sync_size; j++)
                 {
-                    type = VRC.SDKBase.VRC_AvatarParameterDriver.ChangeType.Copy,
-                    name = "pkey" + i,
-                    source = "pkey",
-                };
-                behaviour.parameters.Add(behaviour_param);
+                    var behaviour = key_state.AddStateMachineBehaviour<VRCAvatarParameterDriver>();
+                    var behaviour_param = new VRCAvatarParameterDriver.Parameter
+                    {
+                        type = VRC.SDKBase.VRC_AvatarParameterDriver.ChangeType.Copy,
+                        name = "pkey" + (i * sync_size + j),
+                        source = "pkey_sync" + j
+                    };
+                    behaviour.parameters.Add(behaviour_param);
+                }
 
                 transition = layer.stateMachine.AddAnyStateTransition(key_state);
                 transition.canTransitionToSelf = false;
                 transition.exitTime = 0;
                 transition.duration = 0;
                 transition.hasExitTime = false;
-                AddTransition(transition, key_length, i);
+                AddTransition(transition, key_length, sync_size, i);
             }
 
-            AddKeyLayer(anim, animation_dir, key_length, speed, false);
+            AddKeyLayer(anim, animation_dir, key_length, sync_size, speed, false);
         }
 
         public static void AddFallbackLayer(AnimatorController anim, AnimationClip fallbackAnimation, float time = 3)
