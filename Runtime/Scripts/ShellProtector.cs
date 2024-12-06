@@ -11,6 +11,7 @@ using VRC.SDK3.Avatars.Components;
 using System.Linq;
 using VRC.SDKBase;
 using UnityEditor.Animations;
+using UnityEngine.Serialization;
 
 #if MODULAR
 using nadena.dev.modular_avatar.core;
@@ -90,6 +91,7 @@ namespace Shell.Protector
         [SerializeField] int algorithm = 1;
         [SerializeField] int key_size_idx = 3;
         [SerializeField] int key_size = 12;
+        [SerializeField] int sync_size = 1;
         [SerializeField] float animation_speed = 5.0f;
         [SerializeField] bool delete_folders = true;
         [SerializeField] bool parameter_multiplexing = false;
@@ -733,7 +735,7 @@ namespace Shell.Protector
 
             ///////////////////////parameter////////////////////
             var av3 = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
-            av3.expressionParameters = ParameterManager.AddKeyParameter(av3.expressionParameters, key_size, parameter_multiplexing);
+            av3.expressionParameters = ParameterManager.AddKeyParameter(av3.expressionParameters, key_size, sync_size, parameter_multiplexing);
             AssetDatabase.CreateAsset(av3.expressionParameters, Path.Combine(avatarDir, av3.expressionParameters.name + ".asset"));
             ////////////////////////////////////////////////////
             SetMaterialFallbackValue(avatar, true);
@@ -783,7 +785,7 @@ namespace Shell.Protector
             meshes.CopyTo(mesh_array);
             AnimatorManager.CreateKeyAniamtions(Path.Combine(asset_dir, "Animations"), animation_dir, mesh_array);
             var fallbackAnim = AnimatorManager.CreateFallbackAniamtions(Path.Combine(asset_dir, "Animations", "FallbackOff.anim"), animation_dir, mesh_array);
-            AnimatorManager.AddKeyLayer(fx, animation_dir, key_size, animation_speed, parameter_multiplexing);
+            AnimatorManager.AddKeyLayer(fx, animation_dir, key_size, sync_size, animation_speed, parameter_multiplexing);
             AnimatorManager.AddFallbackLayer(fx, fallbackAnim, fallbackTime);
 
             AssetDatabase.SaveAssets();
@@ -1086,6 +1088,12 @@ namespace Shell.Protector
             }
             history.LoadData();
             return history.IsEncryptedBefore(shader);
+        }
+
+        public static int GetRequiredSwitchCount(int key_length, int sync_size)
+        {
+            key_length /= sync_size;
+            return Mathf.CeilToInt(Mathf.Log(key_length, 2));
         }
     }
 }

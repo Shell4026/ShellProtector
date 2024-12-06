@@ -29,6 +29,7 @@ namespace Shell.Protector
         SerializedProperty algorithm;
         SerializedProperty key_size;
         SerializedProperty key_size_idx;
+        SerializedProperty sync_size;
         SerializedProperty animation_speed;
         SerializedProperty delete_folders;
         SerializedProperty parameter_multiplexing;
@@ -108,8 +109,9 @@ namespace Shell.Protector
             algorithm = serializedObject.FindProperty("algorithm");
             key_size = serializedObject.FindProperty("key_size");
             key_size_idx = serializedObject.FindProperty("key_size_idx");
+            sync_size = serializedObject.FindProperty("sync_size");
             animation_speed = serializedObject.FindProperty("animation_speed");
-            delete_folders = serializedObject.FindProperty("delete_folders"); 
+            delete_folders = serializedObject.FindProperty("delete_folders");
             parameter_multiplexing = serializedObject.FindProperty("parameter_multiplexing");
             bUseSmallMipTexture = serializedObject.FindProperty("bUseSmallMipTexture");
             bPreserveMMD = serializedObject.FindProperty("bPreserveMMD");
@@ -229,22 +231,9 @@ namespace Shell.Protector
             int using_parameter = (key_size.intValue * 8);
             if(parameter_multiplexing.boolValue == true)
             {
-                int keys = key_size.intValue;
-                switch(keys)
-                {
-                    case 4:
-                        using_parameter = 8 + 3;
-                        break;
-                    case 8:
-                        using_parameter = 8 + 4;
-                        break;
-                    case 12:
-                        using_parameter = 8 + 5;
-                        break;
-                    case 16:
-                        using_parameter = 8 + 5;
-                        break;
-                }
+                int lock_size = 1;
+                int switch_count = ShellProtector.GetRequiredSwitchCount(key_size.intValue, sync_size.intValue);
+                using_parameter = switch_count + lock_size + sync_size.intValue * 8;
             }
             GUILayout.Label(Lang("Parameters to be used:") + using_parameter, EditorStyles.wordWrappedLabel);
 
@@ -281,6 +270,21 @@ namespace Shell.Protector
                     case 4:
                         key_size.intValue = 16;
                         break;
+                }
+
+                var sync_size_value = sync_size.intValue;
+                int sync_size_index = 0;
+                int[] sync_size_caldidate = { 1, 2, 4};
+                string[] selectable_values = { "1", "2", "4" };
+                for (int i = 0; i < sync_size_caldidate.Length; i++)
+                    if (sync_size_caldidate[i] == sync_size_value)
+                        sync_size_index = i;
+
+                if(key_size.intValue > 0)
+                {
+                    GUILayout.Label(Lang("Sync speed"), EditorStyles.boldLabel);
+                    sync_size_index = EditorGUILayout.Popup(sync_size_index, selectable_values, GUILayout.Width(100));
+                    sync_size.intValue = sync_size_caldidate[sync_size_index];
                 }
 
                 GUILayout.Label(Lang("Encrytion algorithm"), EditorStyles.boldLabel);
@@ -399,7 +403,7 @@ namespace Shell.Protector
             if (game_object_list.count == 0 && material_list.count == 0)
                 GUI.enabled = false;
 
-            
+
 #if MODULAR
             if (GUILayout.Button(Lang("Manual Encrypt!")))
 #else
