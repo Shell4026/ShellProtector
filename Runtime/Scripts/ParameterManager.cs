@@ -19,6 +19,12 @@ public static class ParameterManager
         return tmp;
     }
 
+    public static string GetPKeySyncParameterName(int index)
+    {
+        if (index == 0) return "pkey"; // For backward compatibility
+        return "pkey_sync" + index;
+    }
+
     public static VRCExpressionParameters AddKeyParameter(VRCExpressionParameters vrc_parameters, int key_length, int sync_size,  bool use_multiplexing = false)
     {
         VRCExpressionParameters result = ScriptableObject.CreateInstance<VRCExpressionParameters>();
@@ -59,7 +65,7 @@ public static class ParameterManager
             {
                 var para = new VRCExpressionParameters.Parameter
                 {
-                    name = $"pkey_sync{i}",
+                    name = GetPKeySyncParameterName(i),
                     saved = true,
                     networkSynced = true,
                     valueType = VRCExpressionParameters.ValueType.Float,

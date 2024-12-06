@@ -254,7 +254,7 @@ namespace Shell.Protector
             if (optimize)
             {
                 for(int i = 0; i < sync_size; i++)
-                    anim.AddParameter("pkey_sync" + i, AnimatorControllerParameterType.Float);
+                    anim.AddParameter(ParameterManager.GetPKeySyncParameterName(i), AnimatorControllerParameterType.Float);
                 anim.AddParameter("encrypt_lock", AnimatorControllerParameterType.Bool);
                 int switch_count = ShellProtector.GetRequiredSwitchCount(key_length, sync_size);
                 for (int i = 0; i < switch_count; ++i)
@@ -350,7 +350,7 @@ namespace Shell.Protector
                     {
                         type = VRC.SDKBase.VRC_AvatarParameterDriver.ChangeType.Copy,
                         name = "pkey" + (i * sync_size + j),
-                        source = "pkey_sync" + j
+                        source = ParameterManager.GetPKeySyncParameterName(j)
                     };
                     behaviour.parameters.Add(behaviour_param);
                 }
