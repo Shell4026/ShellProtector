@@ -492,7 +492,15 @@ namespace Shell.Protector
 
                 if (processed == false)
                 {
-                    encrypted_tex = encrypt.TextureEncrypt(main_texture, key_bytes, encryptor);
+                    try
+                    {
+                        encrypted_tex = encrypt.TextureEncrypt(main_texture, key_bytes, encryptor);
+                    }
+                    catch(ArgumentException e)
+                    {
+                        Debug.LogErrorFormat("{0} : ArgumentException - {1}", main_texture.name, e.Message);
+                        continue;
+                    }
                     if (encrypted_tex == null)
                     {
                         Debug.LogErrorFormat("{0} : encrypt failed0.", main_texture.name);
