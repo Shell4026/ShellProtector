@@ -22,6 +22,8 @@ namespace Shell.Protector
         Dictionary<AnimationClip, AnimationClip> obfuscatedClip = new Dictionary<AnimationClip, AnimationClip>();
         HashSet<string> mmdShapes = new HashSet<string>();
 
+        readonly Regex re = new Regex(".*?/(.*)");
+
         public bool clone = true;
         public bool bPreserveMMD = true;
 
@@ -208,7 +210,6 @@ namespace Shell.Protector
         {
             bool detect = false;
             EditorCurveBinding[] bindings = AnimationUtility.GetCurveBindings(clip);
-            Regex re = new Regex(".*?/(.*)");
 
             foreach (EditorCurveBinding binding in bindings)
             {
