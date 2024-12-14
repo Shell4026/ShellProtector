@@ -10,7 +10,7 @@ namespace Shell.Protector
 {
     public class EncryptTexture
     {
-        public int GetCanMipmapLevel(int w, int h)
+        public static int GetCanMipmapLevel(int w, int h)
         {
             int w_level, h_level;
             if (w < 1 || h <= 1)
@@ -141,7 +141,7 @@ namespace Shell.Protector
             key_uint[3] = 0;
 
             int mip_lv = GetCanMipmapLevel(texture.width / 4, texture.height / 4);
-            Texture2D dxt1;
+            Texture2D dxt1 = texture;
             if (texture.format == TextureFormat.DXT1Crunched)
             {
                 Debug.LogWarningFormat("{0} is the crunch compression format. There may be degradation in image quality.", texture.name);
@@ -157,25 +157,25 @@ namespace Shell.Protector
             }
             if (mip_lv != 0)
             {
-                result[0] = new Texture2D(texture.width, texture.height, TextureFormat.DXT1, mip_lv, true);
-                result[1] = new Texture2D(texture.width / 4, texture.height / 4, TextureFormat.RGBA32, mip_lv, true);
+                result[0] = new Texture2D(dxt1.width, dxt1.height, TextureFormat.DXT1, mip_lv, true);
+                result[1] = new Texture2D(dxt1.width / 4, dxt1.height / 4, TextureFormat.RGBA32, mip_lv, true);
             }
             else
             {
-                result[0] = new Texture2D(texture.width, texture.height, TextureFormat.DXT1, false, true);
-                result[1] = new Texture2D(texture.width / 4, texture.height / 4, TextureFormat.RGBA32, false, true);
+                result[0] = new Texture2D(dxt1.width, dxt1.height, TextureFormat.DXT1, false, true);
+                result[1] = new Texture2D(dxt1.width / 4, dxt1.height / 4, TextureFormat.RGBA32, false, true);
             }
             result[1].filterMode = FilterMode.Point;
             result[1].anisoLevel = 0;
             //Note: DXT1 per 4x4 block is 64bit
-            var raw_data = texture.GetRawTextureData();
+            var raw_data = dxt1.GetRawTextureData();
             int lenidx = 0;
 
             for (int m = 0; m <= mip_lv; ++m)
             {
                 if (m != 0 && m == mip_lv)
                     break;
-                var tex_data = GetArrayDXT(raw_data, texture.width, texture.height, false, m);
+                var tex_data = GetArrayDXT(raw_data, dxt1.width, dxt1.height, false, m);
                 var pixel = result[1].GetPixels32(m);
 
                 for (int i = 0; i < tex_data.Length; i += 16) //reference color texture
