@@ -766,7 +766,7 @@ namespace Shell.Protector
                 }
 #endif
                 SetAnimations(avatar, true);
-                ObfuscateBlendShape(avatar, false);
+                ObfuscateBlendShape(avatar, true);
                 ChangeMaterialsInAnims(avatar, true);
                 CleanComponent(avatar);    
             }
@@ -849,14 +849,14 @@ namespace Shell.Protector
             return av3.baseAnimationLayers[4].animatorController as AnimatorController;
         }
 
-        public void ObfuscateBlendShape(GameObject avatar, bool modular)
+        public void ObfuscateBlendShape(GameObject avatar, bool bClone)
         {
             var av3 = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
             AnimatorController fx = Getfx(avatar);
             string animDir = Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString(), "animations");
 
             Obfuscator obfuscator = new Obfuscator();
-            obfuscator.clone = !modular;
+            obfuscator.clone = bClone;
             obfuscator.bPreserveMMD = bPreserveMMD;
 
             var childRenderers = avatar.GetComponentsInChildren<SkinnedMeshRenderer>();
@@ -946,7 +946,7 @@ namespace Shell.Protector
                     }
                 }
 
-                if(!modular)
+                if(bClone)
                 {
                     var maMergeAnims = avatar.GetComponentsInChildren<ModularAvatarMergeAnimator>(true);
                     foreach (var maMergeAnim in maMergeAnims)
