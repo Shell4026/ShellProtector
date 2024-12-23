@@ -785,14 +785,15 @@ namespace Shell.Protector
                 fx = av3.baseAnimationLayers[4].animatorController as AnimatorController;
 
             av3.baseAnimationLayers[4].animatorController = fx;
-            string animation_dir = Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString(), "animations");
+            string animationDir = Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString(), "animations");
 
-            GameObject[] mesh_array = new GameObject[meshes.Count];
-            meshes.CopyTo(mesh_array);
-            AnimatorManager.CreateKeyAniamtions(Path.Combine(asset_dir, "Animations"), animation_dir, mesh_array);
-            var fallbackAnim = AnimatorManager.CreateFallbackAniamtions(Path.Combine(asset_dir, "Animations", "FallbackOff.anim"), animation_dir, mesh_array);
-            AnimatorManager.AddKeyLayer(fx, animation_dir, key_size, animation_speed, parameter_multiplexing);
-            AnimatorManager.AddFallbackLayer(fx, fallbackAnim, fallbackTime);
+            GameObject[] meshArray = new GameObject[meshes.Count];
+            meshes.CopyTo(meshArray);
+            AnimatorManager.CreateKeyAniamtions(Path.Combine(asset_dir, "Animations"), animationDir, meshArray);
+            var fallbackOnAnim = AnimatorManager.CreateFallbackAniamtions(Path.Combine(asset_dir, "Animations", "FallbackOn.anim"), animationDir, meshArray, false);
+            var fallbackOffAnim = AnimatorManager.CreateFallbackAniamtions(Path.Combine(asset_dir, "Animations", "FallbackOff.anim"), animationDir, meshArray, true);
+            AnimatorManager.AddKeyLayer(fx, animationDir, key_size, animation_speed, parameter_multiplexing);
+            AnimatorManager.AddFallbackLayer(fx, fallbackOnAnim, fallbackOffAnim, fallbackTime);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();

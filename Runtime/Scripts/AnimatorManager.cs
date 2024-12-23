@@ -73,7 +73,7 @@ namespace Shell.Protector
     path: Body
     classID: 137
     script: {fileID: 0}";
-        static string curve3 = @"
+        static string fallbackOffCurve = @"
   - serializedVersion: 2
     curve:
       serializedVersion: 2
@@ -81,6 +81,28 @@ namespace Shell.Protector
       - serializedVersion: 3
         time: 0
         value: 0
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 136
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.33333334
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: material._fallback
+    path: Body
+    classID: 137
+    script: {fileID: 0}
+    flags: 16";
+        static string fallbackOnCurve = @"
+  - serializedVersion: 2
+    curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 1
         inSlope: 0
         outSlope: 0
         tangentMode: 136
@@ -154,11 +176,12 @@ namespace Shell.Protector
             AssetDatabase.Refresh();
         }
 
-        public static AnimationClip CreateFallbackAniamtions(string animation_dir, string new_dir, GameObject[] objs)
+        public static AnimationClip CreateFallbackAniamtions(string animationDir, string newDir, GameObject[] objs, bool bOff = true)
         {
-            string newPath = Path.Combine(new_dir, "FallbackOff.anim");
+            string animName = Path.GetFileName(animationDir);
+            string newPath = Path.Combine(newDir, animName);
 
-            AssetDatabase.CopyAsset(animation_dir, newPath);
+            AssetDatabase.CopyAsset(animationDir, newPath);
 
             string anim = File.ReadAllText(newPath);
 
@@ -167,10 +190,10 @@ namespace Shell.Protector
                 if (obj.name == "Body")
                     continue;
 
-                string hr_path = obj.transform.GetHierarchyPath();
-                hr_path = Regex.Replace(hr_path, ".*?/(.*)", "'$1'");
+                string hrPath = obj.transform.GetHierarchyPath();
+                hrPath = Regex.Replace(hrPath, ".*?/(.*)", "'$1'");
 
-                string curve = Regex.Replace(curve3, "path: Body", "path: " + hr_path);
+                string curve = Regex.Replace(bOff ? fallbackOffCurve : fallbackOnCurve, "path: Body", "path: " + hrPath);
                 //SkinnedMeshRender classID:137
                 //MeshRenderer classID:23
                 if (obj.GetComponent<SkinnedMeshRenderer>() == null)
@@ -407,7 +430,7 @@ namespace Shell.Protector
             AddKeyLayer(anim, animation_dir, key_length, speed, false);
         }
 
-        public static void AddFallbackLayer(AnimatorController anim, AnimationClip fallbackAnimation, float time = 3)
+        public static void AddFallbackLayer(AnimatorController anim, AnimationClip fallbackOnAnimation, AnimationClip fallbackOffAnimation, float time = 3)
         {
             var layers = anim.layers;
             foreach (var _layer in layers)
@@ -425,17 +448,19 @@ namespace Shell.Protector
             anim.AddLayer(new AnimatorControllerLayer { name = stateMachine.name, defaultWeight = 1.0f, stateMachine = stateMachine });
 
             var layer = anim.layers[anim.layers.Length - 1];
-            var state = layer.stateMachine.AddState("empty");
-            state.writeDefaultValues = true;
+            var defaultState = layer.stateMachine.AddState("default");
+            defaultState.writeDefaultValues = true;
+            defaultState.motion = fallbackOnAnimation;
+
             var fallbackState = layer.stateMachine.AddState("fallbackState");
 
-            var transition = state.AddTransition(fallbackState);
+            var transition = defaultState.AddTransition(fallbackState);
             transition.canTransitionToSelf = false;
             transition.exitTime = time;
             transition.duration = 0;
             transition.hasExitTime = true;
 
-            fallbackState.motion = fallbackAnimation;
+            fallbackState.motion = fallbackOffAnimation;
         }
 
         public static bool IsMaterialInClip(AnimationClip clip, Material originalMaterial)
