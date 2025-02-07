@@ -14,6 +14,10 @@ using UnityEditor.Animations;
 
 #if MODULAR
 using nadena.dev.modular_avatar.core;
+using UnityEngine.Experimental.Rendering;
+using Microsoft.SqlServer.Server;
+
+
 
 #endif
 
@@ -57,6 +61,7 @@ namespace Shell.Protector
         {
             public bool active = true;
             public int filter = -1;
+            public int fallback = -1;
         }
         [Serializable]
         public class MaterialOptionPair
@@ -87,6 +92,7 @@ namespace Shell.Protector
 
         [SerializeField] uint rounds = 20;
         [SerializeField] int filter = 1;
+        [SerializeField] int fallback = 5;
         [SerializeField] int algorithm = 1;
         [SerializeField] int key_size_idx = 3;
         [SerializeField] int key_size = 12;
@@ -101,6 +107,10 @@ namespace Shell.Protector
         [SerializeField] bool turnOnAllSafetyFallback = true;
 
         public static readonly string[] filterStrings = new string[2] { "Point", "Bilinear" };
+        public static readonly string[] fallbackStrings = new string[6] { "white", "black", "4x4", "8x8", "16x16", "32x32" };
+
+        Texture2D fallbackWhite = null;
+        Texture2D fallbackBlack = null;
 
         public void Init()
         {
@@ -198,7 +208,7 @@ namespace Shell.Protector
                 Debug.LogError(descriptor.gameObject.name + ": can't find VRCAvatarDescriptor!");
                 return false;
             }
-            if(av3.expressionParameters == null)
+            if (av3.expressionParameters == null)
             {
                 Debug.LogError(descriptor.gameObject.name + ": can't find expressionParmeters!");
                 return false;
@@ -206,6 +216,17 @@ namespace Shell.Protector
             return true;
         }
 
+        bool CheckTextureFormat(Material mat)
+        {
+            var textureFormat = ((Texture2D)mat.mainTexture).format;
+            if (textureFormat != TextureFormat.DXT1 && textureFormat != TextureFormat.DXT5 &&
+                textureFormat != TextureFormat.RGB24 && textureFormat != TextureFormat.RGBA32)
+            {
+                Debug.LogWarningFormat("{0} : is unsupported format", mat.mainTexture.name);
+                return false;
+            }
+            return true;
+        }
         public void CreateFolders()
         {
             if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString())))
@@ -292,6 +313,11 @@ namespace Shell.Protector
 
             Debug.Log("AssetDir: " + asset_dir);
 
+            if (fallbackWhite == null)
+                fallbackWhite = AssetDatabase.LoadAssetAtPath(Path.Combine(asset_dir, "white.png"), typeof(Texture2D)) as Texture2D;
+            if (fallbackBlack == null)
+                fallbackBlack = AssetDatabase.LoadAssetAtPath(Path.Combine(asset_dir, "black.png"), typeof(Texture2D)) as Texture2D;
+
             if (descriptor == null)
             {
                 Debug.LogError("Can't find avatar descriptor!");
@@ -301,7 +327,12 @@ namespace Shell.Protector
             descriptor.gameObject.SetActive(true);
             Debug.Log("Key bytes: " + string.Join(", ", GetKeyBytes()));
 
-            var materials = GetMaterials();
+            var materials = new List<Material>();
+            foreach (var mat in GetMaterials())
+            {
+                if (CheckTextureFormat(mat))
+                    materials.Add(mat);
+            }
 
             GameObject avatar;
             if (!isModular)
@@ -355,12 +386,7 @@ namespace Shell.Protector
             history.LoadData();
 
             int progress = 0;
-            int maxprogress = 0;
-            foreach(var option in matOptions)
-            {
-                if (option.Value.active)
-                    ++maxprogress;
-            }
+            int maxprogress = materials.Count;
             foreach (var mat in materials)
             {
                 int filter = this.filter;
@@ -391,7 +417,9 @@ namespace Shell.Protector
                     continue;
                 }
                 if (!ConditionCheck(mat))
+                {
                     continue;
+                }
                 Debug.LogFormat("{0} : Start encrypt...", mat.name);
 
                 Texture2D main_texture = (Texture2D)mat.mainTexture;
@@ -560,15 +588,53 @@ namespace Shell.Protector
                 /////////////////Generate fallback/////////////////////
                 string fallbackDir = Path.Combine(avatarDir, "tex", main_texture.GetInstanceID() + "_fallback.asset");
                 Texture2D fallback = processedTexture.fallback;
+                int fallbackOption = this.fallback;
+                if (option != null)
+                    fallbackOption = option.fallback;
+
                 if (fallback == null)
                 {
-                    fallback = encrypt.GenerateFallback(main_texture);
-                    if (fallback != null)
+                    Debug.Log(this.fallback);
+                    if (fallbackOption >= 2)
                     {
-                        processedTexture.fallback = fallback;
-                        AssetDatabase.CreateAsset(fallback, fallbackDir);
-                        AssetDatabase.SaveAssets();
-                        AssetDatabase.Refresh();
+                        int fallbackSize = 32;
+                        switch (fallbackOption)
+                        {
+                            case 2:
+                                fallbackSize = 4;
+                                break;
+                            case 3:
+                                fallbackSize = 8;
+                                break;
+                            case 4:
+                                fallbackSize = 16;
+                                break;
+                            case 5:
+                                fallbackSize = 32;
+                                break;
+                        }
+                        fallback = encrypt.GenerateFallback(main_texture, fallbackSize);
+                        if (fallback != null)
+                        {
+                            processedTexture.fallback = fallback;
+                            AssetDatabase.CreateAsset(fallback, fallbackDir);
+                            AssetDatabase.SaveAssets();
+                            AssetDatabase.Refresh();
+                        }
+                    }
+                    else
+                    {
+                        switch (fallbackOption)
+                        {
+                            case 0:
+                                processedTexture.fallback = fallbackWhite;
+                                fallback = fallbackWhite;
+                                break;
+                            case 1:
+                                processedTexture.fallback = fallbackBlack;
+                                fallback = fallbackBlack;
+                                break;
+                        }
                     }
                 }
                 ////////////////////////////////////////////////////////
@@ -707,6 +773,30 @@ namespace Shell.Protector
                                 mats[j] = new_mat;
                                 meshes.Add(renderers[i].gameObject);
                             }
+                            else
+                            {
+                                if (!materials.Contains(mats[j]))
+                                {
+                                    Material tmp = null;
+                                    foreach (var name in mats[j].GetTexturePropertyNames())
+                                    {
+                                        if (mats[j].GetTexture(name) == null)
+                                            continue;
+                                        if (mats[j].GetTexture(name).GetInstanceID() == original_tex.GetInstanceID())
+                                        {
+                                            if (tmp == null)
+                                            {
+                                                tmp = Instantiate(mats[j]);
+                                                AssetDatabase.CreateAsset(tmp, Path.Combine(avatarDir, "mat", (mats[j].GetInstanceID() + "_duplicated.mat")));
+                                                AssetDatabase.SaveAssets();
+                                            }
+                                            tmp.SetTexture(name, fallback);
+                                        }
+                                    }
+                                    if (tmp != null)
+                                        mats[j] = tmp;
+                                }
+                            }
                         }
                         renderers[i].sharedMaterials = mats;
                     }
@@ -727,6 +817,30 @@ namespace Shell.Protector
                             {
                                 mats[j] = new_mat;
                                 meshes.Add(skinned_renderers[i].gameObject);
+                            }
+                            else
+                            {
+                                if (!materials.Contains(mats[j]))
+                                {
+                                    Material tmp = null;
+                                    foreach (var name in mats[j].GetTexturePropertyNames())
+                                    {
+                                        if (mats[j].GetTexture(name) == null)
+                                            continue;
+                                        if (mats[j].GetTexture(name).GetInstanceID() == original_tex.GetInstanceID())
+                                        {
+                                            if (tmp == null)
+                                            {
+                                                tmp = Instantiate(mats[j]);
+                                                AssetDatabase.CreateAsset(tmp, Path.Combine(avatarDir, "mat", (mats[j].GetInstanceID() + "_duplicated.mat")));
+                                                AssetDatabase.SaveAssets();
+                                            }
+                                            tmp.SetTexture(name, fallback);
+                                        }
+                                    }
+                                    if (tmp != null)
+                                        mats[j] = tmp;
+                                }
                             }
                         }
                         skinned_renderers[i].sharedMaterials = mats;
@@ -979,7 +1093,7 @@ namespace Shell.Protector
                     {
                         if (mat == null)
                             continue;
-                        if (mat.name.Contains("_encrypted"))
+                        if (mat.name.Contains("_encrypted") || mat.name.Contains("_duplicated"))
                         {
                             mat.SetFloat("_fallback", fallback == true ? 1.0f : 0.0f);
                         }
@@ -1001,7 +1115,7 @@ namespace Shell.Protector
                     {
                         if (mat == null)
                             continue;
-                        if (mat.name.Contains("_encrypted"))
+                        if (mat.name.Contains("_encrypted") || mat.name.Contains("_duplicated"))
                         {
                             mat.SetFloat("_fallback", fallback == true ? 1.0f : 0.0f);
                         }
@@ -1070,6 +1184,10 @@ namespace Shell.Protector
         public int GetDefaultFilter()
         {
             return filter;
+        }
+        public int GetDefaultFallback()
+        {
+            return fallback;
         }
         public int GetKeySize()
         {

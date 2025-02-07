@@ -26,7 +26,7 @@ namespace Shell.Protector
             Rect pos = window.position;
             pos.x = main.x + main.width / 2 - 200;
             pos.y = main.y + main.height / 2 - 200;
-            window.minSize = new Vector2(400, 400);
+            window.minSize = new Vector2(500, 400);
             window.maxSize = new Vector2(main.width, main.height);
             window.position = pos;
             window.protector = protector;
@@ -59,6 +59,10 @@ namespace Shell.Protector
                 if (option.Value.filter == -1)
                     option.Value.filter = protector.GetDefaultFilter();
                 option.Value.filter = EditorGUILayout.Popup(option.Value.filter, ShellProtector.filterStrings, GUILayout.Width(100));
+
+                if (option.Value.fallback == -1)
+                    option.Value.fallback = protector.GetDefaultFallback();
+                option.Value.fallback = EditorGUILayout.Popup(option.Value.fallback, ShellProtector.fallbackStrings, GUILayout.Width(100));
 
                 if (AssetManager.GetInstance().IsPoiyomi(option.Key.shader))
                 {

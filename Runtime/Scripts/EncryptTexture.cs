@@ -100,7 +100,7 @@ namespace Shell.Protector
             return mip;
         }
 
-        public Texture2D GenerateFallback(Texture2D original)
+        public Texture2D GenerateFallback(Texture2D original, int size = 32)
         {
             if(original.width < 128 || original.height < 128)
             {
@@ -111,13 +111,13 @@ namespace Shell.Protector
             if (hasAlpha)
                 format = TextureFormat.RGBA32;
 
-            RenderTexture renderTexture = new RenderTexture(32, 32, 0);
+            RenderTexture renderTexture = new RenderTexture(size, size, 0);
             RenderTexture.active = renderTexture;
 
             Graphics.Blit(original, renderTexture);
 
-            Texture2D resizedTexture = new Texture2D(32, 32, format, true);
-            resizedTexture.ReadPixels(new Rect(0, 0, 32, 32), 0, 0);
+            Texture2D resizedTexture = new Texture2D(size, size, format, true);
+            resizedTexture.ReadPixels(new Rect(0, 0, size, size), 0, 0);
             resizedTexture.Apply();
 
             resizedTexture.filterMode = FilterMode.Point;

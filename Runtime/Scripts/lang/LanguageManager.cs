@@ -87,7 +87,9 @@ namespace Shell.Protector
             { "Encrypting too many objects can cause lag when loading avatars in-game.", "너무 많은 오브젝트를 암호화 하면 인게임에서 아바타 로딩 시 렉이 걸릴 수 있습니다." },
             { "Encrypted shader", "암호화된 셰이더" },
             { "New shader", "새로운 셰이더" },
-            {"The main texture is not Texture2D.", "메인 텍스쳐가 Texture2D가 아닙니다." }
+            { "The main texture is not Texture2D.", "메인 텍스쳐가 Texture2D가 아닙니다." },
+            { "Opponents with Safety option turned on will see degraded textures instead of noise.", "세이프티를 켜둔 상대방은 노이즈 대신 저하된 텍스처를 보게 됩니다."},
+            { "Default fallback texture", "기본 폴백 텍스쳐" }
         };
 
             var jpStrings = new Dictionary<string, string>()
@@ -157,7 +159,9 @@ namespace Shell.Protector
             { "Encrypting too many objects can cause lag when loading avatars in-game.", "あまりにも多くのオブジェクトを暗号化すると、ゲーム内でアバターをロードする際にラグが発生する可能性があります。" },
             { "Encrypted shader", "暗号化されたシェーダー" },
             { "New shader", "新しいシェーダー" },
-            {"The main texture is not Texture2D.", "メインテクスチャがTexture2Dではありません。" }
+            {"The main texture is not Texture2D.", "メインテクスチャがTexture2Dではありません。" },
+            { "Opponents with Safety option turned on will see degraded textures instead of noise.", "Safetyオプションをオンにした相手には、ノイズの代わりに劣化したテクスチャが表示されます。"},
+            { "Default fallback texture", "デフォルトのフォールバックテクスチャ" }
         };
 
             languageMap.Add("kor", koreanStrings);

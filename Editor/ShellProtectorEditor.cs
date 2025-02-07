@@ -26,6 +26,7 @@ namespace Shell.Protector
 
         SerializedProperty rounds;
         SerializedProperty filter;
+        SerializedProperty fallback;
         SerializedProperty algorithm;
         SerializedProperty key_size;
         SerializedProperty key_size_idx;
@@ -105,6 +106,7 @@ namespace Shell.Protector
             #region SerializedObject
             rounds = serializedObject.FindProperty("rounds");
             filter = serializedObject.FindProperty("filter");
+            fallback = serializedObject.FindProperty("fallback");
             algorithm = serializedObject.FindProperty("algorithm");
             key_size = serializedObject.FindProperty("key_size");
             key_size_idx = serializedObject.FindProperty("key_size_idx");
@@ -364,6 +366,8 @@ namespace Shell.Protector
             fallbackOption = EditorGUILayout.Foldout(fallbackOption, Lang("Fallback Options"));
             if (fallbackOption)
             {
+                GUILayout.Label(Lang("Opponents with Safety option turned on will see degraded textures instead of noise."));
+
                 GUILayout.Label(Lang("Fallback wait time"), EditorStyles.boldLabel);
                 GUILayout.BeginHorizontal();
                 fallbackTime.floatValue = GUILayout.HorizontalSlider(fallbackTime.floatValue, 0.0f, 10.0f, GUILayout.Width(100));
@@ -383,6 +387,9 @@ namespace Shell.Protector
                 turnOnAllSafetyFallback.boolValue = EditorGUILayout.Toggle(turnOnAllSafetyFallback.boolValue);
                 GUILayout.FlexibleSpace();
                 GUILayout.EndHorizontal();
+
+                GUILayout.Label(Lang("Default fallback texture"), EditorStyles.boldLabel);
+                fallback.intValue = EditorGUILayout.Popup(fallback.intValue, ShellProtector.fallbackStrings, GUILayout.Width(100));
             }
 #endregion
 
