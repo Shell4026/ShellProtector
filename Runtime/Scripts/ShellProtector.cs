@@ -218,6 +218,10 @@ namespace Shell.Protector
 
         bool CheckTextureFormat(Material mat)
         {
+            if (mat == null)
+                return false;
+            if (mat.mainTexture == null)
+                return false;
             var textureFormat = ((Texture2D)mat.mainTexture).format;
             if (textureFormat != TextureFormat.DXT1 && textureFormat != TextureFormat.DXT5 &&
                 textureFormat != TextureFormat.RGB24 && textureFormat != TextureFormat.RGBA32)
