@@ -613,7 +613,6 @@ namespace Shell.Protector
                     }
                     else
                     {
-                        Debug.LogFormat("fallback: {0}", main_texture.name);
                         switch (fallbackSize)
                         {
                             case 0:
