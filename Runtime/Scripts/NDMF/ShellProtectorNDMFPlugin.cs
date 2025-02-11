@@ -29,6 +29,9 @@ public class ShellProtectorNDMFPlugin : Plugin<ShellProtectorNDMFPlugin>
                 var shellProtector = ctx.AvatarRootObject.GetComponentInChildren<ShellProtector>(true);
                 if (shellProtector)
                 {
+                    shellProtector.ReplaceMaterials(ctx.AvatarRootObject);
+                    shellProtector.RemoveDuplicatedTextures(ctx.AvatarRootObject);
+                    shellProtector.SetMaterialFallbackValue(ctx.AvatarRootObject, true);
                     shellProtector.SetAnimations(ctx.AvatarRootObject, false);
                     shellProtector.ObfuscateBlendShape(ctx.AvatarRootObject, false);
                     shellProtector.ChangeMaterialsInAnims(ctx.AvatarRootObject, false);

@@ -313,6 +313,8 @@ namespace Shell.Protector
             encryptedMaterials.Clear();
             processedTextures.Clear();
 
+            SyncMatOption();
+
             MonoScript monoScript = MonoScript.FromMonoBehaviour(this);
             string script_path = AssetDatabase.GetAssetPath(monoScript);
             asset_dir = Path.GetDirectoryName(Path.GetDirectoryName(script_path));
@@ -338,7 +340,9 @@ namespace Shell.Protector
             foreach (var mat in GetMaterials())
             {
                 if (CheckTextureFormat(mat))
+                {
                     materials.Add(mat);
+                }
             }
 
             GameObject avatar;
@@ -694,10 +698,6 @@ namespace Shell.Protector
                 if (!encryptedMaterials.ContainsKey(mat))
                     encryptedMaterials.Add(mat, new_mat);
             } // Material loop
-
-            ReplaceMaterials(avatar);
-            RemoveDuplicatedTextures(avatar, avatarDir);
-
             EditorUtility.ClearProgressBar();
 
             ///////////////////////parameter////////////////////
@@ -705,9 +705,12 @@ namespace Shell.Protector
             av3.expressionParameters = ParameterManager.AddKeyParameter(av3.expressionParameters, key_size, parameter_multiplexing);
             AssetDatabase.CreateAsset(av3.expressionParameters, Path.Combine(avatarDir, av3.expressionParameters.name + ".asset"));
             ////////////////////////////////////////////////////
-            SetMaterialFallbackValue(avatar, true);
             if (!isModular)
             {
+                ReplaceMaterials(avatar);
+                RemoveDuplicatedTextures(avatar);
+                SetMaterialFallbackValue(avatar, true);
+
                 descriptor.gameObject.SetActive(false);
 
                 var newDesriptor = avatar.transform.GetComponentInChildren<ShellProtector>(true).gameObject;
@@ -736,7 +739,7 @@ namespace Shell.Protector
             return avatar;
         }
 
-        void ReplaceMaterials(GameObject avatar)
+        public void ReplaceMaterials(GameObject avatar)
         {
             var renderers = avatar.GetComponentsInChildren<MeshRenderer>(true);
             if (renderers != null)
@@ -814,8 +817,9 @@ namespace Shell.Protector
             }
             return others;
         }
-        void RemoveDuplicatedTextures(GameObject avatar, string avatarDir)
+        public void RemoveDuplicatedTextures(GameObject avatar)
         {
+            string avatarDir = Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString());
             foreach (var mat in encryptedMaterials.Values)
             {
                 OtherTextures otherTex = GetLimOutlineTextures(mat);
@@ -1168,7 +1172,7 @@ namespace Shell.Protector
             }
         }
 
-        public static void SetMaterialFallbackValue(GameObject avatar, bool fallback)
+        public void SetMaterialFallbackValue(GameObject avatar, bool fallback)
         {
             var renderers = avatar.GetComponentsInChildren<MeshRenderer>(true);
             if (renderers != null)
