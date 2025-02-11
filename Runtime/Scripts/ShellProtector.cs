@@ -1062,6 +1062,7 @@ namespace Shell.Protector
 
         public void ObfuscateBlendShape(GameObject avatar, bool bClone)
         {
+            // bClone true = Manual encrypt
             var av3 = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
             AnimatorController fx = Getfx(avatar);
             string animDir = Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString(), "animations");

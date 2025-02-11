@@ -7,9 +7,6 @@ using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
 using VRC.SDK3.Avatars.Components;
-using static UnityEditor.Experimental.GraphView.GraphView;
-using static UnityEngine.UI.Image;
-using static VRC.SDK3.Avatars.Components.VRCAvatarDescriptor;
 
 namespace Shell.Protector
 {
@@ -17,9 +14,9 @@ namespace Shell.Protector
     {
         string animDir = "";
 
-        Dictionary<string, string> obfuscatedBlendShapeNames = new Dictionary<string, string>();
         List<int> obfuscatedBlendShapeIndex = new List<int>();
-        Dictionary<AnimationClip, AnimationClip> obfuscatedClip = new Dictionary<AnimationClip, AnimationClip>();
+        Dictionary<string, string> obfuscatedBlendShapeNames = new Dictionary<string, string>(); // before, after
+        Dictionary<AnimationClip, AnimationClip> obfuscatedClip = new Dictionary<AnimationClip, AnimationClip>(); // before, after
         HashSet<string> mmdShapes = new HashSet<string>();
 
         readonly Regex re = new Regex(".*?/(.*)");
@@ -130,9 +127,7 @@ namespace Shell.Protector
                 descriptor.customEyeLookSettings.eyelidsBlendshapes[i] = obfuscatedBlendShapeIndex.FindIndex(0, obfuscatedBlendShapeIndex.Count - 1,
                     x =>
                     {
-                        if (x == idx)
-                            return true;
-                        return false;
+                        return x == idx;
                     }
                 );
             }
