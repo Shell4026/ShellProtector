@@ -987,7 +987,7 @@ namespace Shell.Protector
         }
         public void SetAnimations(GameObject avatar, bool clone)
         {
-            var av3 = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
+            var av3 = avatar.GetComponent<VRCAvatarDescriptor>();
             AnimatorController fx;
             if (clone)
                 fx = AnimatorManager.DuplicateAnimator(av3.baseAnimationLayers[4].animatorController, Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString()));
