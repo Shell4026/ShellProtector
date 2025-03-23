@@ -10,7 +10,7 @@ namespace Shell.Protector
 {
     public class PoiyomiInjector : Injector
     {
-        public override Shader Inject(Material mat, string decode_dir, string output_path, Texture2D tex, bool has_lim_texture = false, bool has_lim_texture2 = false, bool outline_tex = false)
+        protected override Shader CustomInject(Material mat, string decode_dir, string output_path, Texture2D tex, bool has_lim_texture = false, bool has_lim_texture2 = false, bool outline_tex = false)
         {
             if (!File.Exists(decode_dir))
             {
@@ -28,7 +28,6 @@ namespace Shell.Protector
 
             string shader_path = AssetDatabase.GetAssetPath(shader);
             string shader_name = Path.GetFileName(shader_path);
-            
 
             string[] files = Directory.GetFiles(Path.GetDirectoryName(shader_path));
             foreach (string file in files)
@@ -75,14 +74,6 @@ namespace Shell.Protector
 
                 frag = Regex.Replace(frag, "float4 mainTexture = .*?;", shader_code);
                 frag = Regex.Replace(frag, "float4 mip_texture = _MipTex.Sample\\(sampler_MipTex, .*?\\);", "float4 mip_texture = _MipTex.Sample(sampler_MipTex, poiMesh.uv[0]);");
-                if (tex.format == TextureFormat.DXT1)
-                {
-                    frag = Regex.Replace(frag, "DecryptTexture", "DecryptTextureDXT");
-                }
-                else if (EncryptTexture.HasAlpha(tex))
-                {
-                    frag = Regex.Replace(frag, "DecryptTexture", "DecryptTextureRGBA");
-                }
                 File.WriteAllText(path, frag);
             }
             else if(version >= 80)
@@ -100,15 +91,6 @@ namespace Shell.Protector
                     shader_code = shader_code_bilinear;
 
                 shader_data = Regex.Replace(shader_data, "float4 mainTexture = .*?;", shader_code);
-                if (tex.format == TextureFormat.DXT1 || tex.format == TextureFormat.DXT5)
-                {
-                    shader_data = Regex.Replace(shader_data, "DecryptTexture", "DecryptTextureDXT");
-                }
-                else if (EncryptTexture.HasAlpha(tex))
-                {
-                    shader_data = Regex.Replace(shader_data, "DecryptTexture", "DecryptTextureRGBA");
-                }
-
                 if (has_lim_texture)
                 {
                     if(version == 80)

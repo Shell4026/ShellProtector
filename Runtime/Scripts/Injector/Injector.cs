@@ -117,7 +117,52 @@ namespace Shell.Protector
             return false;
         }
 
-        abstract public Shader Inject(Material mat, string decode_dir, string output_dir, Texture2D tex, bool has_lim_texture = false, bool has_lim_texture2 = false, bool outline_tex = false);
+        private void SetKeywords(Material material, bool has_lim_texture = false) {
+            // Clear keywords prefixed with _SHELL_PROTECTOR_
+            var keywords = material.shaderKeywords;
+            foreach (string keyword in keywords)
+            {
+                if (keyword.StartsWith("_SHELL_PROTECTOR_")) {
+                    material.DisableKeyword(keyword);
+                }
+            }
+
+            // Set format keywords
+            TextureFormat format = ((Texture2D)material.mainTexture).format;
+            if (format == TextureFormat.DXT1 || format == TextureFormat.DXT5)
+            {
+                material.DisableKeyword("_SHELL_PROTECTOR_FORMAT0");
+                material.DisableKeyword("_SHELL_PROTECTOR_FORMAT1");
+            }
+            else if (format == TextureFormat.RGBA32)
+            {
+                material.DisableKeyword("_SHELL_PROTECTOR_FORMAT0");
+                material.EnableKeyword("_SHELL_PROTECTOR_FORMAT1");
+            }
+            else if (format == TextureFormat.RGB24)
+            {
+                material.EnableKeyword("_SHELL_PROTECTOR_FORMAT0");
+                material.DisableKeyword("_SHELL_PROTECTOR_FORMAT1");
+            }
+            else
+            {
+                Debug.LogErrorFormat("{0} - main texture is unsupported format!", material.name);
+                return;
+            }
+
+            // Set rimlight keyword
+            if (has_lim_texture) material.EnableKeyword("_SHELL_PROTECTOR_RIMLIGHT"); 
+
+            // Set encryptor keyword
+            material.EnableKeyword(encryptor.Keyword);
+        }
+
+        public Shader Inject(Material mat, string decode_dir, string output_dir, Texture2D tex, bool has_lim_texture = false, bool has_lim_texture2 = false, bool outline_tex = false) {
+            SetKeywords(mat, has_lim_texture);
+            return CustomInject(mat, decode_dir, output_dir, tex, has_lim_texture, has_lim_texture2, outline_tex);
+        }
+
+        protected abstract Shader CustomInject(Material mat, string decode_dir, string output_dir, Texture2D tex, bool has_lim_texture = false, bool has_lim_texture2 = false, bool outline_tex = false);
     }
 }
 #endif

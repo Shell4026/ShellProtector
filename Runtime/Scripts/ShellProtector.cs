@@ -18,6 +18,7 @@ using nadena.dev.modular_avatar.core;
 
 #if POIYOMI
 using Thry;
+using Thry.ThryEditor;
 #endif
 
 namespace Shell.Protector
@@ -540,14 +541,15 @@ namespace Shell.Protector
                 {
                     try
                     {
-                        string decodeDir = "";
-                        if (algorithm == (int)Algorithm.xxtea)
-                            decodeDir = Path.Combine(asset_dir, "Decrypt.cginc");
-                        else if (algorithm == (int)Algorithm.chacha)
-                            decodeDir = Path.Combine(asset_dir, "DecryptChacha.cginc");
-
-                        encrypted_shader = injector.Inject(mat, decodeDir, encrypted_shader_path, encrypted_tex[0], 
-                            otherTex.limTexture != null, otherTex.limTexture2 != null, otherTex.outlineTexture != null);
+                        encrypted_shader = injector.Inject(
+                            mat, 
+                            Path.Combine(asset_dir, "Shader/ShellProtector.cginc"),
+                            encrypted_shader_path, 
+                            encrypted_tex[0],
+                            otherTex.limTexture != null,
+                            otherTex.limTexture2 != null,
+                            otherTex.outlineTexture != null
+                        );
 
                         Selection.activeObject = encrypted_shader;
                         EditorApplication.ExecuteMenuItem("Assets/Reimport");
@@ -732,10 +734,10 @@ namespace Shell.Protector
                 SetAnimations(avatar, true);
                 ObfuscateBlendShape(avatar, true);
                 ChangeMaterialsInAnims(avatar, true);
-                CleanComponent(avatar);    
+                CleanComponent(avatar);
             }
 
-            
+
             return avatar;
         }
 
@@ -835,7 +837,7 @@ namespace Shell.Protector
                     {
                         Texture2D mainTexture = (Texture2D)mat.GetTexture(name);
                         Texture2D encrypted0 = processedTextures[(Texture2D)mat.GetTexture(name)].encrypted0;
-                        
+
                         int idx = processedTextures[(Texture2D)mat.GetTexture(name)].fallbackOptions.IndexOf(processedTextures[(Texture2D)mat.GetTexture(name)].fallbackOptions.Max());
                         Texture2D bigFallbackTexture = processedTextures[(Texture2D)mat.GetTexture(name)].fallbacks[idx];
 

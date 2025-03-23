@@ -11,26 +11,13 @@
 	TEXTURE2D(_EncryptTex0); \
 	SAMPLER(sampler_EncryptTex0); \
 	TEXTURE2D(_EncryptTex1);
-	
-#ifndef _FORMAT0
-	#ifndef _FORMAT1
-		#define DECRYPT DecryptTextureDXT
-	#else
-		#define DECRYPT DecryptTextureRGBA
-	#endif
-#else
-	#ifndef _FORMAT1
-		#define DECRYPT DecryptTexture
-	#endif
-#endif
-	
 #ifdef _POINT
 	#define CODE\
 		half4 mip_texture = tex2D(_MipTex, fd.uvMain);\
 		int mip = round(mip_texture.r * 255 / 10);\
 		int m[13] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10 };\
 		\
-		half4 c00 = DECRYPT(fd.uvMain, m[mip]);\
+		half4 c00 = DecryptTexture(fd.uvMain, m[mip]);\
 		\
 		fd.col = c00;
 #else
@@ -42,10 +29,10 @@
 		int mip = round(mip_texture.r * 255 / 10);\
 		static const int m[13] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10 };\
 		\
-		half4 c00 = DECRYPT(uv_bilinear + half2(uv_unit.x * 0, uv_unit.y * 0), m[mip]);\
-		half4 c10 = DECRYPT(uv_bilinear + half2(uv_unit.x * 1, uv_unit.y * 0), m[mip]);\
-		half4 c01 = DECRYPT(uv_bilinear + half2(uv_unit.x * 0, uv_unit.y * 1), m[mip]);\
-		half4 c11 = DECRYPT(uv_bilinear + half2(uv_unit.x * 1, uv_unit.y * 1), m[mip]);\
+		half4 c00 = DecryptTexture(uv_bilinear + half2(uv_unit.x * 0, uv_unit.y * 0), m[mip]);\
+		half4 c10 = DecryptTexture(uv_bilinear + half2(uv_unit.x * 1, uv_unit.y * 0), m[mip]);\
+		half4 c01 = DecryptTexture(uv_bilinear + half2(uv_unit.x * 0, uv_unit.y * 1), m[mip]);\
+		half4 c11 = DecryptTexture(uv_bilinear + half2(uv_unit.x * 1, uv_unit.y * 1), m[mip]);\
 		\
 		half2 f = frac(uv_bilinear * _EncryptTex0_TexelSize.zw);\
 		\
@@ -75,7 +62,7 @@
 #define OVERRIDE_MATCAP \
 	lilGetMatCap(fd, _MipTex);
 	
-#if defined(_LIMLIGHT_ENCRYPTED)
+#if defined(_SHELL_PROTECTOR_RIMLIGHT)
 	#if defined(LIL_LITE)
 		#define OVERRIDE_RIMLIGHT \
 			lilGetRim(fd);

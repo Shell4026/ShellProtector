@@ -5,6 +5,7 @@ namespace Shell.Protector
 {
     public class XXTEA : IEncryptor
     {
+        public string Keyword => "_SHELL_PROTECTOR_XXTEA";
         const uint Delta = 0x9E3779B9;
 
         public uint m_rounds = 0;

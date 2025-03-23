@@ -13,40 +13,8 @@ namespace Shell.Protector
 {
     public class LilToonInjector : Injector
     {
-        public override Shader Inject(Material mat, string decode_dir, string output_path, Texture2D tex, bool has_lim_texture = false, bool has_lim_texture2 = false, bool outline_tex = false)
+        protected override Shader CustomInject(Material mat, string decode_dir, string output_path, Texture2D tex, bool has_lim_texture = false, bool has_lim_texture2 = false, bool outline_tex = false)
         {
-            // Keyword setting
-            TextureFormat format = ((Texture2D)mat.mainTexture).format;
-            if (format == TextureFormat.DXT1 || format == TextureFormat.DXT5)
-            {
-                mat.DisableKeyword("_FORMAT0");
-                mat.DisableKeyword("_FORMAT1");
-            }
-            else if (format == TextureFormat.RGBA32)
-            {
-                mat.DisableKeyword("_FORMAT0");
-                mat.EnableKeyword("_FORMAT1");
-            }
-            else if (format == TextureFormat.RGB24)
-            {
-                mat.EnableKeyword("_FORMAT0");
-                mat.DisableKeyword("_FORMAT1");
-            }
-            else
-            {
-                Debug.LogErrorFormat("{0} - main texture is unsupported format!", mat.name);
-                return null;
-            }
-            if (has_lim_texture)
-                mat.EnableKeyword("_LIMLIGHT_ENCRYPTED");
-            else
-                mat.DisableKeyword("_LIMLIGHT_ENCRYPTED");
-
-            if ((this.encryptor as XXTEA) != null)
-                mat.EnableKeyword("_XXTEA");
-            else
-                mat.DisableKeyword("_XXTEA");
-
             string[] files = Directory.GetFiles(Path.Combine(asset_dir, "liltoonProtector", "Shaders"));
             // Find pass
             string shader_dir = AssetDatabase.GetAssetPath(mat.shader);
