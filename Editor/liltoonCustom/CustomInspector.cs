@@ -11,7 +11,7 @@ namespace lilToon
         MaterialProperty mip_tex;
         MaterialProperty encrypted_tex0;
         MaterialProperty encrypted_tex1;
-        MaterialProperty[] key = new MaterialProperty[15];
+        MaterialProperty[] key = new MaterialProperty[16];
         MaterialProperty fallback;
 
         private static bool isShowCustomProperties;
