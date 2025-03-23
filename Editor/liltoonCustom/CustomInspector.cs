@@ -11,8 +11,9 @@ namespace lilToon
         MaterialProperty mip_tex;
         MaterialProperty encrypted_tex0;
         MaterialProperty encrypted_tex1;
-        MaterialProperty[] key = new MaterialProperty[15];
+        MaterialProperty[] key = new MaterialProperty[16];
         MaterialProperty fallback;
+        MaterialProperty decrypt_complete_key;
 
         private static bool isShowCustomProperties;
 		private static bool show_pwd = false;
@@ -34,6 +35,7 @@ namespace lilToon
             encrypted_tex0 = FindProperty("_EncryptTex0", props);
             encrypted_tex1 = FindProperty("_EncryptTex1", props);
             fallback = FindProperty("_fallback", props);
+            decrypt_complete_key = FindProperty("_Decrypt_complete_key", props);
 
             for (int i = 0; i < key.Length; ++i)
 				key[i] = FindProperty("_Key" + i, props);
@@ -68,6 +70,9 @@ namespace lilToon
                 EditorGUILayout.EndVertical();
                 EditorGUILayout.EndVertical();
 				
+                if (decrypt_complete_key != null)
+                    m_MaterialEditor.ShaderProperty(decrypt_complete_key, "Decrypt complete key");
+                
 				show_pwd = Foldout("Keys", "Keys", show_pwd);
 				if(show_pwd)
 				{

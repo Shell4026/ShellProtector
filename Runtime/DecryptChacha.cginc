@@ -166,3 +166,10 @@ half4 DecryptTextureDXT(half2 uv, int m)
 		
 	return half4(GammaCorrection(result), col.a);
 }
+
+float4 HashFloat4(float4 v0, float4 v1, float4 v2, float4 v3)
+{
+    float4 seed = v0 * 0.1031 + v1 * 0.11369 + v2 * 0.13787 + v3 * 0.09997;
+    seed = frac(sin(seed) * 43758.5453);
+    return seed;
+}

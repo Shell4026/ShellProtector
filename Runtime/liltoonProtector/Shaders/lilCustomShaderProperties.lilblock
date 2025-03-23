@@ -23,3 +23,4 @@
         _Nonce0 ("Nonce", integer) = 0
         _Nonce1 ("Nonce", integer) = 0
         _Nonce2 ("Nonce", integer) = 0
+        _Decrypt_complete_key ("Decrypt Complete Key", Vector) = (0, 0, 0, 0)

@@ -2,8 +2,9 @@
 // Macro
 
 #define LIL_CUSTOM_PROPERTIES\
-	half4 _EncryptTex0_TexelSize;\
-	fixed _fallback;
+	half4 _EncryptTex0_TexelSize; \
+	fixed _fallback; \
+	float4 _Decrypt_complete_key;
 
 // Custom textures
 #define LIL_CUSTOM_TEXTURES\
@@ -59,10 +60,18 @@
 		fd.col *= _Color;
 #endif
 
+#define DECRYPT_CHECK_FUNC \
+	(all(abs(_Decrypt_complete_key - HashFloat4(\
+		float4(_Key0, _Key1, _Key2, _Key3), \
+		float4(_Key4, _Key5, _Key6, _Key7), \
+		float4(_Key8, _Key9, _Key10, _Key11), \
+		float4(_Key12, _Key13, _Key14, _Key15) \
+	)) < 1e-1))
+
 #define OVERRIDE_MAIN\
 	LIL_GET_MAIN_TEX\
 	UNITY_BRANCH\
-	if(_fallback == 1)\
+	if(DECRYPT_CHECK_FUNC == false)\
 	{\
 		LIL_APPLY_MAIN_TONECORRECTION\
 		fd.col *= _Color;\
