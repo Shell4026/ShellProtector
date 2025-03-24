@@ -75,50 +75,6 @@ namespace Shell.Protector
     path: Body
     classID: 137
     script: {fileID: 0}";
-        static string fallbackOffCurve = @"
-  - serializedVersion: 2
-    curve:
-      serializedVersion: 2
-      m_Curve:
-      - serializedVersion: 3
-        time: 0
-        value: 0
-        inSlope: 0
-        outSlope: 0
-        tangentMode: 136
-        weightedMode: 0
-        inWeight: 0.33333334
-        outWeight: 0.33333334
-      m_PreInfinity: 2
-      m_PostInfinity: 2
-      m_RotationOrder: 4
-    attribute: material._fallback
-    path: Body
-    classID: 137
-    script: {fileID: 0}
-    flags: 16";
-        static string fallbackOnCurve = @"
-  - serializedVersion: 2
-    curve:
-      serializedVersion: 2
-      m_Curve:
-      - serializedVersion: 3
-        time: 0
-        value: 1
-        inSlope: 0
-        outSlope: 0
-        tangentMode: 136
-        weightedMode: 0
-        inWeight: 0.33333334
-        outWeight: 0.33333334
-      m_PreInfinity: 2
-      m_PostInfinity: 2
-      m_RotationOrder: 4
-    attribute: material._fallback
-    path: Body
-    classID: 137
-    script: {fileID: 0}
-    flags: 16";
         public static AnimatorController DuplicateAnimator(RuntimeAnimatorController anim, string new_dir)
         {
             string dir = AssetDatabase.GetAssetPath(anim);
@@ -139,8 +95,6 @@ namespace Shell.Protector
                 if (!filename.Contains(".anim"))
                     continue;
                 if (filename.Contains("dummy"))
-                    continue;
-                if (filename.Contains("FallbackOff"))
                     continue;
 
                 string path = Path.Combine(new_dir, filename);
@@ -176,40 +130,6 @@ namespace Shell.Protector
             }
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-        }
-
-        public static AnimationClip CreateFallbackAniamtions(string animationDir, string newDir, GameObject[] objs, bool bOff = true)
-        {
-            string animName = Path.GetFileName(animationDir);
-            string newPath = Path.Combine(newDir, animName);
-
-            AssetDatabase.CopyAsset(animationDir, newPath);
-
-            string anim = File.ReadAllText(newPath);
-
-            foreach (var obj in objs)
-            {
-                if (obj.name == "Body")
-                    continue;
-
-                string hrPath = obj.transform.GetHierarchyPath();
-                hrPath = Regex.Replace(hrPath, ".*?/(.*)", "'$1'");
-
-                string curve = Regex.Replace(bOff ? fallbackOffCurve : fallbackOnCurve, "path: Body", "path: " + hrPath);
-                //SkinnedMeshRender classID:137
-                //MeshRenderer classID:23
-                if (obj.GetComponent<SkinnedMeshRenderer>() == null)
-                    curve = Regex.Replace(curve, "classID: 137", "classID: 23");
-
-                anim = Regex.Replace(anim, "m_FloatCurves:", "m_FloatCurves:" + curve);
-                anim = Regex.Replace(anim, "m_EditorCurves:", "m_EditorCurves:" + curve);
-            }
-            File.WriteAllText(newPath, anim);
-
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
-
-            return AssetDatabase.LoadAssetAtPath<AnimationClip>(newPath);
         }
 
         private static BlendTree[] CreateKeyTree(string animation_dir, int key_length, float speed)
@@ -499,39 +419,6 @@ namespace Shell.Protector
                 transition.hasExitTime = false;
                 AddTransition(transition, keyLength, syncSize, i);
             }
-        }
-
-        public static void AddFallbackLayer(AnimatorController anim, AnimationClip fallbackOnAnimation, AnimationClip fallbackOffAnimation, float time = 3)
-        {
-            var layers = anim.layers;
-            foreach (var _layer in layers)
-            {
-                if (_layer.name == "ShellProtectorFallback")
-                    return;
-            }
-
-            AnimatorStateMachine stateMachine = new AnimatorStateMachine
-            {
-                name = anim.MakeUniqueLayerName("ShellProtectorFallback"),
-                hideFlags = HideFlags.HideInHierarchy
-            };
-            AssetDatabase.AddObjectToAsset(stateMachine, anim);
-            anim.AddLayer(new AnimatorControllerLayer { name = stateMachine.name, defaultWeight = 1.0f, stateMachine = stateMachine });
-
-            var layer = anim.layers[anim.layers.Length - 1];
-            var defaultState = layer.stateMachine.AddState("default");
-            defaultState.writeDefaultValues = true;
-            defaultState.motion = fallbackOnAnimation;
-
-            var fallbackState = layer.stateMachine.AddState("fallbackState");
-
-            var transition = defaultState.AddTransition(fallbackState);
-            transition.canTransitionToSelf = false;
-            transition.exitTime = time;
-            transition.duration = 0;
-            transition.hasExitTime = true;
-
-            fallbackState.motion = fallbackOffAnimation;
         }
 
         public static bool IsMaterialInClip(AnimationClip clip, Material originalMaterial)

@@ -36,7 +36,6 @@ namespace Shell.Protector
         SerializedProperty parameter_multiplexing;
         SerializedProperty bUseSmallMipTexture;
         SerializedProperty bPreserveMMD;
-        SerializedProperty fallbackTime;
         SerializedProperty turnOnAllSafetyFallback;
         bool debug = false;
         bool option = true;
@@ -117,7 +116,6 @@ namespace Shell.Protector
             parameter_multiplexing = serializedObject.FindProperty("parameter_multiplexing");
             bUseSmallMipTexture = serializedObject.FindProperty("bUseSmallMipTexture");
             bPreserveMMD = serializedObject.FindProperty("bPreserveMMD");
-            fallbackTime = serializedObject.FindProperty("fallbackTime");
             turnOnAllSafetyFallback = serializedObject.FindProperty("turnOnAllSafetyFallback");
             #endregion
 
@@ -371,20 +369,6 @@ namespace Shell.Protector
             if (fallbackOption)
             {
                 GUILayout.Label(Lang("Opponents with Safety option turned on will see degraded textures instead of noise."));
-
-                GUILayout.Label(Lang("Fallback wait time"), EditorStyles.boldLabel);
-                GUILayout.BeginHorizontal();
-                fallbackTime.floatValue = GUILayout.HorizontalSlider(fallbackTime.floatValue, 0.0f, 10.0f, GUILayout.Width(100));
-                fallbackTime.floatValue = EditorGUILayout.FloatField("", fallbackTime.floatValue, GUILayout.Width(50));
-                fallbackTime.floatValue = Mathf.Clamp(fallbackTime.floatValue, 0.0f, 10.0f);
-#if UNITY_2022
-                fallbackTime.floatValue = MathF.Round(fallbackTime.floatValue, 1);
-#endif
-                GUILayout.FlexibleSpace();
-                GUILayout.Label(Lang("After this time, the fallback is turned off. (Only who is Safety OFF)"), EditorStyles.wordWrappedLabel);
-                GUILayout.EndHorizontal();
-
-                GUILayout.Space(10);
 
                 GUILayout.BeginHorizontal();
                 GUILayout.Label(Lang("Change all Safety Fallback settings of shader to Unlit."), EditorStyles.boldLabel);

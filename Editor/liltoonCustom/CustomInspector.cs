@@ -14,7 +14,6 @@ namespace lilToon
         MaterialProperty encrypted_tex0;
         MaterialProperty encrypted_tex1;
         MaterialProperty[] key = new MaterialProperty[16];
-        MaterialProperty fallback;
         MaterialProperty password_hash;
 
         private static bool isShowCustomProperties;
@@ -36,7 +35,6 @@ namespace lilToon
             mip_tex = FindProperty("_MipTex", props);
             encrypted_tex0 = FindProperty("_EncryptTex0", props);
             encrypted_tex1 = FindProperty("_EncryptTex1", props);
-            fallback = FindProperty("_fallback", props);
             password_hash = FindProperty("_PasswordHash", props);
 
             for (int i = 0; i < key.Length; ++i)
@@ -56,8 +54,6 @@ namespace lilToon
             isShowCustomProperties = Foldout("ShellProtector", "ShellProtector", isShowCustomProperties);
             if(isShowCustomProperties)
             {
-                m_MaterialEditor.ShaderProperty(fallback, "fallback");
-
                 EditorGUILayout.BeginVertical(boxOuter);
                 EditorGUILayout.LabelField(GetLoc("ShellProtector"), customToggleFont);
                 EditorGUILayout.BeginVertical(boxInnerHalf);

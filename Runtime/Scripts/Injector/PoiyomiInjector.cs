@@ -135,7 +135,6 @@ namespace Shell.Protector
         _MipTex (""MipReference"", 2D) = ""white"" { }
         _EncryptTex0 (""Encrypted0"", 2D) = ""white"" { }
         _EncryptTex1 (""Encrypted1"", 2D) = ""white"" { }
-        [MaterialToggle] _fallback(""Fallback"", float) = 0
         _Woffset (""Woffset"", integer) = 0
         _Hoffset (""Hoffset"", integer) = 0
         _Nonce0 (""Nonce"", integer) = 0

@@ -3,7 +3,6 @@
 
 #define LIL_CUSTOM_PROPERTIES\
 	half4 _EncryptTex0_TexelSize; \
-	fixed _fallback; \
 	int _PasswordHash;
 
 // Custom textures

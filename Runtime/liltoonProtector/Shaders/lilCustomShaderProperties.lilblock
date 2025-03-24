@@ -17,7 +17,6 @@
         _Key13 ("key13", float) = 0
         _Key14 ("key14", float) = 0
         _Key15 ("key15", float) = 0
-		[MaterialToggle] _fallback("Fallback", float) = 0
         _Woffset ("Woffset", integer) = 0
         _Hoffset ("Hoffset", integer) = 0
         _Nonce0 ("Nonce", integer) = 0

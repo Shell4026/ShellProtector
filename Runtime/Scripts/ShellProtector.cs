@@ -751,7 +751,6 @@ namespace Shell.Protector
             {
                 ReplaceMaterials(avatar);
                 RemoveDuplicatedTextures(avatar);
-                SetMaterialFallbackValue(avatar, true);
 
                 descriptor.gameObject.SetActive(false);
 
@@ -1042,10 +1041,7 @@ namespace Shell.Protector
             GameObject[] meshArray = new GameObject[meshes.Count];
             meshes.CopyTo(meshArray);
             AnimatorManager.CreateKeyAniamtions(Path.Combine(asset_dir, "Animations"), animationDir, meshArray);
-            var fallbackOnAnim = AnimatorManager.CreateFallbackAniamtions(Path.Combine(asset_dir, "Animations", "FallbackOn.anim"), animationDir, meshArray, false);
-            var fallbackOffAnim = AnimatorManager.CreateFallbackAniamtions(Path.Combine(asset_dir, "Animations", "FallbackOff.anim"), animationDir, meshArray, true);
             AnimatorManager.AddKeyLayer(fx, animationDir, key_size, sync_size, animation_speed, parameter_multiplexing);
-            AnimatorManager.AddFallbackLayer(fx, fallbackOnAnim, fallbackOffAnim, fallbackTime);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -1212,54 +1208,6 @@ namespace Shell.Protector
                 obfuscator.ObfuscateBlendshapeInAnim(fx, selectRenderer.gameObject, animDir);
                 obfuscator.ChangeObfuscatedBlendShapeInDescriptor(av3);
                 obfuscator.Clean();
-            }
-        }
-
-        public void SetMaterialFallbackValue(GameObject avatar, bool fallback)
-        {
-            var renderers = avatar.GetComponentsInChildren<MeshRenderer>(true);
-            if (renderers != null)
-            {
-                foreach (var r in renderers)
-                {
-                    var mats = r.sharedMaterials;
-                    if (mats == null)
-                    {
-                        Debug.LogWarning(r.gameObject.name + ": can't find sharedMaterials");
-                        continue;
-                    }
-                    foreach (var mat in mats)
-                    {
-                        if (mat == null)
-                            continue;
-                        if (mat.name.Contains("_encrypted") || mat.name.Contains("_duplicated"))
-                        {
-                            mat.SetFloat("_fallback", fallback == true ? 1.0f : 0.0f);
-                        }
-                    }
-                }
-            }
-            var skinned_renderers = avatar.GetComponentsInChildren<SkinnedMeshRenderer>(true);
-            if (skinned_renderers != null)
-            {
-                foreach (var r in skinned_renderers)
-                {
-                    var mats = r.sharedMaterials;
-                    if (mats == null)
-                    {
-                        Debug.LogWarning(r.gameObject.name + ": can't find sharedMaterials");
-                        continue;
-                    }
-                    foreach (var mat in mats)
-                    {
-                        if (mat == null)
-                            continue;
-                        if (mat.name.Contains("_encrypted") || mat.name.Contains("_duplicated"))
-                        {
-                            mat.SetFloat("_fallback", fallback == true ? 1.0f : 0.0f);
-                        }
-                    }
-                }
             }
         }
 

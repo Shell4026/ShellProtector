@@ -23,8 +23,6 @@ namespace Shell.Protector
                 return;
             }
 
-            protector.SetMaterialFallbackValue(transform.root.gameObject, false);
-
             byte[] pwd_bytes = protector.GetKeyBytes();
 
             var renderers = transform.root.GetComponentsInChildren<MeshRenderer>(true);
@@ -76,8 +74,6 @@ namespace Shell.Protector
         }
         public void ResetEncryption()
         {
-            protector.SetMaterialFallbackValue(transform.root.gameObject, true);
-
             var renderers = transform.root.GetComponentsInChildren<MeshRenderer>(true);
             foreach (var r in renderers)
             {
