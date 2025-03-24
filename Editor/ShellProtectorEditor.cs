@@ -33,7 +33,6 @@ namespace Shell.Protector
         SerializedProperty sync_size;
         SerializedProperty animation_speed;
         SerializedProperty delete_folders;
-        SerializedProperty parameter_multiplexing;
         SerializedProperty bUseSmallMipTexture;
         SerializedProperty bPreserveMMD;
         SerializedProperty turnOnAllSafetyFallback;
@@ -113,7 +112,6 @@ namespace Shell.Protector
             sync_size = serializedObject.FindProperty("sync_size");
             animation_speed = serializedObject.FindProperty("animation_speed");
             delete_folders = serializedObject.FindProperty("delete_folders");
-            parameter_multiplexing = serializedObject.FindProperty("parameter_multiplexing");
             bUseSmallMipTexture = serializedObject.FindProperty("bUseSmallMipTexture");
             bPreserveMMD = serializedObject.FindProperty("bPreserveMMD");
             turnOnAllSafetyFallback = serializedObject.FindProperty("turnOnAllSafetyFallback");
@@ -228,13 +226,9 @@ namespace Shell.Protector
                 free_parameter = 256 - parameters.CalcTotalCost();
                 GUILayout.Label(Lang("Free parameter:") + free_parameter, EditorStyles.wordWrappedLabel);
             }
-            int using_parameter = (key_size.intValue * 8);
-            if(parameter_multiplexing.boolValue == true)
-            {
-                int lock_size = 1;
-                int switch_count = ShellProtector.GetRequiredSwitchCount(key_size.intValue, sync_size.intValue);
-                using_parameter = switch_count + lock_size + sync_size.intValue * 8;
-            }
+            int lock_size = 1;
+            int switch_count = ShellProtector.GetRequiredSwitchCount(key_size.intValue, sync_size.intValue);
+            int using_parameter = switch_count + lock_size + sync_size.intValue * 8;
             GUILayout.Label(Lang("Parameters to be used:") + using_parameter, EditorStyles.wordWrappedLabel);
 
             serializedObject.Update();
@@ -329,15 +323,6 @@ namespace Shell.Protector
                 delete_folders.boolValue = EditorGUILayout.Toggle(delete_folders.boolValue);
                 GUILayout.FlexibleSpace();
                 GUILayout.EndHorizontal();
-
-                GUILayout.Space(10);
-
-                GUILayout.BeginHorizontal();
-                GUILayout.Label(Lang("parameter-multiplexing"), EditorStyles.boldLabel);
-                parameter_multiplexing.boolValue = EditorGUILayout.Toggle(parameter_multiplexing.boolValue);
-                GUILayout.FlexibleSpace();
-                GUILayout.EndHorizontal();
-                GUILayout.Label(Lang("The OSC program must always be on, but it consumes fewer parameters."), EditorStyles.wordWrappedLabel);
 
                 GUILayout.Space(10);
 

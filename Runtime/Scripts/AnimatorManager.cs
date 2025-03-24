@@ -181,7 +181,7 @@ namespace Shell.Protector
                 transition.AddCondition(switchConditions[i], 0, ParameterManager.GetSyncSwitchName(i));
         }
 
-        private static void AddParameters(AnimatorController anim, int keyLength, int syncSize, bool useMultiplexing)
+        private static void AddParameters(AnimatorController anim, int keyLength, int syncSize)
         {
             anim.AddParameter(new AnimatorControllerParameter
             {
@@ -203,29 +203,24 @@ namespace Shell.Protector
             for (var i = 0; i < keyLength; ++i)
                 anim.AddParameter(ParameterManager.GetKeyName(i), AnimatorControllerParameterType.Float);
 
-            if (useMultiplexing)
-            {
-                anim.AddParameter(ParameterManager.GetSyncLockName(), AnimatorControllerParameterType.Bool);
-                var switchCount = ShellProtector.GetRequiredSwitchCount(keyLength, syncSize);
-                for (var i = 0; i < keyLength; ++i)
-                    anim.AddParameter(ParameterManager.GetSavedKeyName(i), AnimatorControllerParameterType.Float);
-                for(var i = 0; i < syncSize; ++i)
-                    anim.AddParameter(ParameterManager.GetSyncedKeyName(i), AnimatorControllerParameterType.Float);
-                for (var i = 0; i < switchCount; ++i)
-                    anim.AddParameter(ParameterManager.GetSyncSwitchName(i), AnimatorControllerParameterType.Bool);
-            }
+            anim.AddParameter(ParameterManager.GetSyncLockName(), AnimatorControllerParameterType.Bool);
+            var switchCount = ShellProtector.GetRequiredSwitchCount(keyLength, syncSize);
+            for (var i = 0; i < keyLength; ++i)
+                anim.AddParameter(ParameterManager.GetSavedKeyName(i), AnimatorControllerParameterType.Float);
+            for (var i = 0; i < syncSize; ++i)
+                anim.AddParameter(ParameterManager.GetSyncedKeyName(i), AnimatorControllerParameterType.Float);
+            for (var i = 0; i < switchCount; ++i)
+                anim.AddParameter(ParameterManager.GetSyncSwitchName(i), AnimatorControllerParameterType.Bool);
         }
-        public static void AddKeyLayer(AnimatorController anim, string animationDir, int keyLength, int syncSize, float speed, bool useMultiplexing)
+
+        public static void AddKeyLayer(AnimatorController anim, string animationDir, int keyLength, int syncSize, float speed)
         {
-            AddParameters(anim, keyLength, syncSize, useMultiplexing);
+            AddParameters(anim, keyLength, syncSize);
 
             if (anim.layers.Any(l => l.name == "ShellProtector")) return;
 
-            if (useMultiplexing)
-            {
-                AddMuxLayer(anim, keyLength, syncSize, 0.15f, 0.1f, 1f); // 10hz
-                AddDemuxLayer(anim, keyLength, syncSize);
-            }
+            AddMuxLayer(anim, keyLength, syncSize, 0.15f, 0.1f, 1f); // 10hz
+            AddDemuxLayer(anim, keyLength, syncSize);
 
             AnimatorStateMachine stateMachine = new AnimatorStateMachine
             {

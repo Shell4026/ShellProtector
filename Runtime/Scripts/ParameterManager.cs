@@ -16,79 +16,62 @@ public static class ParameterManager
     public static string GetIsLocalName() => "IsLocal";
 
 
-    public static VRCExpressionParameters AddKeyParameter(VRCExpressionParameters vrcParameters, int keyLength, int syncSize,  bool useMultiplexing)
+    public static VRCExpressionParameters AddKeyParameter(VRCExpressionParameters vrcParameters, int keyLength, int syncSize)
     {
         var parameters = new List<VRCExpressionParameters.Parameter>();
 
-        if (useMultiplexing == false)
+        parameters.Add(new VRCExpressionParameters.Parameter
         {
-            for (var i = 0; i < keyLength; ++i)
-            {
-                parameters.Add(new VRCExpressionParameters.Parameter
-                {
-                    name = GetKeyName(i),
-                    saved = true,
-                    networkSynced = true,
-                    valueType = VRCExpressionParameters.ValueType.Float,
-                    defaultValue = 0.0f
-                });
-            }
-        }
-        else
+            name = GetSyncLockName(),
+            saved = true,
+            networkSynced = true,
+            valueType = VRCExpressionParameters.ValueType.Bool,
+            defaultValue = 0.0f
+        });
+
+        for (var i = 0; i < syncSize; i++)
         {
             parameters.Add(new VRCExpressionParameters.Parameter
             {
-                name = GetSyncLockName(),
+                name = GetSyncedKeyName(i),
+                saved = true,
+                networkSynced = true,
+                valueType = VRCExpressionParameters.ValueType.Float,
+                defaultValue = 0.0f
+            });
+        }
+
+        for (var i = 0; i < ShellProtector.GetRequiredSwitchCount(keyLength, syncSize); ++i)
+        {
+            parameters.Add(new VRCExpressionParameters.Parameter
+            {
+                name = GetSyncSwitchName(i),
                 saved = true,
                 networkSynced = true,
                 valueType = VRCExpressionParameters.ValueType.Bool,
                 defaultValue = 0.0f
             });
+        }
 
-            for (var i = 0; i < syncSize; i++)
+        for (var i = 0; i < keyLength; ++i)
+        {
+            parameters.Add(new VRCExpressionParameters.Parameter
             {
-                parameters.Add(new VRCExpressionParameters.Parameter
-                {
-                    name = GetSyncedKeyName(i),
-                    saved = true,
-                    networkSynced = true,
-                    valueType = VRCExpressionParameters.ValueType.Float,
-                    defaultValue = 0.0f
-                });
-            }
+                name = GetKeyName(i),
+                saved = false,
+                networkSynced = false,
+                valueType = VRCExpressionParameters.ValueType.Float,
+                defaultValue = 0.0f
+            });
 
-            for (var i = 0; i < ShellProtector.GetRequiredSwitchCount(keyLength, syncSize); ++i)
+            parameters.Add(new VRCExpressionParameters.Parameter
             {
-                parameters.Add(new VRCExpressionParameters.Parameter
-                {
-                    name = GetSyncSwitchName(i),
-                    saved = true,
-                    networkSynced = true,
-                    valueType = VRCExpressionParameters.ValueType.Bool,
-                    defaultValue = 0.0f
-                });
-            }
-
-            for (var i = 0; i < keyLength; ++i)
-            {
-                parameters.Add(new VRCExpressionParameters.Parameter
-                {
-                    name = GetKeyName(i),
-                    saved = false,
-                    networkSynced = false,
-                    valueType = VRCExpressionParameters.ValueType.Float,
-                    defaultValue = 0.0f
-                });
-
-                parameters.Add(new VRCExpressionParameters.Parameter
-                {
-                    name = GetSavedKeyName(i),
-                    saved = true,
-                    networkSynced = false,
-                    valueType = VRCExpressionParameters.ValueType.Float,
-                    defaultValue = 0.0f
-                });
-            }
+                name = GetSavedKeyName(i),
+                saved = true,
+                networkSynced = false,
+                valueType = VRCExpressionParameters.ValueType.Float,
+                defaultValue = 0.0f
+            });
         }
 
         var result = ScriptableObject.CreateInstance<VRCExpressionParameters>();

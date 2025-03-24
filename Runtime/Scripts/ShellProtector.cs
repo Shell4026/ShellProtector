@@ -104,7 +104,6 @@ namespace Shell.Protector
         [SerializeField] int sync_size = 1;
         [SerializeField] float animation_speed = 5.0f;
         [SerializeField] bool delete_folders = true;
-        [SerializeField] bool parameter_multiplexing = false;
         [SerializeField] bool bUseSmallMipTexture = true;
 
         [SerializeField] bool bPreserveMMD = true;
@@ -744,7 +743,7 @@ namespace Shell.Protector
 
             ///////////////////////parameter////////////////////
             var av3 = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
-            av3.expressionParameters = ParameterManager.AddKeyParameter(av3.expressionParameters, key_size, sync_size, parameter_multiplexing);
+            av3.expressionParameters = ParameterManager.AddKeyParameter(av3.expressionParameters, key_size, sync_size);
             AssetDatabase.CreateAsset(av3.expressionParameters, Path.Combine(avatarDir, av3.expressionParameters.name + ".asset"));
             ////////////////////////////////////////////////////
             if (!isModular)
@@ -1041,7 +1040,7 @@ namespace Shell.Protector
             GameObject[] meshArray = new GameObject[meshes.Count];
             meshes.CopyTo(meshArray);
             AnimatorManager.CreateKeyAniamtions(Path.Combine(asset_dir, "Animations"), animationDir, meshArray);
-            AnimatorManager.AddKeyLayer(fx, animationDir, key_size, sync_size, animation_speed, parameter_multiplexing);
+            AnimatorManager.AddKeyLayer(fx, animationDir, key_size, sync_size, animation_speed);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
