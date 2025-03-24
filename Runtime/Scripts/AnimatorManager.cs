@@ -210,7 +210,7 @@ namespace Shell.Protector
                 for (var i = 0; i < keyLength; ++i)
                     anim.AddParameter(ParameterManager.GetSavedKeyName(i), AnimatorControllerParameterType.Float);
                 for(var i = 0; i < syncSize; ++i)
-                    anim.AddParameter(ParameterManager.GetSyncedKeyNAme(i), AnimatorControllerParameterType.Float);
+                    anim.AddParameter(ParameterManager.GetSyncedKeyName(i), AnimatorControllerParameterType.Float);
                 for (var i = 0; i < switchCount; ++i)
                     anim.AddParameter(ParameterManager.GetSyncSwitchName(i), AnimatorControllerParameterType.Bool);
             }
@@ -347,7 +347,7 @@ namespace Shell.Protector
                     syncDriver.parameters.Add(new VRC_AvatarParameterDriver.Parameter
                     {
                         type = VRC_AvatarParameterDriver.ChangeType.Copy,
-                        name = ParameterManager.GetSyncedKeyNAme(i),
+                        name = ParameterManager.GetSyncedKeyName(i),
                         source = ParameterManager.GetSavedKeyName(step * syncSize + i)
                     });
                 }
@@ -408,7 +408,7 @@ namespace Shell.Protector
                     {
                         type = VRC_AvatarParameterDriver.ChangeType.Copy,
                         name = ParameterManager.GetKeyName(i * syncSize + j),
-                        source = ParameterManager.GetSyncedKeyNAme(j)
+                        source = ParameterManager.GetSyncedKeyName(j)
                     });
                 }
 

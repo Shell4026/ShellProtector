@@ -8,11 +8,7 @@ using VRC.SDK3.Avatars.ScriptableObjects;
 public static class ParameterManager
 {
     private const string Prefix = "SHELL_PROTECTOR_";
-    public static string GetSyncedKeyNAme(int index)
-    {
-        if (index == 0) return "pkey"; // For backward compatibility (before commit e8080de)
-        return Prefix + "synced_key" + index;
-    }
+    public static string GetSyncedKeyName(int index) => Prefix + "synced_key" + index; 
     public static string GetKeyName(int index) => Prefix + "key" + index;
     public static string GetSavedKeyName(int index) => Prefix + "saved_key" + index;
     public static string GetSyncSwitchName(int index) => Prefix + "sync_switch" + index;
@@ -53,7 +49,7 @@ public static class ParameterManager
             {
                 parameters.Add(new VRCExpressionParameters.Parameter
                 {
-                    name = GetSyncedKeyNAme(i),
+                    name = GetSyncedKeyName(i),
                     saved = true,
                     networkSynced = true,
                     valueType = VRCExpressionParameters.ValueType.Float,
