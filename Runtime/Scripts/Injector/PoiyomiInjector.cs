@@ -52,7 +52,7 @@ namespace Shell.Protector
             Texture2D _EncryptTex1;
 
             float4 _EncryptTex0_TexelSize;
-            fixed _fallback;
+            int _PasswordHash;
 ";
             int version = AssetManager.GetInstance().GetShaderType(shader);
             if(version == 73)
@@ -140,6 +140,7 @@ namespace Shell.Protector
         _Nonce0 (""Nonce"", integer) = 0
         _Nonce1 (""Nonce"", integer) = 0
         _Nonce2 (""Nonce"", integer) = 0
+        _PasswordHash (""PasswordHash"", integer) = 0
 ";
 
                 for (int i = 0; i < 16; ++i)

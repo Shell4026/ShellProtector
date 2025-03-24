@@ -21,7 +21,7 @@ namespace Shell.Protector
 				half4 mainTexture;
 
                 UNITY_BRANCH
-                if(_fallback == 0)
+                if(IsDecrypted())
                 {
 				    half4 mip_texture = _MipTex.Sample(sampler_MipTex, mainUV);
 				
@@ -41,7 +41,7 @@ namespace Shell.Protector
                 half4 mainTexture;
 
                 UNITY_BRANCH
-                if(_fallback == 0)
+                if(IsDecrypted())
                 {
 				    half4 mip_texture = _MipTex.Sample(sampler_MipTex, mainUV);
 				
