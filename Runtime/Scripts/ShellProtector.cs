@@ -305,6 +305,36 @@ namespace Shell.Protector
             return materials.Concat(material_list).Distinct().ToList();
         }
 
+        public static uint SimpleHash(byte[] data)
+        {
+            if (data.Length != 16)
+                throw new ArgumentException("Input must be exactly 16 bytes.");
+
+            uint hash = 0x811C9DC5u;
+
+            for (int i = 0; i < 16; i++)
+            {
+                uint k = data[i];
+
+                k *= 0xcc9e2d51u;
+                k = (k << 15) | (k >> 17);
+                k *= 0x1b873593u;
+
+                hash ^= k;
+                hash = (hash << 13) | (hash >> 19);
+                hash = hash * 5u + 0xe6546b64u;
+            }
+
+            hash ^= 16u;
+            hash ^= (hash >> 16);
+            hash *= 0x85ebca6bu;
+            hash ^= (hash >> 13);
+            hash *= 0xc2b2ae35u;
+            hash ^= (hash >> 16);
+
+            return hash;
+        }
+
         public GameObject Encrypt(bool isModular = true)
         {
             return Encrypt(bUseSmallMipTexture, isModular);
@@ -689,6 +719,14 @@ namespace Shell.Protector
                     new_mat.SetInteger("_Nonce1", (int)chacha.GetNonceUint3()[1]);
                     new_mat.SetInteger("_Nonce2", (int)chacha.GetNonceUint3()[2]);
                 }
+
+                var key = new byte[16];
+                for (int i = 0; i < 16; i++)
+                {
+                    key[i] = key_bytes[i];
+                }
+                var hash = SimpleHash(key);
+                new_mat.SetInteger("_PasswordHash", (int)hash);
 
                 AssetDatabase.CreateAsset(new_mat, encrypted_mat_path);
                 Debug.LogFormat("{0} : create encrypted material : {1}", mat.name, AssetDatabase.GetAssetPath(new_mat));

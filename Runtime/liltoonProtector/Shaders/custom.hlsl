@@ -2,8 +2,9 @@
 // Macro
 
 #define LIL_CUSTOM_PROPERTIES\
-	half4 _EncryptTex0_TexelSize;\
-	fixed _fallback;
+	half4 _EncryptTex0_TexelSize; \
+	fixed _fallback; \
+	int _PasswordHash;
 
 // Custom textures
 #define LIL_CUSTOM_TEXTURES\
@@ -49,7 +50,7 @@
 #define OVERRIDE_MAIN\
 	LIL_GET_MAIN_TEX\
 	UNITY_BRANCH\
-	if(_fallback == 1)\
+	if(!IsDecrypted())\
 	{\
 		LIL_APPLY_MAIN_TONECORRECTION\
 		fd.col *= _Color;\

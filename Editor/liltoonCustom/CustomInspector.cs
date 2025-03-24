@@ -1,4 +1,6 @@
 #if UNITY_EDITOR
+using System.Linq;
+using Shell.Protector;
 using UnityEditor;
 using UnityEngine;
 
@@ -11,8 +13,9 @@ namespace lilToon
         MaterialProperty mip_tex;
         MaterialProperty encrypted_tex0;
         MaterialProperty encrypted_tex1;
-        MaterialProperty[] key = new MaterialProperty[15];
+        MaterialProperty[] key = new MaterialProperty[16];
         MaterialProperty fallback;
+        MaterialProperty password_hash;
 
         private static bool isShowCustomProperties;
 		private static bool show_pwd = false;
@@ -34,6 +37,7 @@ namespace lilToon
             encrypted_tex0 = FindProperty("_EncryptTex0", props);
             encrypted_tex1 = FindProperty("_EncryptTex1", props);
             fallback = FindProperty("_fallback", props);
+            password_hash = FindProperty("_PasswordHash", props);
 
             for (int i = 0; i < key.Length; ++i)
 				key[i] = FindProperty("_Key" + i, props);
@@ -68,6 +72,8 @@ namespace lilToon
                 EditorGUILayout.EndVertical();
                 EditorGUILayout.EndVertical();
 				
+                m_MaterialEditor.ShaderProperty(password_hash, "Password hash");
+                
 				show_pwd = Foldout("Keys", "Keys", show_pwd);
 				if(show_pwd)
 				{
@@ -78,6 +84,9 @@ namespace lilToon
 						m_MaterialEditor.ShaderProperty(key[i], "Key" + i);
 					}
 				}
+
+                var hash = ShellProtector.SimpleHash(key.Select(k => (byte)Mathf.RoundToInt(k.floatValue)).ToArray());
+                EditorGUILayout.LabelField("Password hash", hash.ToString());
             }
         }
 

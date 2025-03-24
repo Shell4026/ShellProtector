@@ -64,3 +64,42 @@ half4 DecryptTexture(half2 uv, int m)
 	Decrypt(data, key);
 	return GetPixel(data, uv, m);
 }
+
+inline uint SimpleHash(int data[16])
+{
+    uint hash = 0x811C9DC5u;
+
+    [unroll]
+    for (int i = 0; i < 16; i++)
+    {
+        uint k = (uint)(data[i] & 0xFF);
+
+        k *= 0xcc9e2d51u;
+        k = (k << 15) | (k >> 17);
+        k *= 0x1b873593u;
+
+        hash ^= k;
+        hash = (hash << 13) | (hash >> 19);
+        hash = hash * 5u + 0xe6546b64u;
+    }
+
+    hash ^= 16u;
+    hash ^= (hash >> 16);
+    hash *= 0x85ebca6bu;
+    hash ^= (hash >> 13);
+    hash *= 0xc2b2ae35u;
+    hash ^= (hash >> 16);
+
+    return hash;
+}
+
+inline bool IsDecrypted() {
+	const int key[16] = 
+	{
+		(int)round(_Key0), (int)round(_Key1), (int)round(_Key2), (int)round(_Key3),
+		(int)round(_Key4), (int)round(_Key5), (int)round(_Key6), (int)round(_Key7),
+		(int)round(_Key8), (int)round(_Key9), (int)round(_Key10), (int)round(_Key11),
+		(int)round(_Key12), (int)round(_Key13), (int)round(_Key14), (int)round(_Key15)
+	};
+	return SimpleHash(key) == _PasswordHash;
+}
