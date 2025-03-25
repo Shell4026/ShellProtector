@@ -13,8 +13,6 @@
     #define _SHELL_PROTECTOR_RGBA
 #elif _SHELL_PROTECTOR_FORMAT0 && !_SHELL_PROTECTOR_FORMAT1
     #define _SHELL_PROTECTOR_RGB
-#elif _SHELL_PROTECTOR_FORMAT0 && _SHELL_PROTECTOR_FORMAT1
-    #define _SHELL_PROTECTOR_BC7
 #else
     #error "Unsupported format"
 #endif
@@ -48,10 +46,6 @@ uint _Hoffset;
 
 #ifdef _SHELL_PROTECTOR_DXT
 	#include "DXT.cginc"
-#endif
-
-#ifdef _SHELL_PROTECTOR_BC7
-	#include "BC7.cginc"
 #endif
 
 half4 DecryptTexture(half2 uv, int m)
