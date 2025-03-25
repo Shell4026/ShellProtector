@@ -128,27 +128,7 @@ namespace Shell.Protector
             }
 
             // Set format keywords
-            TextureFormat format = ((Texture2D)material.mainTexture).format;
-            if (format == TextureFormat.DXT1 || format == TextureFormat.DXT5)
-            {
-                material.DisableKeyword("_SHELL_PROTECTOR_FORMAT0");
-                material.DisableKeyword("_SHELL_PROTECTOR_FORMAT1");
-            }
-            else if (format == TextureFormat.RGBA32)
-            {
-                material.DisableKeyword("_SHELL_PROTECTOR_FORMAT0");
-                material.EnableKeyword("_SHELL_PROTECTOR_FORMAT1");
-            }
-            else if (format == TextureFormat.RGB24)
-            {
-                material.EnableKeyword("_SHELL_PROTECTOR_FORMAT0");
-                material.DisableKeyword("_SHELL_PROTECTOR_FORMAT1");
-            }
-            else
-            {
-                Debug.LogErrorFormat("{0} - main texture is unsupported format!", material.name);
-                return;
-            }
+            TextureEncryptManager.SetFormatKeywords(material);
 
             // Set rimlight keyword
             if (has_lim_texture) material.EnableKeyword("_SHELL_PROTECTOR_RIMLIGHT"); 

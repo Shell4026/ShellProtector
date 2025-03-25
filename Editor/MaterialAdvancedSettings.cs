@@ -84,17 +84,16 @@ namespace Shell.Protector
                     {
                         GUILayout.Label(Lang("The main texture is empty."), redStyle);
                     }
-                    else if ((mainTex is Texture2D) == false)
+                    else if (!TextureEncryptManager.IsSupportedTexture(mainTex))
                     {
-                        GUILayout.Label(Lang("The main texture is not Texture2D."), redStyle);
-                    }
-                    else if (
-                        mainTex.format != TextureFormat.DXT1 &&
-                        mainTex.format != TextureFormat.DXT5 &&
-                        mainTex.format != TextureFormat.RGB24 &&
-                        mainTex.format != TextureFormat.RGBA32)
-                    {
-                        GUILayout.Label(Lang("The main texture is not supported format."), redStyle);
+                        if (!(mainTex is Texture2D))
+                        {
+                            GUILayout.Label(Lang("The main texture is not Texture2D."), redStyle);
+                        }
+                        else
+                        {
+                            GUILayout.Label(Lang("The main texture is not supported format."), redStyle);
+                        }
                     }
                 }
             }

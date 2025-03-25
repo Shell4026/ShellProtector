@@ -422,19 +422,19 @@ namespace Shell.Protector
 
                         TextureSettings.SetRWEnableTexture(texture);
 
-                        Texture2D[] encrypted_texture = root.GetEncryptTexture().TextureEncrypt(texture, KeyGenerator.MakeKeyBytes(root.pwd, root.pwd2, key_size.intValue), new XXTEA());
+                        var result = TextureEncryptManager.EncryptTexture(texture, KeyGenerator.MakeKeyBytes(root.pwd, root.pwd2, key_size.intValue), new XXTEA());
 
-                        last = encrypted_texture[0];
+                        last = result.Texture1;
 
                         if (!AssetDatabase.IsValidFolder(root.asset_dir + '/' + root.descriptor.gameObject.name))
                             AssetDatabase.CreateFolder(root.asset_dir, root.descriptor.gameObject.name);
                         if (!AssetDatabase.IsValidFolder(root.asset_dir + '/' + root.descriptor.gameObject.name + "/mat"))
                             AssetDatabase.CreateFolder(root.asset_dir + '/' + root.descriptor.gameObject.name, "mat");
 
-                        AssetDatabase.CreateAsset(encrypted_texture[0], root.asset_dir + '/' + root.descriptor.gameObject.name + '/' + texture.name + "_encrypt.asset");
-                        File.WriteAllBytes(root.asset_dir + '/' + root.descriptor.gameObject.name + '/' + texture.name + "_encrypt.png", encrypted_texture[1].EncodeToPNG());
-                        if (encrypted_texture[1] != null)
-                            AssetDatabase.CreateAsset(encrypted_texture[1], root.asset_dir + '/' + root.descriptor.gameObject.name + '/' + texture.name + "_encrypt2.asset");
+                        AssetDatabase.CreateAsset(result.Texture1, root.asset_dir + '/' + root.descriptor.gameObject.name + '/' + texture.name + "_encrypt.asset");
+                        File.WriteAllBytes(root.asset_dir + '/' + root.descriptor.gameObject.name + '/' + texture.name + "_encrypt.png", result.Texture2.EncodeToPNG());
+                        if (result.Texture2 != null)
+                            AssetDatabase.CreateAsset(result.Texture2, root.asset_dir + '/' + root.descriptor.gameObject.name + '/' + texture.name + "_encrypt2.asset");
                         AssetDatabase.SaveAssets();
 
                         AssetDatabase.Refresh();
@@ -442,35 +442,6 @@ namespace Shell.Protector
                     if(last != null)
                         Selection.activeObject = last;
                 }
-
-                /*if (GUILayout.Button("Decrypt"))
-                {
-                    Texture2D last = null;
-                    for (int i = 0; i < texture_list.count; i++)
-                    {
-                        SerializedProperty textureProperty = texture_list.serializedProperty.GetArrayElementAtIndex(i);
-                        Texture2D texture = textureProperty.objectReferenceValue as Texture2D;
-
-                        root.SetRWEnableTexture(texture);
-
-                        Texture2D tmp = root.GetEncryptTexture().TextureDecryptXXTEA(texture, root.MakeKeyBytes(root.pwd));
-
-                        if (root.asset_dir[root.asset_dir.Length - 1] == '/')
-                            root.asset_dir = root.asset_dir.Remove(root.asset_dir.Length - 1);
-
-                        if (!AssetDatabase.IsValidFolder(root.asset_dir + '/' + root.gameObject.name))
-                            AssetDatabase.CreateFolder(root.asset_dir, root.gameObject.name);
-                        if (!AssetDatabase.IsValidFolder(root.asset_dir + '/' + root.gameObject.name + "/mat"))
-                            AssetDatabase.CreateFolder(root.asset_dir + '/' + root.gameObject.name, "mat");
-
-                        System.IO.File.WriteAllBytes(root.asset_dir + '/' + root.gameObject.name + '/' + texture.name + "_decrypt.png", tmp.EncodeToPNG());
-                        last = (Texture2D)AssetDatabase.LoadAssetAtPath(root.asset_dir + '/' + root.gameObject.name + '/' + texture.name + "_decrypt.png", typeof(Texture2D));
-
-                        AssetDatabase.Refresh();
-                    }
-                    if (last != null)
-                        Selection.activeObject = last;
-                }*/
 
                 GUILayout.EndHorizontal();
             }
