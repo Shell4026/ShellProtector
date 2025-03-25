@@ -57,12 +57,11 @@ public class DXT1Format : DXTFormat {
 
     public override EncryptResult Encrypt(Texture2D texture, byte[] key, IEncryptor algorithm) {
         if (texture.width < 8) {
-            Debug.LogErrorFormat("{0} : The texture width must be >= 8px", texture.name);
-            return new EncryptResult();
+            throw new Exception($"{texture.name} : The texture width must be >= 8px");
         }
+
         if (texture.height < 4) {
-            Debug.LogErrorFormat("{0} : The texture height must be >= 4px", texture.name);
-            return new EncryptResult();
+            throw new Exception($"{texture.name} : The texture height must be >= 4px");
         }
 
         int mip_lv = GetCanMipmapLevel(texture.width / 4, texture.height / 4);
@@ -132,12 +131,11 @@ public class DXT5Format : DXTFormat {
 
     public override EncryptResult Encrypt(Texture2D texture, byte[] key, IEncryptor algorithm) {
         if (texture.width < 8) {
-            Debug.LogErrorFormat("{0} : The texture width must be >= 8px", texture.name);
-            return new EncryptResult();
+            throw new Exception($"{texture.name} : The texture width must be >= 8px");
         }
+
         if (texture.height < 4) {
-            Debug.LogErrorFormat("{0} : The texture height must be >= 4px", texture.name);
-            return new EncryptResult();
+            throw new Exception($"{texture.name} : The texture height must be >= 4px");
         }
 
         int mip_lv = GetCanMipmapLevel(texture.width / 4, texture.height / 4);
