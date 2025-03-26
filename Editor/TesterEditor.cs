@@ -64,21 +64,6 @@ namespace Shell.Protector
             
             GUILayout.Space(10);
 
-            GUILayout.BeginHorizontal();
-            if (GUILayout.Button(Lang("Off fallback")))
-            {
-                root.ResetEncryption();
-                root.protector.SetMaterialFallbackValue(root.transform.root.gameObject, false);
-            }
-            if (GUILayout.Button(Lang("On fallback")))
-            {
-                root.ResetEncryption();
-                root.protector.SetMaterialFallbackValue(root.transform.root.gameObject, true);
-            }
-            GUILayout.EndHorizontal();
-
-            GUILayout.Space(10);
-
             if (root.userKeyLength == 0)
             {
                 GUILayout.Label(Lang("It's okay for the 0-digit password to be the same as the original."));

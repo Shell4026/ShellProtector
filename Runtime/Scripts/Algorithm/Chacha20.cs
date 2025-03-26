@@ -7,6 +7,7 @@ namespace Shell.Protector
 {
     public class Chacha20 : IEncryptor
     {
+        public string Keyword => "_SHELL_PROTECTOR_CHACHA";
         public byte[] nonce = new byte[12];
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         byte[] U32t8le(uint v)

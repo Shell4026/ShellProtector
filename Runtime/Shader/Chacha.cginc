@@ -17,7 +17,7 @@ void Chacha20QuarterRound(inout uint state[16], int a, int b, int c, int d)
 	state[c] += state[d]; state[b] = Rotl32(state[b] ^ state[c], 7);
 }
 
-void Chacha20XOR(inout uint data[2], const uint key[4])
+void Decrypt(inout uint data[2], const uint key[4])
 {
 	uint4 state[4];
 	state[0] = uint4(0x61707865, 0x3320646e, 0x79622d32, 0x6b206574);
@@ -61,7 +61,7 @@ void Chacha20XOR(inout uint data[2], const uint key[4])
 	data[1] ^= block[1];
 }
 
-void Chacha20XOR(inout uint data[3], const uint key[4])
+void Decrypt(inout uint data[3], const uint key[4])
 {
 	uint4 state[4];
 	state[0] = uint4(0x61707865, 0x3320646e, 0x79622d32, 0x6b206574);

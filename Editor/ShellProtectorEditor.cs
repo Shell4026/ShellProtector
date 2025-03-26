@@ -30,12 +30,11 @@ namespace Shell.Protector
         SerializedProperty algorithm;
         SerializedProperty key_size;
         SerializedProperty key_size_idx;
+        SerializedProperty sync_size;
         SerializedProperty animation_speed;
         SerializedProperty delete_folders;
-        SerializedProperty parameter_multiplexing;
         SerializedProperty bUseSmallMipTexture;
         SerializedProperty bPreserveMMD;
-        SerializedProperty fallbackTime;
         SerializedProperty turnOnAllSafetyFallback;
         bool debug = false;
         bool option = true;
@@ -110,12 +109,11 @@ namespace Shell.Protector
             algorithm = serializedObject.FindProperty("algorithm");
             key_size = serializedObject.FindProperty("key_size");
             key_size_idx = serializedObject.FindProperty("key_size_idx");
+            sync_size = serializedObject.FindProperty("sync_size");
             animation_speed = serializedObject.FindProperty("animation_speed");
-            delete_folders = serializedObject.FindProperty("delete_folders"); 
-            parameter_multiplexing = serializedObject.FindProperty("parameter_multiplexing");
+            delete_folders = serializedObject.FindProperty("delete_folders");
             bUseSmallMipTexture = serializedObject.FindProperty("bUseSmallMipTexture");
             bPreserveMMD = serializedObject.FindProperty("bPreserveMMD");
-            fallbackTime = serializedObject.FindProperty("fallbackTime");
             turnOnAllSafetyFallback = serializedObject.FindProperty("turnOnAllSafetyFallback");
             #endregion
 
@@ -228,26 +226,9 @@ namespace Shell.Protector
                 free_parameter = 256 - parameters.CalcTotalCost();
                 GUILayout.Label(Lang("Free parameter:") + free_parameter, EditorStyles.wordWrappedLabel);
             }
-            int using_parameter = (key_size.intValue * 8);
-            if(parameter_multiplexing.boolValue == true)
-            {
-                int keys = key_size.intValue;
-                switch(keys)
-                {
-                    case 4:
-                        using_parameter = 8 + 3;
-                        break;
-                    case 8:
-                        using_parameter = 8 + 4;
-                        break;
-                    case 12:
-                        using_parameter = 8 + 5;
-                        break;
-                    case 16:
-                        using_parameter = 8 + 5;
-                        break;
-                }
-            }
+            int lock_size = 1;
+            int switch_count = ShellProtector.GetRequiredSwitchCount(key_size.intValue, sync_size.intValue);
+            int using_parameter = switch_count + lock_size + sync_size.intValue * 8;
             GUILayout.Label(Lang("Parameters to be used:") + using_parameter, EditorStyles.wordWrappedLabel);
 
             serializedObject.Update();
@@ -283,6 +264,21 @@ namespace Shell.Protector
                     case 4:
                         key_size.intValue = 16;
                         break;
+                }
+
+                var sync_size_value = sync_size.intValue;
+                int sync_size_index = 0;
+                int[] sync_size_caldidate = { 1, 2, 4};
+                string[] selectable_values = { "1", "2", "4" };
+                for (int i = 0; i < sync_size_caldidate.Length; i++)
+                    if (sync_size_caldidate[i] == sync_size_value)
+                        sync_size_index = i;
+
+                if(key_size.intValue > 0)
+                {
+                    GUILayout.Label(Lang("Sync speed"), EditorStyles.boldLabel);
+                    sync_size_index = EditorGUILayout.Popup(sync_size_index, selectable_values, GUILayout.Width(100));
+                    sync_size.intValue = sync_size_caldidate[sync_size_index];
                 }
 
                 GUILayout.Label(Lang("Encrytion algorithm"), EditorStyles.boldLabel);
@@ -331,15 +327,6 @@ namespace Shell.Protector
                 GUILayout.Space(10);
 
                 GUILayout.BeginHorizontal();
-                GUILayout.Label(Lang("parameter-multiplexing"), EditorStyles.boldLabel);
-                parameter_multiplexing.boolValue = EditorGUILayout.Toggle(parameter_multiplexing.boolValue);
-                GUILayout.FlexibleSpace();
-                GUILayout.EndHorizontal();
-                GUILayout.Label(Lang("The OSC program must always be on, but it consumes fewer parameters."), EditorStyles.wordWrappedLabel);
-
-                GUILayout.Space(10);
-
-                GUILayout.BeginHorizontal();
                 GUILayout.Label(Lang("Small mip texture"), EditorStyles.boldLabel);
                 bUseSmallMipTexture.boolValue = EditorGUILayout.Toggle(bUseSmallMipTexture.boolValue);
                 GUILayout.FlexibleSpace();
@@ -368,20 +355,6 @@ namespace Shell.Protector
             {
                 GUILayout.Label(Lang("Opponents with Safety option turned on will see degraded textures instead of noise."));
 
-                GUILayout.Label(Lang("Fallback wait time"), EditorStyles.boldLabel);
-                GUILayout.BeginHorizontal();
-                fallbackTime.floatValue = GUILayout.HorizontalSlider(fallbackTime.floatValue, 0.0f, 10.0f, GUILayout.Width(100));
-                fallbackTime.floatValue = EditorGUILayout.FloatField("", fallbackTime.floatValue, GUILayout.Width(50));
-                fallbackTime.floatValue = Mathf.Clamp(fallbackTime.floatValue, 0.0f, 10.0f);
-#if UNITY_2022
-                fallbackTime.floatValue = MathF.Round(fallbackTime.floatValue, 1);
-#endif
-                GUILayout.FlexibleSpace();
-                GUILayout.Label(Lang("After this time, the fallback is turned off. (Only who is Safety OFF)"), EditorStyles.wordWrappedLabel);
-                GUILayout.EndHorizontal();
-
-                GUILayout.Space(10);
-
                 GUILayout.BeginHorizontal();
                 GUILayout.Label(Lang("Change all Safety Fallback settings of shader to Unlit."), EditorStyles.boldLabel);
                 turnOnAllSafetyFallback.boolValue = EditorGUILayout.Toggle(turnOnAllSafetyFallback.boolValue);
@@ -406,7 +379,7 @@ namespace Shell.Protector
             if (game_object_list.count == 0 && material_list.count == 0)
                 GUI.enabled = false;
 
-            
+
 #if MODULAR
             if (GUILayout.Button(Lang("Manual Encrypt!")))
 #else
@@ -449,19 +422,19 @@ namespace Shell.Protector
 
                         TextureSettings.SetRWEnableTexture(texture);
 
-                        Texture2D[] encrypted_texture = root.GetEncryptTexture().TextureEncrypt(texture, KeyGenerator.MakeKeyBytes(root.pwd, root.pwd2, key_size.intValue), new XXTEA());
+                        var result = TextureEncryptManager.EncryptTexture(texture, KeyGenerator.MakeKeyBytes(root.pwd, root.pwd2, key_size.intValue), new XXTEA());
 
-                        last = encrypted_texture[0];
+                        last = result.Texture1;
 
                         if (!AssetDatabase.IsValidFolder(root.asset_dir + '/' + root.descriptor.gameObject.name))
                             AssetDatabase.CreateFolder(root.asset_dir, root.descriptor.gameObject.name);
                         if (!AssetDatabase.IsValidFolder(root.asset_dir + '/' + root.descriptor.gameObject.name + "/mat"))
                             AssetDatabase.CreateFolder(root.asset_dir + '/' + root.descriptor.gameObject.name, "mat");
 
-                        AssetDatabase.CreateAsset(encrypted_texture[0], root.asset_dir + '/' + root.descriptor.gameObject.name + '/' + texture.name + "_encrypt.asset");
-                        File.WriteAllBytes(root.asset_dir + '/' + root.descriptor.gameObject.name + '/' + texture.name + "_encrypt.png", encrypted_texture[1].EncodeToPNG());
-                        if (encrypted_texture[1] != null)
-                            AssetDatabase.CreateAsset(encrypted_texture[1], root.asset_dir + '/' + root.descriptor.gameObject.name + '/' + texture.name + "_encrypt2.asset");
+                        AssetDatabase.CreateAsset(result.Texture1, root.asset_dir + '/' + root.descriptor.gameObject.name + '/' + texture.name + "_encrypt.asset");
+                        File.WriteAllBytes(root.asset_dir + '/' + root.descriptor.gameObject.name + '/' + texture.name + "_encrypt.png", result.Texture2.EncodeToPNG());
+                        if (result.Texture2 != null)
+                            AssetDatabase.CreateAsset(result.Texture2, root.asset_dir + '/' + root.descriptor.gameObject.name + '/' + texture.name + "_encrypt2.asset");
                         AssetDatabase.SaveAssets();
 
                         AssetDatabase.Refresh();
@@ -469,35 +442,6 @@ namespace Shell.Protector
                     if(last != null)
                         Selection.activeObject = last;
                 }
-
-                /*if (GUILayout.Button("Decrypt"))
-                {
-                    Texture2D last = null;
-                    for (int i = 0; i < texture_list.count; i++)
-                    {
-                        SerializedProperty textureProperty = texture_list.serializedProperty.GetArrayElementAtIndex(i);
-                        Texture2D texture = textureProperty.objectReferenceValue as Texture2D;
-
-                        root.SetRWEnableTexture(texture);
-
-                        Texture2D tmp = root.GetEncryptTexture().TextureDecryptXXTEA(texture, root.MakeKeyBytes(root.pwd));
-
-                        if (root.asset_dir[root.asset_dir.Length - 1] == '/')
-                            root.asset_dir = root.asset_dir.Remove(root.asset_dir.Length - 1);
-
-                        if (!AssetDatabase.IsValidFolder(root.asset_dir + '/' + root.gameObject.name))
-                            AssetDatabase.CreateFolder(root.asset_dir, root.gameObject.name);
-                        if (!AssetDatabase.IsValidFolder(root.asset_dir + '/' + root.gameObject.name + "/mat"))
-                            AssetDatabase.CreateFolder(root.asset_dir + '/' + root.gameObject.name, "mat");
-
-                        System.IO.File.WriteAllBytes(root.asset_dir + '/' + root.gameObject.name + '/' + texture.name + "_decrypt.png", tmp.EncodeToPNG());
-                        last = (Texture2D)AssetDatabase.LoadAssetAtPath(root.asset_dir + '/' + root.gameObject.name + '/' + texture.name + "_decrypt.png", typeof(Texture2D));
-
-                        AssetDatabase.Refresh();
-                    }
-                    if (last != null)
-                        Selection.activeObject = last;
-                }*/
 
                 GUILayout.EndHorizontal();
             }

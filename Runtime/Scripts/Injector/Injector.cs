@@ -21,7 +21,7 @@ namespace Shell.Protector
 				half4 mainTexture;
 
                 UNITY_BRANCH
-                if(_fallback == 0)
+                if(IsDecrypted())
                 {
 				    half4 mip_texture = _MipTex.Sample(sampler_MipTex, mainUV);
 				
@@ -41,7 +41,7 @@ namespace Shell.Protector
                 half4 mainTexture;
 
                 UNITY_BRANCH
-                if(_fallback == 0)
+                if(IsDecrypted())
                 {
 				    half4 mip_texture = _MipTex.Sample(sampler_MipTex, mainUV);
 				
@@ -117,7 +117,32 @@ namespace Shell.Protector
             return false;
         }
 
-        abstract public Shader Inject(Material mat, string decode_dir, string output_dir, Texture2D tex, bool has_lim_texture = false, bool has_lim_texture2 = false, bool outline_tex = false);
+        private void SetKeywords(Material material, bool has_lim_texture = false) {
+            // Clear keywords prefixed with _SHELL_PROTECTOR_
+            var keywords = material.shaderKeywords;
+            foreach (string keyword in keywords)
+            {
+                if (keyword.StartsWith("_SHELL_PROTECTOR_")) {
+                    material.DisableKeyword(keyword);
+                }
+            }
+
+            // Set format keywords
+            TextureEncryptManager.SetFormatKeywords(material);
+
+            // Set rimlight keyword
+            if (has_lim_texture) material.EnableKeyword("_SHELL_PROTECTOR_RIMLIGHT"); 
+
+            // Set encryptor keyword
+            material.EnableKeyword(encryptor.Keyword);
+        }
+
+        public Shader Inject(Material mat, string decode_dir, string output_dir, Texture2D tex, bool has_lim_texture = false, bool has_lim_texture2 = false, bool outline_tex = false) {
+            SetKeywords(mat, has_lim_texture);
+            return CustomInject(mat, decode_dir, output_dir, tex, has_lim_texture, has_lim_texture2, outline_tex);
+        }
+
+        protected abstract Shader CustomInject(Material mat, string decode_dir, string output_dir, Texture2D tex, bool has_lim_texture = false, bool has_lim_texture2 = false, bool outline_tex = false);
     }
 }
 #endif

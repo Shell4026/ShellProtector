@@ -3,7 +3,7 @@ static const uint Delta = 0x9e3779b9;
 static const uint ROUNDS = 6;
 static const uint SUM = Delta * ROUNDS;
 
-void XXTEADecrypt(inout uint data[3], const uint key[4])
+void Decrypt(inout uint data[3], const uint key[4])
 {
 	static const uint n = 3;
 	uint v0, v1, sum;
@@ -27,7 +27,8 @@ void XXTEADecrypt(inout uint data[3], const uint key[4])
 		sum -= Delta;
 	}
 }
-void XXTEADecrypt(inout uint data[2], const uint key[4])
+
+void Decrypt(inout uint data[2], const uint key[4])
 {
 	static const uint n = 2;
 	uint v0, v1, sum;
