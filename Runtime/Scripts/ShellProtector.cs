@@ -1244,8 +1244,10 @@ namespace Shell.Protector
                 return deletedCount;
             }
         }
-        public void DeleteEncyprtedFolders()
+        public void CleanEncrypted()
         {
+            AssetDatabase.DeleteAsset(Path.Combine(asset_dir, "EncryptedHistory.asset"));
+
             if (!Directory.Exists(asset_dir))
             {
                 Debug.LogError($"The specified path does not exist: {asset_dir}");
