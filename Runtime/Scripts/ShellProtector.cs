@@ -18,6 +18,8 @@ using nadena.dev.modular_avatar.core;
 
 #if POIYOMI
 using Thry;
+#elif POIYOMI91
+using Thry.ThryEditor;
 #endif
 
 namespace Shell.Protector
@@ -182,6 +184,8 @@ namespace Shell.Protector
                 {
 #if POIYOMI
                     ShaderOptimizer.SetLockedForAllMaterials(new[] { mat }, 1, true);
+#elif POIYOMI91
+                    ShaderOptimizer.LockMaterials(new[] { mat });
 #endif
                 }
             }
