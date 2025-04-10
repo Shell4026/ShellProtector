@@ -78,8 +78,11 @@ namespace Shell.Protector
         public static AnimatorController DuplicateAnimator(RuntimeAnimatorController anim, string new_dir)
         {
             string dir = AssetDatabase.GetAssetPath(anim);
-            string output = Path.Combine(new_dir, anim.name + "_encrypted.anim");
-            AssetDatabase.CopyAsset(dir, output);
+            string output = Path.Combine(new_dir, anim.name + anim.GetInstanceID().ToString() + "_encrypted.anim");
+            if (!AssetDatabase.CopyAsset(dir, output))
+            {
+                Debug.LogErrorFormat("Failed to copy a animator: {0}", anim.name);
+            }
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();

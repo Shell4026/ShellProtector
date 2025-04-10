@@ -1,11 +1,7 @@
 ﻿#if UNITY_EDITOR
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.IO;
-using System.Text.RegularExpressions;
 using UnityEditor;
-using UnityEditor.Build.Player;
 using UnityEngine;
 using System.Linq;
 
@@ -104,8 +100,16 @@ namespace Shell.Protector
             guids = AssetDatabase.FindAssets("ThryEditor");
             if (guids.Length > 0)
             {
-                return_shader.Add("Poiyomi");
-                symbols += ";POIYOMI";
+                if (ClassExists("Thry.ThryEditor.ShaderOptimizer"))
+                {
+                    symbols += ";POIYOMI91";
+                    return_shader.Add("Poiyomi9.1");
+                }
+                else // < 9.1
+                {
+                    symbols += ";POIYOMI";
+                    return_shader.Add("Poiyomi");
+                }
             }
 
             if (symbols_original.Contains(";LILTOON") != symbols.Contains(";LILTOON"))
@@ -123,6 +127,12 @@ namespace Shell.Protector
             return AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(t => t.GetTypes())
                 .Any(t => String.Equals(t.Namespace, namespaceName, StringComparison.Ordinal));
+        }
+        public static bool ClassExists(string className)
+        {
+            return AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(t => t.GetTypes())
+                .Any(t => t.FullName == className);
         }
 
         public void CheckModular()

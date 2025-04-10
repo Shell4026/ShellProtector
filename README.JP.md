@@ -21,7 +21,7 @@ OSCプログラムで簡単にパスワードを入力することができま�
 OSCのソースコード： https://github.com/Shell4026/ShellProtectorOSC
 
 ## 対応シェーダー
-- Poiyomi 8.0, 8.1, 8.2, 9.0, 9.1(pro), PCSS(より多くのテストが必要)
+- Poiyomi 8.0, 8.1, 8.2, 9.0, 9.1, 9.2(pro), PCSS(より多くのテストが必要)
 - lilToon (1.3.8 ~ 1.7.3)(VCC)
 
 ## 対応テクスチャ形式

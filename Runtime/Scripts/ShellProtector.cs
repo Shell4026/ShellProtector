@@ -19,6 +19,7 @@ using nadena.dev.modular_avatar.core;
 
 #if POIYOMI
 using Thry;
+#elif POIYOMI91
 using Thry.ThryEditor;
 #endif
 
@@ -180,6 +181,8 @@ namespace Shell.Protector
                 {
 #if POIYOMI
                     ShaderOptimizer.SetLockedForAllMaterials(new[] { mat }, 1, true);
+#elif POIYOMI91
+                    ShaderOptimizer.LockMaterials(new[] { mat });
 #endif
                 }
             }
@@ -1207,8 +1210,10 @@ namespace Shell.Protector
                 return deletedCount;
             }
         }
-        public void DeleteEncyprtedFolders()
+        public void CleanEncrypted()
         {
+            AssetDatabase.DeleteAsset(Path.Combine(asset_dir, "EncryptedHistory.asset"));
+
             if (!Directory.Exists(asset_dir))
             {
                 Debug.LogError($"The specified path does not exist: {asset_dir}");

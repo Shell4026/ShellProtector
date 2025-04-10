@@ -397,7 +397,7 @@ namespace Shell.Protector
 
             if (GUILayout.Button(Lang("Delete previously encrypted files") + String.Format("({0})", root.GetEncyryptedFoldersCount())))
             {
-                root.DeleteEncyprtedFolders();
+                root.CleanEncrypted();
             }
 
             debug = EditorGUILayout.Foldout(debug, Lang("Debug"));
