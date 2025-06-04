@@ -704,6 +704,8 @@ namespace Shell.Protector
                 var hash = SimpleHash(key);
                 new_mat.SetInteger("_PasswordHash", (int)hash);
 
+                injector.SetKeywords(new_mat, otherTex.limTexture != null);
+
                 AssetDatabase.CreateAsset(new_mat, encrypted_mat_path);
                 Debug.LogFormat("{0} : create encrypted material : {1}", mat.name, AssetDatabase.GetAssetPath(new_mat));
                 AssetDatabase.SaveAssets();

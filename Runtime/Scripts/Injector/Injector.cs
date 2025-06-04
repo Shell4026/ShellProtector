@@ -117,7 +117,7 @@ namespace Shell.Protector
             return false;
         }
 
-        private void SetKeywords(Material material, bool has_lim_texture = false) {
+        public void SetKeywords(Material material, bool has_lim_texture = false) {
             // Clear keywords prefixed with _SHELL_PROTECTOR_
             var keywords = material.shaderKeywords;
             foreach (string keyword in keywords)
@@ -131,14 +131,15 @@ namespace Shell.Protector
             TextureEncryptManager.SetFormatKeywords(material);
 
             // Set rimlight keyword
-            if (has_lim_texture) material.EnableKeyword("_SHELL_PROTECTOR_RIMLIGHT"); 
+            if (has_lim_texture) 
+                material.EnableKeyword("_SHELL_PROTECTOR_RIMLIGHT"); 
 
             // Set encryptor keyword
             material.EnableKeyword(encryptor.Keyword);
         }
 
-        public Shader Inject(Material mat, string decode_dir, string output_dir, Texture2D tex, bool has_lim_texture = false, bool has_lim_texture2 = false, bool outline_tex = false) {
-            SetKeywords(mat, has_lim_texture);
+        public Shader Inject(Material mat, string decode_dir, string output_dir, Texture2D tex, bool has_lim_texture = false, bool has_lim_texture2 = false, bool outline_tex = false) 
+        {
             return CustomInject(mat, decode_dir, output_dir, tex, has_lim_texture, has_lim_texture2, outline_tex);
         }
 
