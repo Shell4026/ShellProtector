@@ -31,7 +31,6 @@ namespace Shell.Protector
         SerializedProperty key_size;
         SerializedProperty key_size_idx;
         SerializedProperty sync_size;
-        SerializedProperty animation_speed;
         SerializedProperty delete_folders;
         SerializedProperty bUseSmallMipTexture;
         SerializedProperty bPreserveMMD;
@@ -110,7 +109,6 @@ namespace Shell.Protector
             key_size = serializedObject.FindProperty("key_size");
             key_size_idx = serializedObject.FindProperty("key_size_idx");
             sync_size = serializedObject.FindProperty("sync_size");
-            animation_speed = serializedObject.FindProperty("animation_speed");
             delete_folders = serializedObject.FindProperty("delete_folders");
             bUseSmallMipTexture = serializedObject.FindProperty("bUseSmallMipTexture");
             bPreserveMMD = serializedObject.FindProperty("bPreserveMMD");
@@ -246,6 +244,7 @@ namespace Shell.Protector
             {
                 GUILayout.Label(Lang("Max password length"), EditorStyles.boldLabel);
                 key_size_idx.intValue = EditorGUILayout.Popup(key_size_idx.intValue, key_lengths, GUILayout.Width(150));
+                GUILayout.Space(10);
 
                 switch (key_size_idx.intValue)
                 {
@@ -279,6 +278,8 @@ namespace Shell.Protector
                     GUILayout.Label(Lang("Sync speed"), EditorStyles.boldLabel);
                     sync_size_index = EditorGUILayout.Popup(sync_size_index, selectable_values, GUILayout.Width(100));
                     sync_size.intValue = sync_size_caldidate[sync_size_index];
+                    GUILayout.Label(Lang("When the Sync speed is 2 or higher, OSC1.7 or higher must be used."), EditorStyles.boldLabel);
+                    GUILayout.Space(10);
                 }
 
                 GUILayout.Label(Lang("Encrytion algorithm"), EditorStyles.boldLabel);
@@ -307,14 +308,14 @@ namespace Shell.Protector
                 filter.intValue = EditorGUILayout.Popup(filter.intValue, ShellProtector.filterStrings, GUILayout.Width(100));
                 GUILayout.Label(Lang("Setting it to 'Point' may result in aliasing, but performance is better."), EditorStyles.wordWrappedLabel);
 
-                GUILayout.Label(Lang("Initial animation speed"), EditorStyles.boldLabel);
-                GUILayout.BeginHorizontal();
-                animation_speed.floatValue = GUILayout.HorizontalSlider(animation_speed.floatValue, 2.0f, 5.0f, GUILayout.Width(100));
-                animation_speed.floatValue = EditorGUILayout.FloatField("", animation_speed.floatValue, GUILayout.Width(50));
-                animation_speed.floatValue = Math.Clamp(animation_speed.floatValue, 2.0f, 5.0f);
-                GUILayout.FlexibleSpace();
-                GUILayout.Label(Lang("Avatar first load animation speed"), EditorStyles.wordWrappedLabel);
-                GUILayout.EndHorizontal();
+                //GUILayout.Label(Lang("Initial animation speed"), EditorStyles.boldLabel);
+                //GUILayout.BeginHorizontal();
+                //animation_speed.floatValue = GUILayout.HorizontalSlider(animation_speed.floatValue, 2.0f, 5.0f, GUILayout.Width(100));
+                //animation_speed.floatValue = EditorGUILayout.FloatField("", animation_speed.floatValue, GUILayout.Width(50));
+                //animation_speed.floatValue = Math.Clamp(animation_speed.floatValue, 2.0f, 5.0f);
+                //GUILayout.FlexibleSpace();
+                //GUILayout.Label(Lang("Avatar first load animation speed"), EditorStyles.wordWrappedLabel);
+                //GUILayout.EndHorizontal();
 
                 GUILayout.Space(10);
 

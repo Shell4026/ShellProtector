@@ -81,7 +81,7 @@ namespace lilToon
 					}
 				}
 
-                var hash = ShellProtector.SimpleHash(key.Select(k => (byte)Mathf.RoundToInt(k.floatValue)).ToArray());
+                var hash = KeyGenerator.SimpleHash(key.Select(k => (byte)Mathf.RoundToInt(k.floatValue)).ToArray());
                 EditorGUILayout.LabelField("Password hash", hash.ToString());
             }
         }

@@ -1,10 +1,6 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using System.IO;
-using System.Text.RegularExpressions;
+﻿using System.IO;
 using UnityEditor;
 using UnityEngine;
-using static VRC.SDK3.Dynamics.PhysBone.PhysBoneMigration.DynamicBoneColliderData;
 
 #if UNITY_EDITOR
 namespace Shell.Protector

@@ -8,21 +8,37 @@ using VRC.SDK3.Avatars.ScriptableObjects;
 public static class ParameterManager
 {
     private const string Prefix = "SHELL_PROTECTOR_";
-    public static string GetSyncedKeyName(int index) => Prefix + "synced_key" + index; 
+    public static string GetSyncedKeyName(int index, bool bLegacy = false)
+    {
+        if (bLegacy)
+            return "pkey";
+        return Prefix + "synced_key" + index;
+    }
     public static string GetKeyName(int index) => Prefix + "key" + index;
     public static string GetSavedKeyName(int index) => Prefix + "saved_key" + index;
-    public static string GetSyncSwitchName(int index) => Prefix + "sync_switch" + index;
-    public static string GetSyncLockName() => Prefix + "sync_lock";
+    public static string GetSyncSwitchName(int index, bool bLegacy = false)
+    {
+        if (bLegacy)
+            return "encrypt_switch" + index;
+        return Prefix + "sync_switch" + index; 
+    }
+    public static string GetSyncLockName(bool bLegacy = false)
+    {
+        if (bLegacy)
+            return "encrypt_lock";
+        return Prefix + "sync_lock"; 
+    }
     public static string GetIsLocalName() => "IsLocal";
 
 
     public static VRCExpressionParameters AddKeyParameter(VRCExpressionParameters vrcParameters, int keyLength, int syncSize)
     {
+        bool bLegacy = syncSize == 1;
         var parameters = new List<VRCExpressionParameters.Parameter>();
 
         parameters.Add(new VRCExpressionParameters.Parameter
         {
-            name = GetSyncLockName(),
+            name = GetSyncLockName(bLegacy),
             saved = true,
             networkSynced = true,
             valueType = VRCExpressionParameters.ValueType.Bool,
@@ -33,7 +49,7 @@ public static class ParameterManager
         {
             parameters.Add(new VRCExpressionParameters.Parameter
             {
-                name = GetSyncedKeyName(i),
+                name = GetSyncedKeyName(i, bLegacy),
                 saved = true,
                 networkSynced = true,
                 valueType = VRCExpressionParameters.ValueType.Float,
@@ -45,7 +61,7 @@ public static class ParameterManager
         {
             parameters.Add(new VRCExpressionParameters.Parameter
             {
-                name = GetSyncSwitchName(i),
+                name = GetSyncSwitchName(i, bLegacy),
                 saved = true,
                 networkSynced = true,
                 valueType = VRCExpressionParameters.ValueType.Bool,
@@ -64,14 +80,17 @@ public static class ParameterManager
                 defaultValue = 0.0f
             });
 
-            parameters.Add(new VRCExpressionParameters.Parameter
+            if (!bLegacy)
             {
-                name = GetSavedKeyName(i),
-                saved = true,
-                networkSynced = false,
-                valueType = VRCExpressionParameters.ValueType.Float,
-                defaultValue = 0.0f
-            });
+                parameters.Add(new VRCExpressionParameters.Parameter
+                {
+                    name = GetSavedKeyName(i),
+                    saved = true,
+                    networkSynced = false,
+                    valueType = VRCExpressionParameters.ValueType.Float,
+                    defaultValue = 0.0f
+                });
+            }
         }
 
         var result = ScriptableObject.CreateInstance<VRCExpressionParameters>();
