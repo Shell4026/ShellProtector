@@ -27,6 +27,7 @@ namespace Shell.Protector
             support_version.Add("Poiyomi 9.0", 90);
             support_version.Add("Poiyomi 9.1", 91);
             support_version.Add("Poiyomi 9.2", 92);
+            support_version.Add("Poiyomi 9.3", 93);
             support_version.Add("lilToon", 0);
         }
         public bool IsPoiyomi(Shader shader)
@@ -60,7 +61,9 @@ namespace Shell.Protector
             if (poiyomiLabel != -1)
             {
                 var str = shader.GetPropertyDescription(poiyomiLabel);
-                if (str.Contains("Poiyomi 9.2"))
+                if (str.Contains("Poiyomi 9.3"))
+                    return support_version["Poiyomi 9.3"];
+                else if (str.Contains("Poiyomi 9.2"))
                     return support_version["Poiyomi 9.2"];
                 else if (str.Contains("Poiyomi 9.1"))
                     return support_version["Poiyomi 9.1"];
@@ -85,11 +88,13 @@ namespace Shell.Protector
 
         public List<string> CheckShader()
         {
+            Debug.Log("Checking Shader...");
             string[] guids = AssetDatabase.FindAssets("lilConstants");
             string symbols = PlayerSettings.GetScriptingDefineSymbolsForGroup(EditorUserBuildSettings.selectedBuildTargetGroup);
             string symbols_original = string.Copy(symbols);
 
             symbols = symbols.Replace(";LILTOON", "");
+            symbols = symbols.Replace(";POIYOMI91", "");
             symbols = symbols.Replace(";POIYOMI", "");
             List<string> return_shader = new List<string>();
             if(guids.Length > 0)
@@ -103,7 +108,7 @@ namespace Shell.Protector
                 if (ClassExists("Thry.ThryEditor.ShaderOptimizer"))
                 {
                     symbols += ";POIYOMI91";
-                    return_shader.Add("Poiyomi9.1");
+                    return_shader.Add("Poiyomi9.1>");
                 }
                 else // < 9.1
                 {
@@ -112,12 +117,10 @@ namespace Shell.Protector
                 }
             }
 
-            if (symbols_original.Contains(";LILTOON") != symbols.Contains(";LILTOON"))
+            if (symbols_original.Contains(";LILTOON") != symbols.Contains(";LILTOON") || 
+                symbols_original.Contains(";POIYOMI") != symbols.Contains(";POIYOMI"))
             {
-                if (symbols_original.Contains(";POIYOMI") != symbols.Contains(";POIYOMI"))
-                {
-                    PlayerSettings.SetScriptingDefineSymbolsForGroup(EditorUserBuildSettings.selectedBuildTargetGroup, symbols);
-                }
+                PlayerSettings.SetScriptingDefineSymbolsForGroup(EditorUserBuildSettings.selectedBuildTargetGroup, symbols);
             }
 
             return return_shader;

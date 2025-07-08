@@ -22,6 +22,8 @@ namespace Shell.Protector
                             continue;
                         if (!m.message.Contains("The type or namespace name 'Thry' could not be found"))
                             continue;
+                        if (!m.message.Contains("The name 'ShaderOptimizer' does not exist in the current context"))
+                            continue;
                         AssetManager.GetInstance().ResetDefine();
                         break;
                     }
