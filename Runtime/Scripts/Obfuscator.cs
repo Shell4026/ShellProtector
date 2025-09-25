@@ -109,7 +109,7 @@ namespace Shell.Protector
             }
             Debug.LogFormat("Obfuscator blendshapes : {0}", string.Join(", ", obfuscatedBlendShapeNames.Select(kv => $"{kv.Key}: {kv.Value}")));
 
-            AssetDatabase.CreateAsset(obfuscatedMesh, Path.Combine(newPath, obfuscatedMesh.name + ".asset"));
+            AssetDatabase.CreateAsset(obfuscatedMesh, Path.Combine(newPath, obfuscatedMesh.name + obfuscatedMesh.GetHashCode() + ".asset"));
             AssetDatabase.Refresh();
             return obfuscatedMesh;
         }
@@ -237,7 +237,7 @@ namespace Shell.Protector
                 else
                 {
                     newClip = Instantiate(clip);
-                    AssetDatabase.CreateAsset(newClip, Path.Combine(animDir, clip.name + "_obfuscated.anim"));
+                    AssetDatabase.CreateAsset(newClip, Path.Combine(animDir, clip.name + clip.GetHashCode() + "_obfuscated.anim"));
                     AssetDatabase.SaveAssets();
                     AssetDatabase.Refresh();
                     obfuscatedClip.Add(clip, newClip);
