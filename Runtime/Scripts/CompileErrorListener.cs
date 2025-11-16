@@ -14,21 +14,24 @@ namespace Shell.Protector
         {
             CompilationPipeline.assemblyCompilationFinished += (string s, CompilerMessage[] message) =>
             {
-                foreach(var m in message)
+                foreach (var m in message)
                 {
-                    if(m.type == CompilerMessageType.Error)
+                    if (m.type == CompilerMessageType.Error)
                     {
-                        if(!m.message.Contains("The type or namespace name 'lilToonInspector' could not be found"))
-                            continue;
-                        if (!m.message.Contains("The type or namespace name 'Thry' could not be found"))
-                            continue;
-                        if (!m.message.Contains("The name 'ShaderOptimizer' does not exist in the current context"))
-                            continue;
-                        AssetManager.GetInstance().ResetDefine();
-                        break;
+                        if
+                        (
+                            m.message.Contains("The type or namespace name 'lilToonInspector' could not be found") ||
+                            m.message.Contains("The type or namespace name 'Thry' could not be found") ||
+                            m.message.Contains("The name 'ShaderOptimizer' does not exist in the current context")
+                        )
+                        {
+                            AssetManager.GetInstance().ResetDefine();
+                        }
+                        else
+                            break;
                     }
                 }
-                
+
             };
         }
     }
