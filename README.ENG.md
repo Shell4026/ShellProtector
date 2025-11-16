@@ -19,8 +19,8 @@ You can easily enter the password with the OSC program.
 Source code of OSC: https://github.com/Shell4026/ShellProtectorOSC
 
 ## Supported shaders
-- Poiyomi 7.3(Unstable), 8.0, 8.1, 8.2, 9.0, 9.1, 9.2(pro) PCSS(Need to more testing)
-- lilToon (1.3.8 ~ 1.7.3)(VCC)
+- Poiyomi 8.0, 8.1, 8.2, 9.0, 9.1, 9.2, 9.3(pro), PCSS(Need to more testing)
+- lilToon (1.3.8 ~ 2.3.2)(VCC)
 
 ## Supported texture formats
 - RGB24, RGBA32
@@ -31,7 +31,7 @@ Source code of OSC: https://github.com/Shell4026/ShellProtectorOSC
 - Texture Encryption
 - OSC programs for descryption
 - Blendshape obfuscation
-- Fallback: the ability to make non-friends see a 16x16 texture instead of encryption noise
+- Fallback: the ability to make non-friends see a small texture instead of encryption noise
   
 ## Usage
 
@@ -64,7 +64,8 @@ When using parameter multiplexing, depending on the server or network conditions
 In this case, try increasing the refresh rate slightly, which was added in OSC 1.5.0.
 
 ### Avatar fallback
-A feature that allows anyone with Safety On when encryption is in place to appear as a degraded version of themselves when viewing your avatar.
+A feature that allows anyone with Safety On when encryption is in place to appear as a degraded version of themselves when viewing your avatar.</br>
+It appears as a fallback texture even when the encryption hasn't been decrypted.
 ![fallback](https://github.com/user-attachments/assets/d3ca69b0-ff08-4793-a4e4-73269bc8efd3)
 
 ## Troubleshooting
@@ -129,6 +130,8 @@ Point filtering: 0.2ms
 Bilinear filtering: 0.35ms
 
 This may not seem like a huge difference, but for performance reasons, I recommend only encrypting textures that are absolutely necessary.
+
+Encrypting too many parts may cause lag during the decryption process.
 
 ## How secure is it?
 By default, it has 16 bytes of keys, split between keys stored inside the shader and keys that the user can enter using VRC parameters. (I'll call these user keys.)
