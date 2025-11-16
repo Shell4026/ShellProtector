@@ -15,6 +15,7 @@ namespace lilToon
         MaterialProperty encrypted_tex1;
         MaterialProperty[] key = new MaterialProperty[16];
         MaterialProperty password_hash;
+        MaterialProperty hashMagic;
 
         private static bool isShowCustomProperties;
 		private static bool show_pwd = false;
@@ -36,6 +37,7 @@ namespace lilToon
             encrypted_tex0 = FindProperty("_EncryptTex0", props);
             encrypted_tex1 = FindProperty("_EncryptTex1", props);
             password_hash = FindProperty("_PasswordHash", props);
+            hashMagic = FindProperty("_HashMagic", props);
 
             for (int i = 0; i < key.Length; ++i)
 				key[i] = FindProperty("_Key" + i, props);
@@ -69,8 +71,9 @@ namespace lilToon
                 EditorGUILayout.EndVertical();
 				
                 m_MaterialEditor.ShaderProperty(password_hash, "Password hash");
-                
-				show_pwd = Foldout("Keys", "Keys", show_pwd);
+                m_MaterialEditor.ShaderProperty(hashMagic, "Hash Salt");
+
+                show_pwd = Foldout("Keys", "Keys", show_pwd);
 				if(show_pwd)
 				{
 					for(int i = 0; i < key.Length; ++i)
@@ -81,7 +84,7 @@ namespace lilToon
 					}
 				}
 
-                var hash = KeyGenerator.SimpleHash(key.Select(k => (byte)Mathf.RoundToInt(k.floatValue)).ToArray());
+                var hash = KeyGenerator.SimpleHash(key.Select(k => (byte)Mathf.RoundToInt(k.floatValue)).ToArray(), (uint)hashMagic.intValue);
                 EditorGUILayout.LabelField("Password hash", hash.ToString());
             }
         }

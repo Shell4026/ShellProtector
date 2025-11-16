@@ -267,8 +267,10 @@ namespace Shell.Protector
 
                 var sync_size_value = sync_size.intValue;
                 int sync_size_index = 0;
-                int[] sync_size_caldidate = { 1, 2, 4};
-                string[] selectable_values = { "1", "2", "4" };
+                //int[] sync_size_caldidate = { 1, 2, 4};
+                //string[] selectable_values = { "1", "2", "4" };
+                int[] sync_size_caldidate = { 1 };
+                string[] selectable_values = { "1" };
                 for (int i = 0; i < sync_size_caldidate.Length; i++)
                     if (sync_size_caldidate[i] == sync_size_value)
                         sync_size_index = i;
@@ -278,7 +280,8 @@ namespace Shell.Protector
                     GUILayout.Label(Lang("Sync speed"), EditorStyles.boldLabel);
                     sync_size_index = EditorGUILayout.Popup(sync_size_index, selectable_values, GUILayout.Width(100));
                     sync_size.intValue = sync_size_caldidate[sync_size_index];
-                    GUILayout.Label(Lang("When the Sync speed is 2 or higher, OSC1.7 or higher must be used."), EditorStyles.boldLabel);
+                    GUILayout.Label(Lang("Under development."), EditorStyles.boldLabel);
+                    //GUILayout.Label(Lang("When the Sync speed is 2 or higher, OSC1.7 or higher must be used."), EditorStyles.boldLabel);
                     GUILayout.Space(10);
                 }
 
@@ -382,7 +385,7 @@ namespace Shell.Protector
 
 
 #if MODULAR
-            if (GUILayout.Button(Lang("Manual Encrypt!")))
+            if (GUILayout.Button(Lang("Manual Encrypt! (for testing)")))
 #else
             if (GUILayout.Button(Lang("Encrypt!")))
 #endif
