@@ -69,12 +69,13 @@ public class KeyGenerator
         return builder.ToString();
     }
 
-    public static uint SimpleHash(byte[] data)
+    public static uint SimpleHash(byte[] data, uint hashMagic)
     {
         if (data.Length != 16)
             throw new ArgumentException("Input must be exactly 16 bytes.");
 
         uint hash = 0x811C9DC5u;
+        hash *= hashMagic;
 
         for (int i = 0; i < 16; i++)
         {

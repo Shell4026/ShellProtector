@@ -71,6 +71,7 @@ namespace Shell.Protector
                     else
                         GUILayout.Label(Lang("New shader"));
                 }
+                //option.Value.emissionEnc = GUILayout.Toggle(option.Value.emissionEnc, "Encrypt emission()");
                 GUILayout.FlexibleSpace();
                 GUILayout.EndHorizontal();
 

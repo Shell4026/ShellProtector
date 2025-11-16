@@ -57,6 +57,7 @@ namespace Shell.Protector
             public bool active = true;
             public int filter = -1;
             public int fallback = -1;
+            public bool emissionEnc = false;
         }
         [Serializable]
         public class MaterialOptionPair
@@ -487,7 +488,10 @@ namespace Shell.Protector
             for (int i = 0; i < 16; i++)
                 key[i] = keyBytes[i];
 
-            var hash = KeyGenerator.SimpleHash(key);
+            uint hashMagic = (uint)mat.GetInstanceID();
+               
+            var hash = KeyGenerator.SimpleHash(key, hashMagic);
+            newMat.SetInteger("_HashMagic", (int)hashMagic);
             newMat.SetInteger("_PasswordHash", (int)hash);
 
             injector.SetKeywords(newMat, otherTex.limTexture != null);
@@ -624,7 +628,7 @@ namespace Shell.Protector
                 injector = InjectorFactory.GetInjector(mat.shader);
                 if (injector == null)
                 {
-                    Debug.LogWarning(mat.shader + " is a unsupported shader! supported type:lilToon, poiyomi");
+                    Debug.LogError(mat.shader + " is a unsupported shader! supported type:lilToon, poiyomi");
                     continue;
                 }
                 if (!ConditionCheck(mat))
