@@ -66,7 +66,7 @@ namespace Shell.Protector
             { "Small mip texture", "작은 밉 텍스쳐" },
             { "It uses a smaller mipTexture to reduce memory usage and improve performance. It may look slightly different from the original when viewed from the side.", "작은 밉 텍스쳐를 사용하여 메모리 사용량을 줄이고 성능을 개선합니다. 옆에서 봤을 때 원본과 약간 다르게 보일 수 있습니다."},
             { "Object list", "오브젝트 목록" },
-            { "Manual Encrypt!", "수동 암호화 시작!" },
+            { "Manual Encrypt! (for testing)", "수동 암호화 시작! (테스트용)" },
             { "Modular avatars exist. It is automatically encrypted on upload.", "모듈러 아바타가 존재합니다. 업로드 시 자동으로 암호화됩니다." },
             { "Force progress", "강제 진행" },
             { "Obfustactor Options", "난독화 옵션" },
@@ -89,7 +89,8 @@ namespace Shell.Protector
             { "New shader", "새로운 셰이더" },
             { "The main texture is not Texture2D.", "메인 텍스쳐가 Texture2D가 아닙니다." },
             { "Opponents with Safety option turned on will see degraded textures instead of noise.", "세이프티를 켜둔 상대방은 노이즈 대신 저하된 텍스처를 보게 됩니다."},
-            { "Default fallback texture", "기본 폴백 텍스쳐" }
+            { "Default fallback texture", "기본 폴백 텍스쳐" },
+            { "Under development.", "개발 중입니다." }
         };
 
             var jpStrings = new Dictionary<string, string>()
@@ -138,7 +139,7 @@ namespace Shell.Protector
             { "Small mip texture", "小さなミップテクスチャ" },
             { "It uses a smaller mipTexture to reduce memory usage and improve performance. It may look slightly different from the original when viewed from the side.", "小さなミップテクスチャを使用して、メモリ使用量を減らし、パフォーマンスを向上させます。 横から見ると、オリジナルと少し違って見えるかもしれません。"},
             { "Object list", "オブジェクト一覧"},
-            { "Manual Encrypt!", "手動暗号化開始！" },
+            { "Manual Encrypt! (for testing)", "手動暗号化開始！(テスト用)" },
             { "Modular avatars exist. it is automatically encrypted on upload.", "Modular Avatarが存在します。アップロード時に自動的に暗号化されます。" },
             { "Force progress", "強制的に進行" },
             { "Obfustactor Options", "難読化オプション" },
@@ -161,7 +162,8 @@ namespace Shell.Protector
             { "New shader", "新しいシェーダー" },
             {"The main texture is not Texture2D.", "メインテクスチャがTexture2Dではありません。" },
             { "Opponents with Safety option turned on will see degraded textures instead of noise.", "Safetyオプションをオンにした相手には、ノイズの代わりに劣化したテクスチャが表示されます。"},
-            { "Default fallback texture", "デフォルトのフォールバックテクスチャ" }
+            { "Default fallback texture", "デフォルトのフォールバックテクスチャ" },
+            { "Under development.", "開発中です。" }
         };
 
             languageMap.Add("kor", koreanStrings);

@@ -2,48 +2,23 @@
 // Macro
 
 #define LIL_CUSTOM_PROPERTIES\
-	half4 _EncryptTex0_TexelSize; \
+	half4 _EncryptTex0_TexelSize;\
 	int _PasswordHash;
 
 // Custom textures
 #define LIL_CUSTOM_TEXTURES\
-	SAMPLER(_MipTex); \
-	TEXTURE2D(_EncryptTex0); \
-	SAMPLER(sampler_EncryptTex0); \
-	TEXTURE2D(_EncryptTex1);
+	TEXTURE2D(_MipTex);\
+	TEXTURE2D(_EncryptTex0);\
+	TEXTURE2D(_EncryptTex1);\
+	SAMPLER(sampler_MipTex);\
+	SAMPLER(sampler_EncryptTex0); 
+	
 #ifdef _POINT
 	#define CODE\
-		half4 mip_texture = tex2D(_MipTex, fd.uvMain);\
-		int mip = round(mip_texture.r * 255 / 10);\
-		int m[13] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10 };\
-		\
-		half4 c00 = DecryptTexture(fd.uvMain, m[mip]);\
-		\
-		fd.col = c00;
+		fd.col = DecryptTextureBox(_EncryptTex0, _EncryptTex1, sampler_EncryptTex0, _EncryptTex0_TexelSize, _MipTex, sampler_MipTex, fd.uvMain);
 #else
 	#define CODE\
-		half4 mip_texture = tex2D(_MipTex, fd.uvMain);\
-		\
-		half2 uv_unit = _EncryptTex0_TexelSize.xy;\
-		half2 uv_bilinear = fd.uvMain - 0.5 * uv_unit;\
-		int mip = round(mip_texture.r * 255 / 10);\
-		static const int m[13] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10 };\
-		\
-		half4 c00 = DecryptTexture(uv_bilinear + half2(uv_unit.x * 0, uv_unit.y * 0), m[mip]);\
-		half4 c10 = DecryptTexture(uv_bilinear + half2(uv_unit.x * 1, uv_unit.y * 0), m[mip]);\
-		half4 c01 = DecryptTexture(uv_bilinear + half2(uv_unit.x * 0, uv_unit.y * 1), m[mip]);\
-		half4 c11 = DecryptTexture(uv_bilinear + half2(uv_unit.x * 1, uv_unit.y * 1), m[mip]);\
-		\
-		half2 f = frac(uv_bilinear * _EncryptTex0_TexelSize.zw);\
-		\
-		half4 c0 = lerp(c00, c10, f.x);\
-		half4 c1 = lerp(c01, c11, f.x);\
-		\
-		half4 bilinear = lerp(c0, c1, f.y);\
-		\
-		fd.col = bilinear;\
-		LIL_APPLY_MAIN_TONECORRECTION\
-		fd.col *= _Color;
+		fd.col = DecryptTextureBilinear(_EncryptTex0, _EncryptTex1, sampler_EncryptTex0, _EncryptTex0_TexelSize, _MipTex, sampler_MipTex, fd.uvMain);
 #endif
 
 #define OVERRIDE_MAIN\
@@ -57,10 +32,12 @@
 	else\
 	{\
 		CODE\
+		LIL_APPLY_MAIN_TONECORRECTION\
+		fd.col *= _Color;\
 	}
 	
 #define OVERRIDE_MATCAP \
-	lilGetMatCap(fd, _MipTex);
+	lilGetMatCap(fd, sampler_MipTex);
 	
 #if defined(_SHELL_PROTECTOR_RIMLIGHT)
 	#if defined(LIL_LITE)
