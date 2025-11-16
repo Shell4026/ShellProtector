@@ -24,6 +24,7 @@ float _Key0, _Key1, _Key2, _Key3, _Key4, _Key5, _Key6, _Key7, _Key8, _Key9, _Key
 
 uint _Woffset;
 uint _Hoffset;
+uint _HashMagic;
 
 #include "Utility.cginc"
 
@@ -48,7 +49,7 @@ uint _Hoffset;
 	#include "DXT.cginc"
 #endif
 
-half4 DecryptTexture(half2 uv, int m)
+half4 DecryptTexture(Texture2D tex0, Texture2D tex1, SamplerState tex0Sampler, half2 uv, int m)
 {
 	int idx = GetIndex(uv, m);
 	const uint key[4] = 
@@ -60,14 +61,51 @@ half4 DecryptTexture(half2 uv, int m)
 	};
 	
 	uint data[_SHELL_PROTECTOR_DATA_LENGTH];
-	GetData(data, uv, m);
+    GetData(tex1, tex0Sampler, data, uv, m);
 	Decrypt(data, key);
-	return GetPixel(data, uv, m);
+    return GetPixel(tex0, tex0Sampler, data, uv, m);
+}
+
+half4 DecryptTextureBox(Texture2D tex0, Texture2D tex1, SamplerState texSampler, half4 texSize, Texture2D mipTex, SamplerState mipSamp, half2 uv)
+{
+	half4 mipPixel = mipTex.Sample(mipSamp, uv);
+
+	int mip = round(mipPixel.r * 255 / 10); //fucking precision problems
+	const int m[13] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10 }; // max size 4k
+
+    half4 c00 = DecryptTexture(tex0, tex1, texSampler, uv, m[mip]);
+
+	return c00;
+}
+
+half4 DecryptTextureBilinear(Texture2D tex0, Texture2D tex1, SamplerState texSampler, half4 texSize, Texture2D mipTex, SamplerState mipSamp, half2 uv)
+{
+	const half4 mipPixel = mipTex.Sample(mipSamp, uv);
+	const half2 uvUnit = texSize.xy;
+	//bilinear interpolation
+	const half2 uvBilinear = uv - 0.5 * uvUnit;
+	const int mip = round(mipPixel.r * 255 / 10); //fucking precision problems
+	const int m[13] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10 }; // max size 4k
+
+	half4 c00 = DecryptTexture(tex0, tex1, texSampler, uvBilinear + half2(uvUnit.x * 0, uvUnit.y * 0), m[mip]);
+	half4 c10 = DecryptTexture(tex0, tex1, texSampler, uvBilinear + half2(uvUnit.x * 1, uvUnit.y * 0), m[mip]);
+	half4 c01 = DecryptTexture(tex0, tex1, texSampler, uvBilinear + half2(uvUnit.x * 0, uvUnit.y * 1), m[mip]);
+	half4 c11 = DecryptTexture(tex0, tex1, texSampler, uvBilinear + half2(uvUnit.x * 1, uvUnit.y * 1), m[mip]);
+
+	half2 f = frac(uvBilinear * texSize.zw);
+
+	half4 c0 = lerp(c00, c10, f.x);
+	half4 c1 = lerp(c01, c11, f.x);
+
+	half4 bilinear = lerp(c0, c1, f.y);
+
+	return bilinear;
 }
 
 inline uint SimpleHash(int data[16])
 {
     uint hash = 0x811C9DC5u;
+	hash *= _HashMagic;
 
     [unroll]
     for (int i = 0; i < 16; i++)

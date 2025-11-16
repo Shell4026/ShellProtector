@@ -19,14 +19,7 @@ namespace Shell.Protector
                 UNITY_BRANCH
                 if(IsDecrypted())
                 {
-				    half4 mip_texture = _MipTex.Sample(sampler_MipTex, mainUV);
-				
-				    int mip = round(mip_texture.r * 255 / 10); //fucking precision problems
-				    const int m[13] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10 }; // max size 4k
-
-				    half4 c00 = DecryptTexture(mainUV, m[mip]);
-
-				    mainTexture = c00;
+				    mainTexture = DecryptTextureBox(_EncryptTex0, _EncryptTex1, sampler_EncryptTex0, _EncryptTex0_TexelSize, _MipTex, sampler_MipTex, mainUV);
                 }
                 else
                 {
@@ -39,27 +32,7 @@ namespace Shell.Protector
                 UNITY_BRANCH
                 if(IsDecrypted())
                 {
-				    half4 mip_texture = _MipTex.Sample(sampler_MipTex, mainUV);
-				
-				    half2 uv_unit = _EncryptTex0_TexelSize.xy;
-				    //bilinear interpolation
-				    half2 uv_bilinear = poiMesh.uv[0] - 0.5 * uv_unit;
-				    int mip = round(mip_texture.r * 255 / 10); //fucking precision problems
-				    const int m[13] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10 }; // max size 4k
-				
-                    half4 c00 = DecryptTexture(uv_bilinear + half2(uv_unit.x * 0, uv_unit.y * 0), m[mip]);
-                    half4 c10 = DecryptTexture(uv_bilinear + half2(uv_unit.x * 1, uv_unit.y * 0), m[mip]);
-                    half4 c01 = DecryptTexture(uv_bilinear + half2(uv_unit.x * 0, uv_unit.y * 1), m[mip]);
-                    half4 c11 = DecryptTexture(uv_bilinear + half2(uv_unit.x * 1, uv_unit.y * 1), m[mip]);
-				
-				    half2 f = frac(uv_bilinear * _EncryptTex0_TexelSize.zw);
-				
-				    half4 c0 = lerp(c00, c10, f.x);
-				    half4 c1 = lerp(c01, c11, f.x);
-
-				    half4 bilinear = lerp(c0, c1, f.y);
-				
-				    mainTexture = bilinear;
+				    mainTexture = DecryptTextureBilinear(_EncryptTex0, _EncryptTex1, sampler_EncryptTex0, _EncryptTex0_TexelSize, _MipTex, sampler_MipTex, mainUV);
                 }
                 else
                 {
