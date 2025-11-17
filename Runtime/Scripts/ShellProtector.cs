@@ -119,7 +119,7 @@ namespace Shell.Protector
             if (init)
                 return;
 
-            HashSet<SkinnedMeshRenderer> rednererSet = new HashSet<SkinnedMeshRenderer>();
+            HashSet<SkinnedMeshRenderer> rendererSet = new HashSet<SkinnedMeshRenderer>();
             Transform child = descriptor.transform.Find("Body");
             if (child != null)
             {
@@ -129,12 +129,12 @@ namespace Shell.Protector
                     Mesh mesh = renderer.sharedMesh;
                     if (mesh != null)
                     {
-                        rednererSet.Add(renderer);
+                        rendererSet.Add(renderer);
                     }
 
                 }
             }
-            foreach (var renderer in rednererSet)
+            foreach (var renderer in rendererSet)
             {
                 obfuscationRenderers.Add(renderer);
             }
@@ -168,343 +168,6 @@ namespace Shell.Protector
             if (!avatar.name.Contains("_encrypted"))
                 cpy.name = avatar.name + "_encrypted";
             return cpy;
-        }
-
-        bool ConditionCheck(Material mat)
-        {
-            if (shaderManager.IsPoiyomi(mat.shader))
-            {
-                if (!shaderManager.IsLockPoiyomi(mat.shader))
-                {
-#if POIYOMI
-                    ShaderOptimizer.SetLockedForAllMaterials(new[] { mat }, 1, true);
-#elif POIYOMI91
-                    ShaderOptimizer.LockMaterials(new[] { mat });
-#endif
-                }
-            }
-            if (mat.mainTexture == null)
-            {
-                Debug.LogWarningFormat("{0} : The mainTexture is empty. it will be skip.", mat.name);
-                return false;
-            }
-            if ((mat.mainTexture is Texture2D) == false)
-            {
-                Debug.LogErrorFormat("MainTexture in {0} is not texture2D", mat.name);
-                return false;
-            }
-            if (mat.mainTexture.width % 2 != 0 && mat.mainTexture.height % 2 != 0)
-            {
-                Debug.LogErrorFormat("{0} : The texture size must be a multiple of 2!", mat.mainTexture.name);
-                return false;
-            }
-            if (injector.WasInjected(mat.shader))
-            {
-                Debug.LogWarning(mat.name + ": The shader is already encrypted.");
-                return false;
-            }
-            var av3 = descriptor.gameObject.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
-            if (av3 == null)
-            {
-                Debug.LogError(descriptor.gameObject.name + ": can't find VRCAvatarDescriptor!");
-                return false;
-            }
-            if (av3.expressionParameters == null)
-            {
-                Debug.LogError(descriptor.gameObject.name + ": can't find expressionParmeters!");
-                return false;
-            }
-            return true;
-        }
-
-        bool CheckIsSupportedFormat(Material mat)
-        {
-            if (!TextureEncryptManager.IsSupportedFormat(mat))
-            {
-                if (mat.mainTexture != null)
-                {
-                    Debug.LogWarningFormat("{0} : is unsupported format", mat.mainTexture.name);
-                }
-                return false;
-            }
-            return true;
-        }
-
-        public void CreateFolders()
-        {
-            if (!AssetDatabase.IsValidFolder(Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString())))
-            {
-                AssetDatabase.CreateFolder(assetDir, descriptor.gameObject.GetInstanceID().ToString());
-            }
-            else
-            {
-                if (deleteFolders)
-                {
-                    AssetDatabase.DeleteAsset(Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString(), "animations"));
-                    AssetDatabase.DeleteAsset(Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString(), "mat"));
-                    AssetDatabase.DeleteAsset(Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString(), "shader"));
-                    AssetDatabase.DeleteAsset(Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString(), "tex"));
-                }
-            }
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
-
-            if (!AssetDatabase.IsValidFolder(Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString(), "tex")))
-                AssetDatabase.CreateFolder(Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString()), "tex");
-            if (!AssetDatabase.IsValidFolder(Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString(), "mat")))
-                AssetDatabase.CreateFolder(Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString()), "mat");
-            if (!AssetDatabase.IsValidFolder(Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString(), "shader")))
-                AssetDatabase.CreateFolder(Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString()), "shader");
-            if (!AssetDatabase.IsValidFolder(Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString(), "animations")))
-                AssetDatabase.CreateFolder(Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString()), "animations");
-
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
-        }
-
-        public List<Material> GetMaterials()
-        {
-            List<Material> materials = new List<Material>();
-            foreach (GameObject g in gameobjectList)
-            {
-                if (g == null)
-                    continue;
-
-                var meshRenderers = g.GetComponentsInChildren<MeshRenderer>(true);
-                foreach (var meshRenderer in meshRenderers)
-                {
-                    foreach (var material in meshRenderer.sharedMaterials)
-                    {
-                        if (material != null)
-                        {
-                            materials.Add(material);
-                        }
-                    }
-                }
-
-                var skinnedMeshRenderers = g.GetComponentsInChildren<SkinnedMeshRenderer>(true);
-                foreach (var skinnedMeshRenderer in skinnedMeshRenderers)
-                {
-                    foreach (var material in skinnedMeshRenderer.sharedMaterials)
-                    {
-                        if (material != null)
-                        {
-                            materials.Add(material);
-                        }
-                    }
-                }
-            }
-
-            return materials.Concat(materialList).Distinct().ToList();
-        }
-        Texture2D GenerateMipRefTexture(string outputDir, int size, bool bUseSmallMip)
-        {
-            var mip = TextureEncryptManager.GenerateRefMipmap(size, size, bUseSmallMip);
-            if (mip == null)
-                Debug.LogErrorFormat("{0} : Can't generate mip tex{1}.", outputDir, size);
-            else
-            {
-                AssetDatabase.CreateAsset(mip, outputDir);
-                AssetDatabase.SaveAssets();
-                AssetDatabase.Refresh();
-            }
-            return mip;
-        }
-
-        ProcessedTexture? GenerateEncryptedTexture(string avatarDir, Material mat, IEncryptor encryptor, byte[] keyBytes)
-        {
-            Texture2D mainTexture = (Texture2D)mat.mainTexture;
-
-            string texPath1 = Path.Combine(avatarDir, "tex", mainTexture.GetInstanceID() + "_encrypt.asset");
-            string texPath2 = Path.Combine(avatarDir, "tex", mainTexture.GetInstanceID() + "_encrypt2.asset");
-
-            bool processed = processedTextures.ContainsKey(mainTexture);
-            ProcessedTexture processedTexture;
-            if (processed)
-                processedTexture = processedTextures[mainTexture];
-            else
-            {
-                processedTexture = new ProcessedTexture
-                {
-                    encrypted = new EncryptResult(),
-                    fallbacks = new List<Texture2D>(),
-                    fallbackOptions = new List<int>(),
-                    nonce = new byte[12]
-                };
-            }
-
-            //Set chacha nonce
-            if (algorithm == (int)Algorithm.chacha)
-            {
-                Chacha20 chacha = encryptor as Chacha20;
-                if (!processed)
-                {
-                    byte[] hashMat = KeyGenerator.GetHash(mat.GetInstanceID());
-                    for (int i = 0; i < chacha.nonce.Length; ++i)
-                        chacha.nonce[i] ^= hashMat[i];
-                    Array.Copy(chacha.nonce, 0, processedTexture.nonce, 0, processedTexture.nonce.Length);
-                }
-                else
-                {
-                    byte[] nonce = processedTextures[mainTexture].nonce;
-                    Array.Copy(nonce, 0, chacha.nonce, 0, chacha.nonce.Length);
-                }
-            }
-
-            if (!processed)
-            {
-                EncryptResult encryptResult;
-                try
-                {
-                    encryptResult = TextureEncryptManager.EncryptTexture(mainTexture, keyBytes, encryptor);
-                }
-                catch (ArgumentException e)
-                {
-                    Debug.LogErrorFormat("{0} : ArgumentException - {1}", mainTexture.name, e.Message);
-                    return null;
-                }
-                AssetDatabase.CreateAsset(encryptResult.Texture1, texPath1);
-                if (encryptResult.Texture2 != null)
-                    AssetDatabase.CreateAsset(encryptResult.Texture2, texPath2);
-
-                processedTexture.encrypted = encryptResult;
-
-                processedTextures.Add(mainTexture, processedTexture);
-            }
-
-            return processedTexture;
-        }
-
-        Texture2D GenerateFallbackTexture(string outputDir, MatOption option, Texture2D mainTexture, ref ProcessedTexture processedTexture)
-        {
-            int fallbackOption = this.fallback;
-            if (option != null)
-                fallbackOption = option.fallback;
-
-            int idx = processedTexture.fallbackOptions.FindIndex(option => option == fallbackOption);
-            Texture2D fallback = null;
-            if (idx == -1)
-            {
-                int fallbackSize = 32;
-                switch (fallbackOption)
-                {
-                    case 0: // white
-                        fallbackSize = 0;
-                        break;
-                    case 1: // black
-                        fallbackSize = 1;
-                        break;
-                    case 2:
-                        fallbackSize = 4;
-                        break;
-                    case 3:
-                        fallbackSize = 8;
-                        break;
-                    case 4:
-                        fallbackSize = 16;
-                        break;
-                    case 5:
-                        fallbackSize = 32;
-                        break;
-                    case 6:
-                        fallbackSize = 64;
-                        break;
-                    case 7:
-                        fallbackSize = 128;
-                        break;
-                }
-                if (fallbackSize > 1)
-                {
-                    fallback = TextureEncryptManager.GenerateFallback(mainTexture, fallbackSize);
-                    if (fallback != null)
-                    {
-                        processedTexture.fallbacks.Add(fallback);
-                        processedTexture.fallbackOptions.Add(fallbackOption);
-                        AssetDatabase.CreateAsset(fallback, outputDir);
-                        AssetDatabase.SaveAssets();
-                        AssetDatabase.Refresh();
-                    }
-                }
-                else
-                {
-                    switch (fallbackSize)
-                    {
-                        case 0:
-                            processedTexture.fallbacks.Add(fallbackWhite);
-                            processedTexture.fallbackOptions.Add(fallbackOption);
-                            fallback = fallbackWhite;
-                            break;
-                        case 1:
-                            processedTexture.fallbacks.Add(fallbackBlack);
-                            processedTexture.fallbackOptions.Add(fallbackOption);
-                            fallback = fallbackBlack;
-                            break;
-                    }
-                }
-            }
-            else
-                fallback = processedTexture.fallbacks[idx];
-
-            return fallback;
-        }
-
-        Material GenerateEncryptedMaterial(string outputDir, Material mat, Shader encryptedShader, Texture2D fallback, Texture2D mip, OtherTextures otherTex , ProcessedTexture processedTexture, byte[] keyBytes, IEncryptor encryptor)
-        {
-            Material newMat = new Material(mat.shader);
-            newMat.CopyPropertiesFromMaterial(mat);
-            newMat.shader = encryptedShader;
-            var originalTex = (Texture2D)newMat.mainTexture;
-            newMat.mainTexture = fallback;
-
-            Texture2D encryptedTex0 = processedTexture.encrypted.Texture1;
-            Texture2D encryptedTex1 = processedTexture.encrypted.Texture2;
-
-            newMat.SetTexture("_MipTex", mip);
-
-            if (encryptedTex0 != null)
-                newMat.SetTexture("_EncryptTex0", encryptedTex0);
-            if (encryptedTex1 != null)
-                newMat.SetTexture("_EncryptTex1", encryptedTex1);
-
-            newMat.renderQueue = mat.renderQueue;
-            if (turnOnAllSafetyFallback)
-                newMat.SetOverrideTag("VRCFallback", "Unlit");
-
-            var (woffset, hoffset) = TextureEncryptManager.CalculateOffsets(originalTex);
-            newMat.SetInteger("_Woffset", woffset);
-            newMat.SetInteger("_Hoffset", hoffset);
-            for (int i = 0; i < 16 - keySize; ++i)
-                newMat.SetFloat("_Key" + i, keyBytes[i]);
-
-            if (algorithm == (int)Algorithm.chacha)
-            {
-                Chacha20 chacha = encryptor as Chacha20;
-                newMat.SetInteger("_Nonce0", (int)chacha.GetNonceUint3()[0]);
-                newMat.SetInteger("_Nonce1", (int)chacha.GetNonceUint3()[1]);
-                newMat.SetInteger("_Nonce2", (int)chacha.GetNonceUint3()[2]);
-            }
-
-            var key = new byte[16];
-            for (int i = 0; i < 16; i++)
-                key[i] = keyBytes[i];
-
-            uint hashMagic = (uint)mat.GetInstanceID();
-               
-            var hash = KeyGenerator.SimpleHash(key, hashMagic);
-            newMat.SetInteger("_HashMagic", (int)hashMagic);
-            newMat.SetInteger("_PasswordHash", (int)hash);
-
-            injector.SetKeywords(newMat, otherTex.limTexture != null);
-
-            AssetDatabase.CreateAsset(newMat, outputDir);
-            Debug.LogFormat("{0} : create encrypted material : {1}", mat.name, AssetDatabase.GetAssetPath(newMat));
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
-
-            if (!encryptedMaterials.ContainsKey(mat))
-                encryptedMaterials.Add(mat, newMat);
-
-            return newMat;
         }
 
         public GameObject Encrypt(bool isModular = true)
@@ -1275,6 +938,336 @@ namespace Shell.Protector
         {
             key_length /= syncSize;
             return Mathf.CeilToInt(Mathf.Log(key_length, 2));
+        }
+        bool ConditionCheck(Material mat)
+        {
+            if (shaderManager.IsPoiyomi(mat.shader))
+            {
+                if (!shaderManager.IsLockPoiyomi(mat.shader))
+                {
+#if POIYOMI
+                    ShaderOptimizer.SetLockedForAllMaterials(new[] { mat }, 1, true);
+#elif POIYOMI91
+                    ShaderOptimizer.LockMaterials(new[] { mat });
+#endif
+                }
+            }
+            if (mat.mainTexture == null)
+            {
+                Debug.LogWarningFormat("{0} : The mainTexture is empty. it will be skip.", mat.name);
+                return false;
+            }
+            if ((mat.mainTexture is Texture2D) == false)
+            {
+                Debug.LogErrorFormat("MainTexture in {0} is not texture2D", mat.name);
+                return false;
+            }
+            if (mat.mainTexture.width % 2 != 0 && mat.mainTexture.height % 2 != 0)
+            {
+                Debug.LogErrorFormat("{0} : The texture size must be a multiple of 2!", mat.mainTexture.name);
+                return false;
+            }
+            if (injector.WasInjected(mat.shader))
+            {
+                Debug.LogWarning(mat.name + ": The shader is already encrypted.");
+                return false;
+            }
+            var av3 = descriptor.gameObject.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
+            if (av3 == null)
+            {
+                Debug.LogError(descriptor.gameObject.name + ": can't find VRCAvatarDescriptor!");
+                return false;
+            }
+            if (av3.expressionParameters == null)
+            {
+                Debug.LogError(descriptor.gameObject.name + ": can't find expressionParmeters!");
+                return false;
+            }
+            return true;
+        }
+        public List<Material> GetMaterials()
+        {
+            List<Material> materials = new List<Material>();
+            foreach (GameObject g in gameobjectList)
+            {
+                if (g == null)
+                    continue;
+
+                var meshRenderers = g.GetComponentsInChildren<MeshRenderer>(true);
+                foreach (var meshRenderer in meshRenderers)
+                {
+                    foreach (var material in meshRenderer.sharedMaterials)
+                    {
+                        if (material != null)
+                        {
+                            materials.Add(material);
+                        }
+                    }
+                }
+
+                var skinnedMeshRenderers = g.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+                foreach (var skinnedMeshRenderer in skinnedMeshRenderers)
+                {
+                    foreach (var material in skinnedMeshRenderer.sharedMaterials)
+                    {
+                        if (material != null)
+                        {
+                            materials.Add(material);
+                        }
+                    }
+                }
+            }
+
+            return materials.Concat(materialList).Distinct().ToList();
+        }
+        bool CheckIsSupportedFormat(Material mat)
+        {
+            if (!TextureEncryptManager.IsSupportedFormat(mat))
+            {
+                if (mat.mainTexture != null)
+                {
+                    Debug.LogWarningFormat("{0} : is unsupported format", mat.mainTexture.name);
+                }
+                return false;
+            }
+            return true;
+        }
+        void CreateFolders()
+        {
+            if (!AssetDatabase.IsValidFolder(Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString())))
+            {
+                AssetDatabase.CreateFolder(assetDir, descriptor.gameObject.GetInstanceID().ToString());
+            }
+            else
+            {
+                if (deleteFolders)
+                {
+                    AssetDatabase.DeleteAsset(Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString(), "animations"));
+                    AssetDatabase.DeleteAsset(Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString(), "mat"));
+                    AssetDatabase.DeleteAsset(Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString(), "shader"));
+                    AssetDatabase.DeleteAsset(Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString(), "tex"));
+                }
+            }
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
+            if (!AssetDatabase.IsValidFolder(Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString(), "tex")))
+                AssetDatabase.CreateFolder(Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString()), "tex");
+            if (!AssetDatabase.IsValidFolder(Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString(), "mat")))
+                AssetDatabase.CreateFolder(Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString()), "mat");
+            if (!AssetDatabase.IsValidFolder(Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString(), "shader")))
+                AssetDatabase.CreateFolder(Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString()), "shader");
+            if (!AssetDatabase.IsValidFolder(Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString(), "animations")))
+                AssetDatabase.CreateFolder(Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString()), "animations");
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+        }
+        Texture2D GenerateMipRefTexture(string outputDir, int size, bool bUseSmallMip)
+        {
+            var mip = TextureEncryptManager.GenerateRefMipmap(size, size, bUseSmallMip);
+            if (mip == null)
+                Debug.LogErrorFormat("{0} : Can't generate mip tex{1}.", outputDir, size);
+            else
+            {
+                AssetDatabase.CreateAsset(mip, outputDir);
+                AssetDatabase.SaveAssets();
+                AssetDatabase.Refresh();
+            }
+            return mip;
+        }
+        ProcessedTexture? GenerateEncryptedTexture(string avatarDir, Material mat, IEncryptor encryptor, byte[] keyBytes)
+        {
+            Texture2D mainTexture = (Texture2D)mat.mainTexture;
+
+            string texPath1 = Path.Combine(avatarDir, "tex", mainTexture.GetInstanceID() + "_encrypt.asset");
+            string texPath2 = Path.Combine(avatarDir, "tex", mainTexture.GetInstanceID() + "_encrypt2.asset");
+
+            bool processed = processedTextures.ContainsKey(mainTexture);
+            ProcessedTexture processedTexture;
+            if (processed)
+                processedTexture = processedTextures[mainTexture];
+            else
+            {
+                processedTexture = new ProcessedTexture
+                {
+                    encrypted = new EncryptResult(),
+                    fallbacks = new List<Texture2D>(),
+                    fallbackOptions = new List<int>(),
+                    nonce = new byte[12]
+                };
+            }
+
+            //Set chacha nonce
+            if (algorithm == (int)Algorithm.chacha)
+            {
+                Chacha20 chacha = encryptor as Chacha20;
+                if (!processed)
+                {
+                    byte[] hashMat = KeyGenerator.GetHash(mat.GetInstanceID());
+                    for (int i = 0; i < chacha.nonce.Length; ++i)
+                        chacha.nonce[i] ^= hashMat[i];
+                    Array.Copy(chacha.nonce, 0, processedTexture.nonce, 0, processedTexture.nonce.Length);
+                }
+                else
+                {
+                    byte[] nonce = processedTextures[mainTexture].nonce;
+                    Array.Copy(nonce, 0, chacha.nonce, 0, chacha.nonce.Length);
+                }
+            }
+
+            if (!processed)
+            {
+                EncryptResult encryptResult;
+                try
+                {
+                    encryptResult = TextureEncryptManager.EncryptTexture(mainTexture, keyBytes, encryptor);
+                }
+                catch (ArgumentException e)
+                {
+                    Debug.LogErrorFormat("{0} : ArgumentException - {1}", mainTexture.name, e.Message);
+                    return null;
+                }
+                AssetDatabase.CreateAsset(encryptResult.Texture1, texPath1);
+                if (encryptResult.Texture2 != null)
+                    AssetDatabase.CreateAsset(encryptResult.Texture2, texPath2);
+
+                processedTexture.encrypted = encryptResult;
+
+                processedTextures.Add(mainTexture, processedTexture);
+            }
+
+            return processedTexture;
+        }
+        Texture2D GenerateFallbackTexture(string outputDir, MatOption option, Texture2D mainTexture, ref ProcessedTexture processedTexture)
+        {
+            int fallbackOption = this.fallback;
+            if (option != null)
+                fallbackOption = option.fallback;
+
+            int idx = processedTexture.fallbackOptions.FindIndex(option => option == fallbackOption);
+            Texture2D fallback = null;
+            if (idx == -1)
+            {
+                int fallbackSize = 32;
+                switch (fallbackOption)
+                {
+                    case 0: // white
+                        fallbackSize = 0;
+                        break;
+                    case 1: // black
+                        fallbackSize = 1;
+                        break;
+                    case 2:
+                        fallbackSize = 4;
+                        break;
+                    case 3:
+                        fallbackSize = 8;
+                        break;
+                    case 4:
+                        fallbackSize = 16;
+                        break;
+                    case 5:
+                        fallbackSize = 32;
+                        break;
+                    case 6:
+                        fallbackSize = 64;
+                        break;
+                    case 7:
+                        fallbackSize = 128;
+                        break;
+                }
+                if (fallbackSize > 1)
+                {
+                    fallback = TextureEncryptManager.GenerateFallback(mainTexture, fallbackSize);
+                    if (fallback != null)
+                    {
+                        processedTexture.fallbacks.Add(fallback);
+                        processedTexture.fallbackOptions.Add(fallbackOption);
+                        AssetDatabase.CreateAsset(fallback, outputDir);
+                        AssetDatabase.SaveAssets();
+                        AssetDatabase.Refresh();
+                    }
+                }
+                else
+                {
+                    switch (fallbackSize)
+                    {
+                        case 0:
+                            processedTexture.fallbacks.Add(fallbackWhite);
+                            processedTexture.fallbackOptions.Add(fallbackOption);
+                            fallback = fallbackWhite;
+                            break;
+                        case 1:
+                            processedTexture.fallbacks.Add(fallbackBlack);
+                            processedTexture.fallbackOptions.Add(fallbackOption);
+                            fallback = fallbackBlack;
+                            break;
+                    }
+                }
+            }
+            else
+                fallback = processedTexture.fallbacks[idx];
+
+            return fallback;
+        }
+        Material GenerateEncryptedMaterial(string outputDir, Material mat, Shader encryptedShader, Texture2D fallback, Texture2D mip, OtherTextures otherTex, ProcessedTexture processedTexture, byte[] keyBytes, IEncryptor encryptor)
+        {
+            Material newMat = new Material(mat.shader);
+            newMat.CopyPropertiesFromMaterial(mat);
+            newMat.shader = encryptedShader;
+            var originalTex = (Texture2D)newMat.mainTexture;
+            newMat.mainTexture = fallback;
+
+            Texture2D encryptedTex0 = processedTexture.encrypted.Texture1;
+            Texture2D encryptedTex1 = processedTexture.encrypted.Texture2;
+
+            newMat.SetTexture("_MipTex", mip);
+
+            if (encryptedTex0 != null)
+                newMat.SetTexture("_EncryptTex0", encryptedTex0);
+            if (encryptedTex1 != null)
+                newMat.SetTexture("_EncryptTex1", encryptedTex1);
+
+            newMat.renderQueue = mat.renderQueue;
+            if (turnOnAllSafetyFallback)
+                newMat.SetOverrideTag("VRCFallback", "Unlit");
+
+            var (woffset, hoffset) = TextureEncryptManager.CalculateOffsets(originalTex);
+            newMat.SetInteger("_Woffset", woffset);
+            newMat.SetInteger("_Hoffset", hoffset);
+            for (int i = 0; i < 16 - keySize; ++i)
+                newMat.SetFloat("_Key" + i, keyBytes[i]);
+
+            if (algorithm == (int)Algorithm.chacha)
+            {
+                Chacha20 chacha = encryptor as Chacha20;
+                newMat.SetInteger("_Nonce0", (int)chacha.GetNonceUint3()[0]);
+                newMat.SetInteger("_Nonce1", (int)chacha.GetNonceUint3()[1]);
+                newMat.SetInteger("_Nonce2", (int)chacha.GetNonceUint3()[2]);
+            }
+
+            var key = new byte[16];
+            for (int i = 0; i < 16; i++)
+                key[i] = keyBytes[i];
+
+            uint hashMagic = (uint)mat.GetInstanceID();
+
+            var hash = KeyGenerator.SimpleHash(key, hashMagic);
+            newMat.SetInteger("_HashMagic", (int)hashMagic);
+            newMat.SetInteger("_PasswordHash", (int)hash);
+
+            injector.SetKeywords(newMat, otherTex.limTexture != null);
+
+            AssetDatabase.CreateAsset(newMat, outputDir);
+            Debug.LogFormat("{0} : create encrypted material : {1}", mat.name, AssetDatabase.GetAssetPath(newMat));
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
+            if (!encryptedMaterials.ContainsKey(mat))
+                encryptedMaterials.Add(mat, newMat);
+
+            return newMat;
         }
     }
 }
