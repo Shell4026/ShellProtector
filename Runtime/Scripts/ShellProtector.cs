@@ -26,16 +26,16 @@ namespace Shell.Protector
     public class ShellProtector : MonoBehaviour, IEditorOnly
     {
         [SerializeField]
-        List<GameObject> gameobject_list = new List<GameObject>();
+        List<GameObject> gameobjectList = new List<GameObject>();
         [SerializeField]
-        List<Material> material_list = new List<Material>();
+        List<Material> materialList = new List<Material>();
         [SerializeField]
-        List<Texture2D> texture_list = new List<Texture2D>();
+        List<Texture2D> textureList = new List<Texture2D>();
         [SerializeField]
         List<SkinnedMeshRenderer> obfuscationRenderers = new List<SkinnedMeshRenderer>();
 
         Injector injector;
-        AssetManager shader_manager = AssetManager.GetInstance();
+        AssetManager shaderManager = AssetManager.GetInstance();
         bool init = false;
 
         enum Algorithm
@@ -44,10 +44,10 @@ namespace Shell.Protector
             chacha = 1
         }
 
-        public string asset_dir = "Assets/ShellProtect";
+        public string assetDir = "Assets/ShellProtect";
         public string pwd = "password"; // fixed password
         public string pwd2 = "pass"; // user password
-        public int lang_idx = 0;
+        public int langIdx = 0;
         public string lang = "kor";
         public VRCAvatarDescriptor descriptor;
 
@@ -97,10 +97,10 @@ namespace Shell.Protector
         [SerializeField] int filter = 1;
         [SerializeField] int fallback = 5;
         [SerializeField] int algorithm = 1;
-        [SerializeField] int key_size_idx = 3;
-        [SerializeField] int key_size = 12;
-        [SerializeField] int sync_size = 1;
-        [SerializeField] bool delete_folders = true;
+        [SerializeField] int keySizeIdx = 3;
+        [SerializeField] int keySize = 12;
+        [SerializeField] int syncSize = 1;
+        [SerializeField] bool deleteFolders = true;
         [SerializeField] bool bUseSmallMipTexture = true;
 
         [SerializeField] bool bPreserveMMD = true;
@@ -159,7 +159,7 @@ namespace Shell.Protector
 
         public byte[] GetKeyBytes()
         {
-            return KeyGenerator.MakeKeyBytes(pwd, pwd2, key_size);
+            return KeyGenerator.MakeKeyBytes(pwd, pwd2, keySize);
         }
 
         public GameObject DuplicateAvatar(GameObject avatar)
@@ -172,9 +172,9 @@ namespace Shell.Protector
 
         bool ConditionCheck(Material mat)
         {
-            if (shader_manager.IsPoiyomi(mat.shader))
+            if (shaderManager.IsPoiyomi(mat.shader))
             {
-                if (!shader_manager.IsLockPoiyomi(mat.shader))
+                if (!shaderManager.IsLockPoiyomi(mat.shader))
                 {
 #if POIYOMI
                     ShaderOptimizer.SetLockedForAllMaterials(new[] { mat }, 1, true);
@@ -232,31 +232,31 @@ namespace Shell.Protector
 
         public void CreateFolders()
         {
-            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString())))
+            if (!AssetDatabase.IsValidFolder(Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString())))
             {
-                AssetDatabase.CreateFolder(asset_dir, descriptor.gameObject.GetInstanceID().ToString());
+                AssetDatabase.CreateFolder(assetDir, descriptor.gameObject.GetInstanceID().ToString());
             }
             else
             {
-                if (delete_folders)
+                if (deleteFolders)
                 {
-                    AssetDatabase.DeleteAsset(Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString(), "animations"));
-                    AssetDatabase.DeleteAsset(Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString(), "mat"));
-                    AssetDatabase.DeleteAsset(Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString(), "shader"));
-                    AssetDatabase.DeleteAsset(Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString(), "tex"));
+                    AssetDatabase.DeleteAsset(Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString(), "animations"));
+                    AssetDatabase.DeleteAsset(Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString(), "mat"));
+                    AssetDatabase.DeleteAsset(Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString(), "shader"));
+                    AssetDatabase.DeleteAsset(Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString(), "tex"));
                 }
             }
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
-            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString(), "tex")))
-                AssetDatabase.CreateFolder(Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString()), "tex");
-            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString(), "mat")))
-                AssetDatabase.CreateFolder(Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString()), "mat");
-            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString(), "shader")))
-                AssetDatabase.CreateFolder(Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString()), "shader");
-            if (!AssetDatabase.IsValidFolder(Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString(), "animations")))
-                AssetDatabase.CreateFolder(Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString()), "animations");
+            if (!AssetDatabase.IsValidFolder(Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString(), "tex")))
+                AssetDatabase.CreateFolder(Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString()), "tex");
+            if (!AssetDatabase.IsValidFolder(Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString(), "mat")))
+                AssetDatabase.CreateFolder(Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString()), "mat");
+            if (!AssetDatabase.IsValidFolder(Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString(), "shader")))
+                AssetDatabase.CreateFolder(Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString()), "shader");
+            if (!AssetDatabase.IsValidFolder(Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString(), "animations")))
+                AssetDatabase.CreateFolder(Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString()), "animations");
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -265,7 +265,7 @@ namespace Shell.Protector
         public List<Material> GetMaterials()
         {
             List<Material> materials = new List<Material>();
-            foreach (GameObject g in gameobject_list)
+            foreach (GameObject g in gameobjectList)
             {
                 if (g == null)
                     continue;
@@ -295,7 +295,7 @@ namespace Shell.Protector
                 }
             }
 
-            return materials.Concat(material_list).Distinct().ToList();
+            return materials.Concat(materialList).Distinct().ToList();
         }
         Texture2D GenerateMipRefTexture(string outputDir, int size, bool bUseSmallMip)
         {
@@ -473,7 +473,7 @@ namespace Shell.Protector
             var (woffset, hoffset) = TextureEncryptManager.CalculateOffsets(originalTex);
             newMat.SetInteger("_Woffset", woffset);
             newMat.SetInteger("_Hoffset", hoffset);
-            for (int i = 0; i < 16 - key_size; ++i)
+            for (int i = 0; i < 16 - keySize; ++i)
                 newMat.SetFloat("_Key" + i, keyBytes[i]);
 
             if (algorithm == (int)Algorithm.chacha)
@@ -522,15 +522,15 @@ namespace Shell.Protector
 
             MonoScript monoScript = MonoScript.FromMonoBehaviour(this);
             string script_path = AssetDatabase.GetAssetPath(monoScript);
-            asset_dir = Path.GetDirectoryName(Path.GetDirectoryName(script_path));
-            string avatarDir = Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString());
+            assetDir = Path.GetDirectoryName(Path.GetDirectoryName(script_path));
+            string avatarDir = Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString());
 
-            Debug.Log("AssetDir: " + asset_dir);
+            Debug.Log("AssetDir: " + assetDir);
 
             if (fallbackWhite == null)
-                fallbackWhite = AssetDatabase.LoadAssetAtPath(Path.Combine(asset_dir, "white.png"), typeof(Texture2D)) as Texture2D;
+                fallbackWhite = AssetDatabase.LoadAssetAtPath(Path.Combine(assetDir, "white.png"), typeof(Texture2D)) as Texture2D;
             if (fallbackBlack == null)
-                fallbackBlack = AssetDatabase.LoadAssetAtPath(Path.Combine(asset_dir, "black.png"), typeof(Texture2D)) as Texture2D;
+                fallbackBlack = AssetDatabase.LoadAssetAtPath(Path.Combine(assetDir, "black.png"), typeof(Texture2D)) as Texture2D;
 
             if (descriptor == null)
             {
@@ -566,7 +566,7 @@ namespace Shell.Protector
                 Debug.LogError("Cannot create duplicated avatar!");
                 return null;
             }
-            byte[] key_bytes = GetKeyBytes();
+            byte[] keyBytes = GetKeyBytes();
 
             CreateFolders();
 
@@ -581,7 +581,7 @@ namespace Shell.Protector
             else if(algorithm == (int)Algorithm.chacha) 
             {
                 Chacha20 chacha = new Chacha20();
-                byte[] hash1 = KeyGenerator.GetKeyHash(key_bytes, KeyGenerator.GenerateRandomString(chacha.nonce.Length));
+                byte[] hash1 = KeyGenerator.GetKeyHash(keyBytes, KeyGenerator.GenerateRandomString(chacha.nonce.Length));
                 Array.Copy(hash1, 0, chacha.nonce, 0, chacha.nonce.Length);
                 encryptor = chacha;
             }
@@ -589,11 +589,11 @@ namespace Shell.Protector
 
             if (history == null)
             {
-                history = AssetDatabase.LoadAssetAtPath(Path.Combine(asset_dir, "EncryptedHistory.asset"), typeof(EncryptedHistory)) as EncryptedHistory;
+                history = AssetDatabase.LoadAssetAtPath(Path.Combine(assetDir, "EncryptedHistory.asset"), typeof(EncryptedHistory)) as EncryptedHistory;
                 if (history == null)
                 {
                     history = new EncryptedHistory();
-                    AssetDatabase.CreateAsset(history, Path.Combine(asset_dir, "EncryptedHistory.asset"));
+                    AssetDatabase.CreateAsset(history, Path.Combine(assetDir, "EncryptedHistory.asset"));
                 }
             }
             history.LoadData();
@@ -636,8 +636,8 @@ namespace Shell.Protector
 
                 Debug.LogFormat("{0} : Start encrypt...", mat.name);
 
-                Texture2D main_texture = (Texture2D)mat.mainTexture;
-                injector.Init(descriptor.gameObject, main_texture, key_bytes, key_size, filter, asset_dir, encryptor);
+                Texture2D mainTexture = (Texture2D)mat.mainTexture;
+                injector.Init(descriptor.gameObject, mainTexture, keyBytes, keySize, filter, assetDir, encryptor);
 
                 int mipRefSize = Math.Max(mat.mainTexture.width, mat.mainTexture.height);
                 if (!mips.ContainsKey(mipRefSize))
@@ -647,13 +647,13 @@ namespace Shell.Protector
                         mips.Add(mipRefSize, mipRef);
                 }
 
-                TextureSettings.SetRWEnableTexture(main_texture);
-                TextureSettings.SetCrunchCompression(main_texture, false);
-                TextureSettings.SetGenerateMipmap(main_texture, true);
+                TextureSettings.SetRWEnableTexture(mainTexture);
+                TextureSettings.SetCrunchCompression(mainTexture, false);
+                TextureSettings.SetGenerateMipmap(mainTexture, true);
 
-                string encrypted_shader_path = Path.Combine(avatarDir, "shader", mat.GetInstanceID().ToString());
+                string encryptedShader_path = Path.Combine(avatarDir, "shader", mat.GetInstanceID().ToString());
 
-                var processedTextureResult = GenerateEncryptedTexture(avatarDir, mat, encryptor, key_bytes);
+                var processedTextureResult = GenerateEncryptedTexture(avatarDir, mat, encryptor, keyBytes);
                 if (!processedTextureResult.HasValue)
                     continue;
                 ProcessedTexture processedTexture = processedTextureResult.Value;
@@ -663,24 +663,24 @@ namespace Shell.Protector
 
                 //////////////////////Inject shader///////////////////////
                 OtherTextures otherTex = GetLimOutlineTextures(mat);
-                Shader encrypted_shader = IsEncryptedBefore(mat.shader);
-                if (encrypted_shader == null)
+                Shader encryptedShader = IsEncryptedBefore(mat.shader);
+                if (encryptedShader == null)
                 {
                     try
                     {
-                        encrypted_shader = injector.Inject(
+                        encryptedShader = injector.Inject(
                             mat, 
-                            Path.Combine(asset_dir, "Shader/ShellProtector.cginc"),
-                            encrypted_shader_path,
+                            Path.Combine(assetDir, "Shader/ShellProtector.cginc"),
+                            encryptedShader_path,
                             encryptedTex1,
                             otherTex.limTexture != null,
                             otherTex.limTexture2 != null,
                             otherTex.outlineTexture != null
                         );
 
-                        Selection.activeObject = encrypted_shader;
+                        Selection.activeObject = encryptedShader;
                         EditorApplication.ExecuteMenuItem("Assets/Reimport");
-                        if (encrypted_shader == null)
+                        if (encryptedShader == null)
                         {
                             Debug.LogErrorFormat("{0}: Injection failed", mat.name);
                             continue;
@@ -694,24 +694,24 @@ namespace Shell.Protector
                     }
                 }
 
-                string fallbackDir = Path.Combine(avatarDir, "tex", main_texture.GetInstanceID() + "_fallback.asset");
-                Texture2D fallback = GenerateFallbackTexture(fallbackDir, option, main_texture, ref processedTexture);
+                string fallbackDir = Path.Combine(avatarDir, "tex", mainTexture.GetInstanceID() + "_fallback.asset");
+                Texture2D fallback = GenerateFallbackTexture(fallbackDir, option, mainTexture, ref processedTexture);
                 if (fallback == null)
-                    Debug.LogErrorFormat("Failed to generate fallback texture: {0}", main_texture.name);
+                    Debug.LogErrorFormat("Failed to generate fallback texture: {0}", mainTexture.name);
 
-                int maxSize = Math.Max(main_texture.width, main_texture.height);
+                int maxSize = Math.Max(mainTexture.width, mainTexture.height);
                 Texture2D mipTex = mips[maxSize];
                 if (mipTex == null)
                     Debug.LogWarningFormat("mip_{0} is not exsist", maxSize);
 
                 string encryptedMatPath = Path.Combine(avatarDir, "mat", mat.GetInstanceID() + "_encrypted.mat");
-                GenerateEncryptedMaterial(encryptedMatPath, mat, encrypted_shader, fallback, mipTex, otherTex, processedTexture, key_bytes, encryptor);
+                GenerateEncryptedMaterial(encryptedMatPath, mat, encryptedShader, fallback, mipTex, otherTex, processedTexture, keyBytes, encryptor);
             } // Material loop
             EditorUtility.ClearProgressBar();
 
             ///////////////////////parameter////////////////////
             var av3 = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
-            av3.expressionParameters = ParameterManager.AddKeyParameter(av3.expressionParameters, key_size, sync_size);
+            av3.expressionParameters = ParameterManager.AddKeyParameter(av3.expressionParameters, keySize, syncSize);
             AssetDatabase.CreateAsset(av3.expressionParameters, Path.Combine(avatarDir, av3.expressionParameters.name + ".asset"));
             ////////////////////////////////////////////////////
             if (!isModular)
@@ -724,16 +724,16 @@ namespace Shell.Protector
                 var newDesriptor = avatar.transform.GetComponentInChildren<ShellProtector>(true).gameObject;
                 var tester = newDesriptor.AddComponent<ShellProtectorTester>();
                 tester.lang = lang;
-                tester.lang_idx = lang_idx;
+                tester.langIdx = langIdx;
                 tester.protector = this;
-                tester.userKeyLength = key_size;
+                tester.userKeyLength = keySize;
                 Selection.activeObject = tester;
 
 #if MODULAR
                 var maMergeAnims = avatar.GetComponentsInChildren<ModularAvatarMergeAnimator>(true);
                 foreach (var maMergeAnim in maMergeAnims)
                 {
-                    AnimatorController newAnim = AnimatorManager.DuplicateAnimator(maMergeAnim.animator, Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString()));
+                    AnimatorController newAnim = AnimatorManager.DuplicateAnimator(maMergeAnim.animator, Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString()));
                     maMergeAnim.animator = newAnim;
                 }
 #endif
@@ -797,7 +797,7 @@ namespace Shell.Protector
         OtherTextures GetLimOutlineTextures(Material mat)
         {
             OtherTextures others = new OtherTextures();
-            if (shader_manager.IsPoiyomi(mat.shader))
+            if (shaderManager.IsPoiyomi(mat.shader))
             {
                 var tex_properties = mat.GetTexturePropertyNames();
                 foreach (var t in tex_properties)
@@ -810,7 +810,7 @@ namespace Shell.Protector
                         others.outlineTexture = (Texture2D)mat.GetTexture(t);
                 }
             }
-            else if (shader_manager.IslilToon(mat.shader))
+            else if (shaderManager.IslilToon(mat.shader))
             {
                 var tex_properties = mat.GetTexturePropertyNames();
                 foreach (var t in tex_properties)
@@ -827,7 +827,7 @@ namespace Shell.Protector
         }
         public void RemoveDuplicatedTextures(GameObject avatar)
         {
-            string avatarDir = Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString());
+            string avatarDir = Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString());
             foreach (var mat in encryptedMaterials.Values)
             {
                 OtherTextures otherTex = GetLimOutlineTextures(mat);
@@ -850,9 +850,9 @@ namespace Shell.Protector
                         if (otherTex.limTexture != null)
                         {
                             string texName = "";
-                            if (shader_manager.IsPoiyomi(mat.shader))
+                            if (shaderManager.IsPoiyomi(mat.shader))
                                 texName = "_RimTex";
-                            else if (shader_manager.IslilToon(mat.shader))
+                            else if (shaderManager.IslilToon(mat.shader))
                                 texName = "_RimColorTex";
 
                             if (mainTexture == otherTex.limTexture)
@@ -864,7 +864,7 @@ namespace Shell.Protector
                         if (otherTex.limTexture2 != null) //only poiyomi
                         {
                             string texName = "";
-                            if (shader_manager.IsPoiyomi(mat.shader))
+                            if (shaderManager.IsPoiyomi(mat.shader))
                                 texName = "_Rim2Tex";
 
                             if (mainTexture == otherTex.limTexture2)
@@ -875,9 +875,9 @@ namespace Shell.Protector
                         if (otherTex.outlineTexture != null)
                         {
                             string texName = "";
-                            if (shader_manager.IsPoiyomi(mat.shader))
+                            if (shaderManager.IsPoiyomi(mat.shader))
                                 texName = "_OutlineTexture";
-                            else if (shader_manager.IslilToon(mat.shader))
+                            else if (shaderManager.IslilToon(mat.shader))
                                 texName = "_OutlineTex";
 
                             if (mainTexture == otherTex.outlineTexture)
@@ -944,12 +944,12 @@ namespace Shell.Protector
                     renderers[i].sharedMaterials = mats;
                 }
             }
-            var skinned_renderers = avatar.GetComponentsInChildren<SkinnedMeshRenderer>(true);
-            if (skinned_renderers != null)
+            var skinnedRenderers = avatar.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+            if (skinnedRenderers != null)
             {
-                for (int i = 0; i < skinned_renderers.Length; ++i)
+                for (int i = 0; i < skinnedRenderers.Length; ++i)
                 {
-                    var mats = skinned_renderers[i].sharedMaterials;
+                    var mats = skinnedRenderers[i].sharedMaterials;
                     if (mats == null)
                         continue;
                     for (int j = 0; j < mats.Length; ++j)
@@ -989,7 +989,7 @@ namespace Shell.Protector
                         if (tmp != null)
                             mats[j] = tmp;
                     }
-                    skinned_renderers[i].sharedMaterials = mats;
+                    skinnedRenderers[i].sharedMaterials = mats;
                 }
             }
         }
@@ -998,17 +998,17 @@ namespace Shell.Protector
             var av3 = avatar.GetComponent<VRCAvatarDescriptor>();
             AnimatorController fx;
             if (clone)
-                fx = AnimatorManager.DuplicateAnimator(av3.baseAnimationLayers[4].animatorController, Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString()));
+                fx = AnimatorManager.DuplicateAnimator(av3.baseAnimationLayers[4].animatorController, Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString()));
             else
                 fx = av3.baseAnimationLayers[4].animatorController as AnimatorController;
 
             av3.baseAnimationLayers[4].animatorController = fx;
-            string animationDir = Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString(), "animations");
+            string animationDir = Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString(), "animations");
 
             GameObject[] meshArray = new GameObject[meshes.Count];
             meshes.CopyTo(meshArray);
-            AnimatorManager.CreateKeyAniamtions(Path.Combine(asset_dir, "Animations"), animationDir, meshArray);
-            AnimatorManager.AddKeyLayer(fx, animationDir, key_size, sync_size, 3.0f);
+            AnimatorManager.CreateKeyAniamtions(Path.Combine(assetDir, "Animations"), animationDir, meshArray);
+            AnimatorManager.AddKeyLayer(fx, animationDir, keySize, syncSize, 3.0f);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -1023,7 +1023,7 @@ namespace Shell.Protector
         {
             var av3 = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
             var fx = av3.baseAnimationLayers[4].animatorController as AnimatorController;
-            string animationDir = Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString(), "animations");
+            string animationDir = Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString(), "animations");
 
             AnimatorManager animManager = new AnimatorManager();
             foreach (var pair in encryptedMaterials)
@@ -1070,7 +1070,7 @@ namespace Shell.Protector
             // bClone true = Manual encrypt
             var av3 = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
             AnimatorController fx = Getfx(avatar);
-            string animDir = Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString(), "animations");
+            string animDir = Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString(), "animations");
 
             Obfuscator obfuscator = new Obfuscator();
             obfuscator.clone = bClone;
@@ -1113,7 +1113,7 @@ namespace Shell.Protector
                     Debug.LogErrorFormat("{0} haven't mesh", renderer.transform.name);
                     continue;
                 }
-                Mesh newMesh = obfuscator.ObfuscateBlendShapeMesh(mesh, Path.Combine(asset_dir, descriptor.gameObject.GetInstanceID().ToString()));
+                Mesh newMesh = obfuscator.ObfuscateBlendShapeMesh(mesh, Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString()));
                 selectRenderer.sharedMesh = newMesh;
 
                 ////////Change renderer component shape keys////////
@@ -1180,14 +1180,14 @@ namespace Shell.Protector
 
         public int GetEncyryptedFoldersCount()
         {
-            if (!Directory.Exists(asset_dir))
+            if (!Directory.Exists(assetDir))
             {
-                Debug.LogError($"The specified path does not exist: {asset_dir}");
+                Debug.LogError($"The specified path does not exist: {assetDir}");
                 return 0;
             }
             else
             {
-                string[] directories = Directory.GetDirectories(asset_dir);
+                string[] directories = Directory.GetDirectories(assetDir);
                 int deletedCount = 0;
 
                 foreach (string dir in directories)
@@ -1203,15 +1203,15 @@ namespace Shell.Protector
         }
         public void CleanEncrypted()
         {
-            AssetDatabase.DeleteAsset(Path.Combine(asset_dir, "EncryptedHistory.asset"));
+            AssetDatabase.DeleteAsset(Path.Combine(assetDir, "EncryptedHistory.asset"));
 
-            if (!Directory.Exists(asset_dir))
+            if (!Directory.Exists(assetDir))
             {
-                Debug.LogError($"The specified path does not exist: {asset_dir}");
+                Debug.LogError($"The specified path does not exist: {assetDir}");
             }
             else
             {
-                string[] directories = Directory.GetDirectories(asset_dir);
+                string[] directories = Directory.GetDirectories(assetDir);
                 int deletedCount = 0;
 
                 foreach (string dir in directories)
@@ -1247,7 +1247,7 @@ namespace Shell.Protector
         }
         public int GetKeySize()
         {
-            return key_size;
+            return keySize;
         }
 
         public void ResetMaterialOptions()
@@ -1260,20 +1260,20 @@ namespace Shell.Protector
         {
             if (history == null)
             {
-                history = AssetDatabase.LoadAssetAtPath(Path.Combine(asset_dir, "EncryptedHistory.asset"), typeof(EncryptedHistory)) as EncryptedHistory;
+                history = AssetDatabase.LoadAssetAtPath(Path.Combine(assetDir, "EncryptedHistory.asset"), typeof(EncryptedHistory)) as EncryptedHistory;
                 if (history == null)
                 {
                     history = new EncryptedHistory();
-                    AssetDatabase.CreateAsset(history, Path.Combine(asset_dir, "EncryptedHistory.asset"));
+                    AssetDatabase.CreateAsset(history, Path.Combine(assetDir, "EncryptedHistory.asset"));
                 }
             }
             history.LoadData();
             return history.IsEncryptedBefore(shader);
         }
 
-        public static int GetRequiredSwitchCount(int key_length, int sync_size)
+        public static int GetRequiredSwitchCount(int key_length, int syncSize)
         {
-            key_length /= sync_size;
+            key_length /= syncSize;
             return Mathf.CeilToInt(Mathf.Log(key_length, 2));
         }
     }

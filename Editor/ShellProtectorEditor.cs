@@ -19,19 +19,19 @@ namespace Shell.Protector
         ShellProtector root = null;
         readonly LanguageManager lang = LanguageManager.GetInstance();
 
-        ReorderableList game_object_list;
-        ReorderableList material_list;
-        ReorderableList texture_list;
+        ReorderableList gameobjectList;
+        ReorderableList materialList;
+        ReorderableList textureList;
         ReorderableList obfuscationList;
 
         SerializedProperty rounds;
         SerializedProperty filter;
         SerializedProperty fallback;
         SerializedProperty algorithm;
-        SerializedProperty key_size;
-        SerializedProperty key_size_idx;
-        SerializedProperty sync_size;
-        SerializedProperty delete_folders;
+        SerializedProperty keySize;
+        SerializedProperty keySizeIdx;
+        SerializedProperty syncSize;
+        SerializedProperty deleteFolders;
         SerializedProperty bUseSmallMipTexture;
         SerializedProperty bPreserveMMD;
         SerializedProperty turnOnAllSafetyFallback;
@@ -67,29 +67,29 @@ namespace Shell.Protector
             MonoScript monoScript = MonoScript.FromMonoBehaviour(root);
             string script_path = AssetDatabase.GetAssetPath(monoScript);
 
-            root.asset_dir = Path.GetDirectoryName(Path.GetDirectoryName(script_path));
+            root.assetDir = Path.GetDirectoryName(Path.GetDirectoryName(script_path));
 
-            game_object_list = new ReorderableList(serializedObject, serializedObject.FindProperty("gameobject_list"), true, true, true, true);
-            game_object_list.drawHeaderCallback = rect => EditorGUI.LabelField(rect, Lang("Object list"));
-            game_object_list.drawElementCallback = (rect, index, is_active, is_focused) =>
+            gameobjectList = new ReorderableList(serializedObject, serializedObject.FindProperty("gameobjectList"), true, true, true, true);
+            gameobjectList.drawHeaderCallback = rect => EditorGUI.LabelField(rect, Lang("Object list"));
+            gameobjectList.drawElementCallback = (rect, index, is_active, is_focused) =>
             {
-                SerializedProperty element = game_object_list.serializedProperty.GetArrayElementAtIndex(index);
+                SerializedProperty element = gameobjectList.serializedProperty.GetArrayElementAtIndex(index);
                 EditorGUI.PropertyField(new Rect(rect.x, rect.y, rect.width, EditorGUIUtility.singleLineHeight), element, GUIContent.none);
             };
 
-            material_list = new ReorderableList(serializedObject, serializedObject.FindProperty("material_list"), true, true, true, true);
-            material_list.drawHeaderCallback = rect => EditorGUI.LabelField(rect, Lang("Material List"));
-            material_list.drawElementCallback = (rect, index, is_active, is_focused) =>
+            materialList = new ReorderableList(serializedObject, serializedObject.FindProperty("materialList"), true, true, true, true);
+            materialList.drawHeaderCallback = rect => EditorGUI.LabelField(rect, Lang("Material List"));
+            materialList.drawElementCallback = (rect, index, is_active, is_focused) =>
             {
-                SerializedProperty element = material_list.serializedProperty.GetArrayElementAtIndex(index);
+                SerializedProperty element = materialList.serializedProperty.GetArrayElementAtIndex(index);
                 EditorGUI.PropertyField(new Rect(rect.x, rect.y, rect.width, EditorGUIUtility.singleLineHeight), element, GUIContent.none);
             };
 
-            texture_list = new ReorderableList(serializedObject, serializedObject.FindProperty("texture_list"), true, true, true, true);
-            texture_list.drawHeaderCallback = rect => EditorGUI.LabelField(rect, Lang("Texture List"));
-            texture_list.drawElementCallback = (rect, index, is_active, is_focused) =>
+            textureList = new ReorderableList(serializedObject, serializedObject.FindProperty("textureList"), true, true, true, true);
+            textureList.drawHeaderCallback = rect => EditorGUI.LabelField(rect, Lang("Texture List"));
+            textureList.drawElementCallback = (rect, index, is_active, is_focused) =>
             {
-                SerializedProperty element = texture_list.serializedProperty.GetArrayElementAtIndex(index);
+                SerializedProperty element = textureList.serializedProperty.GetArrayElementAtIndex(index);
                 EditorGUI.PropertyField(new Rect(rect.x, rect.y, rect.width, EditorGUIUtility.singleLineHeight), element, GUIContent.none);
             };
 
@@ -106,10 +106,10 @@ namespace Shell.Protector
             filter = serializedObject.FindProperty("filter");
             fallback = serializedObject.FindProperty("fallback");
             algorithm = serializedObject.FindProperty("algorithm");
-            key_size = serializedObject.FindProperty("key_size");
-            key_size_idx = serializedObject.FindProperty("key_size_idx");
-            sync_size = serializedObject.FindProperty("sync_size");
-            delete_folders = serializedObject.FindProperty("delete_folders");
+            keySize = serializedObject.FindProperty("keySize");
+            keySizeIdx = serializedObject.FindProperty("keySizeIdx");
+            syncSize = serializedObject.FindProperty("syncSize");
+            deleteFolders = serializedObject.FindProperty("deleteFolders");
             bUseSmallMipTexture = serializedObject.FindProperty("bUseSmallMipTexture");
             bPreserveMMD = serializedObject.FindProperty("bPreserveMMD");
             turnOnAllSafetyFallback = serializedObject.FindProperty("turnOnAllSafetyFallback");
@@ -150,7 +150,7 @@ namespace Shell.Protector
             GUILayout.Label(Lang("Languages: "));
             GUILayout.FlexibleSpace();
 
-            root.lang_idx = EditorGUILayout.Popup(root.lang_idx, languages, GUILayout.Width(100));
+            root.langIdx = EditorGUILayout.Popup(root.langIdx, languages, GUILayout.Width(100));
 
             key_lengths[0] = Lang("0 (Minimal security)");
             key_lengths[1] = Lang("4 (Low security)");
@@ -158,7 +158,7 @@ namespace Shell.Protector
             key_lengths[3] = Lang("12 (Hight security)");
             key_lengths[4] = Lang("16 (Unbreakable security)");
 
-            switch (root.lang_idx)
+            switch (root.langIdx)
             {
                 case 0:
                     root.lang = "eng";
@@ -186,9 +186,9 @@ namespace Shell.Protector
 
             GUILayout.Label(Lang("Password"), EditorStyles.boldLabel);
 
-            if (key_size.intValue < 16)
+            if (keySize.intValue < 16)
             {
-                int length = 16 - key_size.intValue;
+                int length = 16 - keySize.intValue;
                 GUILayout.BeginHorizontal();
                 root.pwd = GUILayout.TextField(root.pwd, length, GUILayout.Width(100));
                 if (GUILayout.Button(Lang("Generate")))
@@ -197,17 +197,17 @@ namespace Shell.Protector
                 GUILayout.Label(Lang("A password that you don't need to memorize. (max:") + length + ")", EditorStyles.wordWrappedLabel);
                 GUILayout.EndHorizontal();
             }
-            if (key_size.intValue > 0)
+            if (keySize.intValue > 0)
             {
                 GUILayout.BeginHorizontal();
                 if(!show_pwd)
-                    root.pwd2 = GUILayout.PasswordField(root.pwd2, '*', key_size.intValue, GUILayout.Width(100));
+                    root.pwd2 = GUILayout.PasswordField(root.pwd2, '*', keySize.intValue, GUILayout.Width(100));
                 else
-                    root.pwd2 = GUILayout.TextField(root.pwd2, key_size.intValue, GUILayout.Width(100));
+                    root.pwd2 = GUILayout.TextField(root.pwd2, keySize.intValue, GUILayout.Width(100));
                 if (GUILayout.Button(Lang("Show")))
                     show_pwd = !show_pwd;
                 GUILayout.FlexibleSpace();
-                GUILayout.Label(Lang("This password should be memorized. (max:") + key_size.intValue + ")", EditorStyles.wordWrappedLabel);
+                GUILayout.Label(Lang("This password should be memorized. (max:") + keySize.intValue + ")", EditorStyles.wordWrappedLabel);
                 GUILayout.EndHorizontal();
             }
             int free_parameter = -1;
@@ -225,13 +225,13 @@ namespace Shell.Protector
                 GUILayout.Label(Lang("Free parameter:") + free_parameter, EditorStyles.wordWrappedLabel);
             }
             int lock_size = 1;
-            int switch_count = ShellProtector.GetRequiredSwitchCount(key_size.intValue, sync_size.intValue);
-            int using_parameter = switch_count + lock_size + sync_size.intValue * 8;
+            int switch_count = ShellProtector.GetRequiredSwitchCount(keySize.intValue, syncSize.intValue);
+            int using_parameter = switch_count + lock_size + syncSize.intValue * 8;
             GUILayout.Label(Lang("Parameters to be used:") + using_parameter, EditorStyles.wordWrappedLabel);
 
             serializedObject.Update();
-            game_object_list.DoLayoutList();
-            material_list.DoLayoutList();
+            gameobjectList.DoLayoutList();
+            materialList.DoLayoutList();
             GUILayout.Label(Lang("Encrypting too many objects can cause lag when loading avatars in-game."));
             if(GUILayout.Button(Lang("Material advanced settings")))
             {
@@ -243,43 +243,43 @@ namespace Shell.Protector
             if(option)
             {
                 GUILayout.Label(Lang("Max password length"), EditorStyles.boldLabel);
-                key_size_idx.intValue = EditorGUILayout.Popup(key_size_idx.intValue, key_lengths, GUILayout.Width(150));
+                keySizeIdx.intValue = EditorGUILayout.Popup(keySizeIdx.intValue, key_lengths, GUILayout.Width(150));
                 GUILayout.Space(10);
 
-                switch (key_size_idx.intValue)
+                switch (keySizeIdx.intValue)
                 {
                     case 0:
-                        key_size.intValue = 0;
+                        keySize.intValue = 0;
                         break;
                     case 1:
-                        key_size.intValue = 4;
+                        keySize.intValue = 4;
                         break;
                     case 2:
-                        key_size.intValue = 8;
+                        keySize.intValue = 8;
                         break;
                     case 3:
-                        key_size.intValue = 12;
+                        keySize.intValue = 12;
                         break;
                     case 4:
-                        key_size.intValue = 16;
+                        keySize.intValue = 16;
                         break;
                 }
 
-                var sync_size_value = sync_size.intValue;
-                int sync_size_index = 0;
-                //int[] sync_size_caldidate = { 1, 2, 4};
+                var syncSize_value = syncSize.intValue;
+                int syncSize_index = 0;
+                //int[] syncSize_caldidate = { 1, 2, 4};
                 //string[] selectable_values = { "1", "2", "4" };
-                int[] sync_size_caldidate = { 1 };
+                int[] syncSize_caldidate = { 1 };
                 string[] selectable_values = { "1" };
-                for (int i = 0; i < sync_size_caldidate.Length; i++)
-                    if (sync_size_caldidate[i] == sync_size_value)
-                        sync_size_index = i;
+                for (int i = 0; i < syncSize_caldidate.Length; i++)
+                    if (syncSize_caldidate[i] == syncSize_value)
+                        syncSize_index = i;
 
-                if(key_size.intValue > 0)
+                if(keySize.intValue > 0)
                 {
                     GUILayout.Label(Lang("Sync speed"), EditorStyles.boldLabel);
-                    sync_size_index = EditorGUILayout.Popup(sync_size_index, selectable_values, GUILayout.Width(100));
-                    sync_size.intValue = sync_size_caldidate[sync_size_index];
+                    syncSize_index = EditorGUILayout.Popup(syncSize_index, selectable_values, GUILayout.Width(100));
+                    syncSize.intValue = syncSize_caldidate[syncSize_index];
                     GUILayout.Label(Lang("Under development."), EditorStyles.boldLabel);
                     //GUILayout.Label(Lang("When the Sync speed is 2 or higher, OSC1.7 or higher must be used."), EditorStyles.boldLabel);
                     GUILayout.Space(10);
@@ -324,7 +324,7 @@ namespace Shell.Protector
 
                 GUILayout.BeginHorizontal();
                 GUILayout.Label(Lang("Delete folders that already exists when at creation time"), EditorStyles.boldLabel);
-                delete_folders.boolValue = EditorGUILayout.Toggle(delete_folders.boolValue);
+                deleteFolders.boolValue = EditorGUILayout.Toggle(deleteFolders.boolValue);
                 GUILayout.FlexibleSpace();
                 GUILayout.EndHorizontal();
 
@@ -380,7 +380,7 @@ namespace Shell.Protector
                 GUILayout.EndHorizontal();
                 GUI.enabled = forceProgress;
             }
-            if (game_object_list.count == 0 && material_list.count == 0)
+            if (gameobjectList.count == 0 && materialList.count == 0)
                 GUI.enabled = false;
 
 
@@ -414,31 +414,31 @@ namespace Shell.Protector
                     Test.ChachaTest(root.pwd, root.pwd2, root.GetKeySize());
                 GUILayout.Space(10);
 
-                texture_list.DoLayoutList();
+                textureList.DoLayoutList();
                 GUILayout.BeginHorizontal();
                 if (GUILayout.Button(Lang("Encrypt")))
                 {
                     Texture2D last = null;
-                    for (int i = 0; i < texture_list.count; i++)
+                    for (int i = 0; i < textureList.count; i++)
                     {
-                        SerializedProperty element = texture_list.serializedProperty.GetArrayElementAtIndex(i);
+                        SerializedProperty element = textureList.serializedProperty.GetArrayElementAtIndex(i);
                         Texture2D texture = element.objectReferenceValue as Texture2D;
 
                         TextureSettings.SetRWEnableTexture(texture);
 
-                        var result = TextureEncryptManager.EncryptTexture(texture, KeyGenerator.MakeKeyBytes(root.pwd, root.pwd2, key_size.intValue), new XXTEA());
+                        var result = TextureEncryptManager.EncryptTexture(texture, KeyGenerator.MakeKeyBytes(root.pwd, root.pwd2, keySize.intValue), new XXTEA());
 
                         last = result.Texture1;
 
-                        if (!AssetDatabase.IsValidFolder(root.asset_dir + '/' + root.descriptor.gameObject.name))
-                            AssetDatabase.CreateFolder(root.asset_dir, root.descriptor.gameObject.name);
-                        if (!AssetDatabase.IsValidFolder(root.asset_dir + '/' + root.descriptor.gameObject.name + "/mat"))
-                            AssetDatabase.CreateFolder(root.asset_dir + '/' + root.descriptor.gameObject.name, "mat");
+                        if (!AssetDatabase.IsValidFolder(root.assetDir + '/' + root.descriptor.gameObject.name))
+                            AssetDatabase.CreateFolder(root.assetDir, root.descriptor.gameObject.name);
+                        if (!AssetDatabase.IsValidFolder(root.assetDir + '/' + root.descriptor.gameObject.name + "/mat"))
+                            AssetDatabase.CreateFolder(root.assetDir + '/' + root.descriptor.gameObject.name, "mat");
 
-                        AssetDatabase.CreateAsset(result.Texture1, root.asset_dir + '/' + root.descriptor.gameObject.name + '/' + texture.name + "_encrypt.asset");
-                        File.WriteAllBytes(root.asset_dir + '/' + root.descriptor.gameObject.name + '/' + texture.name + "_encrypt.png", result.Texture2.EncodeToPNG());
+                        AssetDatabase.CreateAsset(result.Texture1, root.assetDir + '/' + root.descriptor.gameObject.name + '/' + texture.name + "_encrypt.asset");
+                        File.WriteAllBytes(root.assetDir + '/' + root.descriptor.gameObject.name + '/' + texture.name + "_encrypt.png", result.Texture2.EncodeToPNG());
                         if (result.Texture2 != null)
-                            AssetDatabase.CreateAsset(result.Texture2, root.asset_dir + '/' + root.descriptor.gameObject.name + '/' + texture.name + "_encrypt2.asset");
+                            AssetDatabase.CreateAsset(result.Texture2, root.assetDir + '/' + root.descriptor.gameObject.name + '/' + texture.name + "_encrypt2.asset");
                         AssetDatabase.SaveAssets();
 
                         AssetDatabase.Refresh();

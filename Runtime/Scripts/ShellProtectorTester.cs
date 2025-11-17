@@ -10,7 +10,7 @@ namespace Shell.Protector
     public class ShellProtectorTester : MonoBehaviour, IEditorOnly
     {
         public string lang = "eng";
-        public int lang_idx = 0;
+        public int langIdx = 0;
         public int userKeyLength = 4;
 
         public ShellProtector protector;

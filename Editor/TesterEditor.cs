@@ -47,8 +47,8 @@ namespace Shell.Protector
 
             GUILayout.Space(10);
 
-            root.lang_idx = EditorGUILayout.Popup(root.lang_idx, languages, GUILayout.Width(100));
-            switch (root.lang_idx)
+            root.langIdx = EditorGUILayout.Popup(root.langIdx, languages, GUILayout.Width(100));
+            switch (root.langIdx)
             {
                 case 0:
                     root.lang = "eng";
