@@ -15,12 +15,6 @@ using UnityEditor.Animations;
 using nadena.dev.modular_avatar.core;
 #endif
 
-#if POIYOMI
-using Thry;
-#elif POIYOMI91
-using Thry.ThryEditor;
-#endif
-
 namespace Shell.Protector
 {
     public class ShellProtector : MonoBehaviour, IEditorOnly
@@ -29,8 +23,6 @@ namespace Shell.Protector
         List<GameObject> gameobjectList = new List<GameObject>();
         [SerializeField]
         List<Material> materialList = new List<Material>();
-        [SerializeField]
-        List<Texture2D> textureList = new List<Texture2D>();
         [SerializeField]
         List<SkinnedMeshRenderer> obfuscationRenderers = new List<SkinnedMeshRenderer>();
 
@@ -267,6 +259,8 @@ namespace Shell.Protector
             var mips = new Dictionary<int, Texture2D>();
             foreach (var mat in materials)
             {
+                if (mat == null)
+                    continue;
                 int filter = this.filter;
 #if UNITY_2022
                 MatOption option = matOptions.GetValueOrDefault(mat, null);
@@ -284,8 +278,6 @@ namespace Shell.Protector
                     }
                     filter = option.filter;
                 }
-                if (mat == null)
-                    continue;
 
                 EditorUtility.DisplayProgressBar("Encrypt...", "Encrypt Progress " + ++progress + " of " + maxprogress, (float)progress / (float)maxprogress);
                 injector = InjectorFactory.GetInjector(mat.shader);
@@ -296,6 +288,15 @@ namespace Shell.Protector
                 }
                 if (!ConditionCheck(mat))
                     continue;
+
+                if (shaderManager.IsPoiyomi(mat.shader))
+                {
+                    if (!shaderManager.IsLockPoiyomi(mat))
+                    {
+                        shaderManager.LockShader(mat);
+                        Debug.LogFormat("Lock: {0} - {1}", mat.name, AssetDatabase.GetAssetPath(mat.shader));
+                    }
+                }
 
                 Debug.LogFormat("{0} : Start encrypt...", mat.name);
 
@@ -356,7 +357,7 @@ namespace Shell.Protector
                         continue;
                     }
                 }
-
+                /////////////////////////////////////////////////////////
                 string fallbackDir = Path.Combine(avatarDir, "tex", mainTexture.GetInstanceID() + "_fallback.asset");
                 Texture2D fallback = GenerateFallbackTexture(fallbackDir, option, mainTexture, ref processedTexture);
                 if (fallback == null)
@@ -941,17 +942,6 @@ namespace Shell.Protector
         }
         bool ConditionCheck(Material mat)
         {
-            if (shaderManager.IsPoiyomi(mat.shader))
-            {
-                if (!shaderManager.IsLockPoiyomi(mat.shader))
-                {
-#if POIYOMI
-                    ShaderOptimizer.SetLockedForAllMaterials(new[] { mat }, 1, true);
-#elif POIYOMI91
-                    ShaderOptimizer.LockMaterials(new[] { mat });
-#endif
-                }
-            }
             if (mat.mainTexture == null)
             {
                 Debug.LogWarningFormat("{0} : The mainTexture is empty. it will be skip.", mat.name);

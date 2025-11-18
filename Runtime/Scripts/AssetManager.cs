@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 using System.Linq;
+using System.Reflection;
 
 namespace Shell.Protector
 {
@@ -44,11 +45,9 @@ namespace Shell.Protector
                 return true;
             return false;
         }
-        public bool IsLockPoiyomi(Shader shader)
+        public bool IsLockPoiyomi(Material mat)
         {
-            if (shader.name.Contains("Locked"))
-                return true;
-            return false;
+            return mat.shader.name.StartsWith("Hidden/") && mat.GetTag("OriginalShader", false, "") != "";
         }
         public int GetShaderType(Shader shader)
         {
@@ -170,6 +169,56 @@ namespace Shell.Protector
             symbols = symbols.Replace(";MODULAR", "");
 
             PlayerSettings.SetScriptingDefineSymbolsForGroup(EditorUserBuildSettings.selectedBuildTargetGroup, symbols);
+        }
+
+        public bool LockShader(Material mat)
+        {
+            if (IsLockPoiyomi(mat))
+                return true;
+
+            bool bOldOptimizer = false;
+
+            Type optimizer = Type.GetType("Thry.ThryEditor.ShaderOptimizer, ThryAssemblyDefinition");
+            if (optimizer == null)
+            {
+                bOldOptimizer = true;
+                optimizer = Type.GetType("Thry.ShaderOptimizer, ThryAssemblyDefinition");
+            }
+                
+            if (optimizer == null)
+            {
+                Debug.LogError("Not found the ShaderOptimizer!");
+                return false;
+            }
+            if (!bOldOptimizer)
+            {
+                MethodInfo lockFn = optimizer.GetMethod("LockMaterials");
+                if (lockFn == null)
+                {
+                    Debug.LogError("Not found LockMaterials()");
+                    return false;
+                }
+                object[] param = 
+                {
+                    new[] { mat }, 0 
+                };
+                lockFn.Invoke(null, param);
+            }
+            else
+            {
+                MethodInfo lockFn = optimizer.GetMethod("SetLockedForAllMaterials");
+                if (lockFn == null)
+                {
+                    Debug.LogError("Not found SetLockedForAllMaterials()");
+                    return false;
+                }
+                object[] param =
+                {
+                    new[] { mat }, 1, true, false, true, null
+                };
+                lockFn.Invoke(null, param);
+            }
+            return true;
         }
     }
 }
