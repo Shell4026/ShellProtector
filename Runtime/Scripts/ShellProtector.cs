@@ -952,7 +952,7 @@ namespace Shell.Protector
                 Debug.LogErrorFormat("MainTexture in {0} is not texture2D", mat.name);
                 return false;
             }
-            if (mat.mainTexture.width % 2 != 0 && mat.mainTexture.height % 2 != 0)
+            if (mat.mainTexture.width % 2 != 0 || mat.mainTexture.height % 2 != 0)
             {
                 Debug.LogErrorFormat("{0} : The texture size must be a multiple of 2!", mat.mainTexture.name);
                 return false;
