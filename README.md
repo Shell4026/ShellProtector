@@ -52,7 +52,7 @@ OSC 소스 코드: https://github.com/Shell4026/ShellProtectorOSC
 ### 파라미터 멀티플렉싱
 세부 원리:https://github.com/seanedwards/vrc-worldobject/blob/main/docs/parameter-multiplexing.md
 
-파라미터 절약 기술입니다. 체크 후 OSC를 항상 켜둬야하며 OSC프로그램에도 Parameter-multiplexing을 체크 해야합니다.
+파라미터 절약 기술입니다. 체크 후 OSC를 항상 켜둬야하며 OSC프로그램에도 **Parameter-multiplexing을 체크** 해야 합니다.
 
 인게임에서 원래 모습으로 돌아오기까지 시간이 약간 증가합니다.
 
@@ -61,6 +61,8 @@ OSC 소스 코드: https://github.com/Shell4026/ShellProtectorOSC
 파라미터 멀티플렉싱 사용시 서버나 네트워크 상황에 따라 다른 유저에게 OSC값이 전달이 안 돼어 복호화가 안 될 수 있습니다.
 
 이 경우 OSC 1.5.0에 추가된 Refresh rate를 조금 올려보시길 바랍니다.
+
+2.5.0beta부터 기본 적용 됩니다.
 
 ### 아바타 폴백
 암호화가 걸려있을 때 세이프티가 켜져있는 사람은 아바타를 볼 때 열화된 버전으로 보이게 하는 기능입니다.
