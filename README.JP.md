@@ -54,7 +54,7 @@ OSCのソースコード： https://github.com/Shell4026/ShellProtectorOSC
 ### パラメータマルチプレックス
 詳細原理:https://github.com/seanedwards/vrc-worldobject/blob/main/docs/parameter-multiplexing.md
 
-パラメータ節約技術です。チェック後、OSCを常にオンにしておく必要があり、OSCプログラムにもParameter-multiplexingをチェックする必要があります。
+パラメータ節約技術です。チェック後、OSCを常にオンにしておく必要があり、OSCプログラムにも**Parameter-multiplexingをチェック**する必要があります。
 
 ゲーム内で元の姿に戻るまでの時間が若干増加します。
 
@@ -63,6 +63,8 @@ OSCのソースコード： https://github.com/Shell4026/ShellProtectorOSC
 パラメータマルチプレックス使用時、サーバーやネットワークの状況により、他のユーザにOSC値が伝達されず、復号化ができない場合があります。
 
 この場合、OSC 1.5.0で追加されたRefresh rateを少し上げてみてください。
+
+2.5.0betaからデフォルトで適用されます。
 
 ### アバターフォールバック
 暗号化がかかっているときにSafetyがオンになっている人は、アバターを見るときに劣化したバージョンに見えるようにする機能です。
