@@ -53,7 +53,7 @@ Source code of OSC: https://github.com/Shell4026/ShellProtectorOSC
 ### Parameter-multiplexing
 Detailed principle:https://github.com/seanedwards/vrc-worldobject/blob/main/docs/parameter-multiplexing.md
 
-This is a parameter-saving technique. After checking, OSC must always be turned on and Parameter-multiplexing must be checked in the OSC program.
+This is a parameter-saving technique. After checking, OSC must always be **turned on and Parameter-multiplexing** must be checked in the OSC program.
 
 This will slightly increase the time it takes to get back to your original avatar appearance in-game.
 
@@ -62,6 +62,8 @@ This will slightly increase the time it takes to get back to your original avata
 When using parameter multiplexing, depending on the server or network conditions, OSC values may not be delivered to other users and decryption may not work.
 
 In this case, try increasing the refresh rate slightly, which was added in OSC 1.5.0.
+
+It is applied by default from version 2.5.0beta.
 
 ### Avatar fallback
 A feature that allows anyone with Safety On when encryption is in place to appear as a degraded version of themselves when viewing your avatar.
