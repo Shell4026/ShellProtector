@@ -5,7 +5,7 @@ using UnityEngine;
 #if UNITY_EDITOR
 namespace Shell.Protector
 {
-    abstract public class Injector
+    abstract public class Injector : IShaderAdapter
     {
         protected ushort[] keys = new ushort[8]; //16byte
         protected AssetManager shader_manager = AssetManager.GetInstance();
@@ -76,6 +76,8 @@ namespace Shell.Protector
             this.encryptor = encryptor;
         }
 
+        public abstract bool CanHandle(Shader shader);
+
         public bool WasInjected(Shader shader)
         {
             string shader_path = AssetDatabase.GetAssetPath(shader);
@@ -91,7 +93,7 @@ namespace Shell.Protector
             var keywords = material.shaderKeywords;
             foreach (string keyword in keywords)
             {
-                if (keyword.StartsWith("_SHELL_PROTECTOR_")) {
+                if (keyword.StartsWith(ShellProtectorShaderProperties.KeywordPrefix)) {
                     material.DisableKeyword(keyword);
                 }
             }
@@ -101,10 +103,23 @@ namespace Shell.Protector
 
             // Set rimlight keyword
             if (has_lim_texture) 
-                material.EnableKeyword("_SHELL_PROTECTOR_RIMLIGHT"); 
+                material.EnableKeyword(ShellProtectorShaderProperties.RimLightKeyword);
 
             // Set encryptor keyword
             material.EnableKeyword(encryptor.Keyword);
+        }
+
+        public Shader Inject(Material material, string decoderPath, string outputPath, Texture2D mainTexture, ShellProtectorAuxiliaryTextures auxiliaryTextures)
+        {
+            return Inject(
+                material,
+                decoderPath,
+                outputPath,
+                mainTexture,
+                auxiliaryTextures.limTexture != null,
+                auxiliaryTextures.limTexture2 != null,
+                auxiliaryTextures.outlineTexture != null
+            );
         }
 
         public Shader Inject(Material mat, string decode_dir, string output_dir, Texture2D tex, bool has_lim_texture = false, bool has_lim_texture2 = false, bool outline_tex = false) 

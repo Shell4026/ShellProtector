@@ -29,7 +29,7 @@ namespace Shell.Protector
         }
         public override void OnInspectorGUI()
         {
-            root.protector = EditorGUILayout.ObjectField(root.protector, typeof(ShellProtector), GUILayout.Width(200)) as ShellProtector;
+            root.protector = EditorGUILayout.ObjectField(root.protector, typeof(ShellProtector), true, GUILayout.Width(200)) as ShellProtector;
 
             GUILayout.Space(10);
 

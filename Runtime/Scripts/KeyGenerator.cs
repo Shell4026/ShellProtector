@@ -2,6 +2,9 @@
 using System.Security.Cryptography;
 using System;
 using UnityEngine;
+
+namespace Shell.Protector
+{
 public class KeyGenerator
 {
     //key1 is fixed key
@@ -99,4 +102,5 @@ public class KeyGenerator
 
         return hash;
     }
+}
 }

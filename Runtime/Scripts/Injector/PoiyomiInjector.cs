@@ -10,6 +10,11 @@ namespace Shell.Protector
 {
     public class PoiyomiInjector : Injector
     {
+        public override bool CanHandle(Shader shader)
+        {
+            return shader_manager.IsPoiyomi(shader);
+        }
+
         protected override Shader CustomInject(Material mat, string decode_dir, string output_path, Texture2D tex, bool has_lim_texture = false, bool has_lim_texture2 = false, bool outline_tex = false)
         {
             if (!File.Exists(decode_dir))
@@ -132,21 +137,21 @@ namespace Shell.Protector
             {
                 int suffix_idx = match.Index + match.Length;
                 string properties = @"
-        _MipTex (""MipReference"", 2D) = ""white"" { }
-        _EncryptTex0 (""Encrypted0"", 2D) = ""white"" { }
-        _EncryptTex1 (""Encrypted1"", 2D) = ""white"" { }
-        _Woffset (""Woffset"", integer) = 0
-        _Hoffset (""Hoffset"", integer) = 0
-        _Nonce0 (""Nonce"", integer) = 0
-        _Nonce1 (""Nonce"", integer) = 0
-        _Nonce2 (""Nonce"", integer) = 0
-        _Rounds (""Rounds"", integer) = 0
-        _PasswordHash (""PasswordHash"", integer) = 0
-        _HashMagic (""HashMagic"", integer) = 0
+" + ShellProtectorShaderProperties.MipTexture + @" (""MipReference"", 2D) = ""white"" { }
+" + ShellProtectorShaderProperties.EncryptTexture0 + @" (""Encrypted0"", 2D) = ""white"" { }
+" + ShellProtectorShaderProperties.EncryptTexture1 + @" (""Encrypted1"", 2D) = ""white"" { }
+" + ShellProtectorShaderProperties.WidthOffset + @" (""Woffset"", integer) = 0
+" + ShellProtectorShaderProperties.HeightOffset + @" (""Hoffset"", integer) = 0
+" + ShellProtectorShaderProperties.Nonce0 + @" (""Nonce"", integer) = 0
+" + ShellProtectorShaderProperties.Nonce1 + @" (""Nonce"", integer) = 0
+" + ShellProtectorShaderProperties.Nonce2 + @" (""Nonce"", integer) = 0
+" + ShellProtectorShaderProperties.Rounds + @" (""Rounds"", integer) = 0
+" + ShellProtectorShaderProperties.PasswordHash + @" (""PasswordHash"", integer) = 0
+" + ShellProtectorShaderProperties.HashMagic + @" (""HashMagic"", integer) = 0
 ";
 
                 for (int i = 0; i < 16; ++i)
-                    properties += "_Key" + i + " (\"key" + i + "\", float) = 0\n";
+                    properties += ShellProtectorShaderProperties.KeyPrefix + i + " (\"key" + i + "\", float) = 0\n";
 
                 data = data.Insert(suffix_idx, properties);
             }

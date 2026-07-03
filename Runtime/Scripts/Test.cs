@@ -1,6 +1,8 @@
 using Shell.Protector;
 using UnityEngine;
 
+namespace Shell.Protector
+{
 public class Test
 {
     public static void XXTEATest(string fixedKey, string userKey, int userKeySize)
@@ -55,4 +57,5 @@ public class Test
         result = chacha.Encrypt(result, key);
         Debug.Log("Decrypted data: " + string.Join(", ", result));
     }
+}
 }

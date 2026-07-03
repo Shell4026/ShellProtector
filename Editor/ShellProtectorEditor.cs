@@ -35,6 +35,7 @@ namespace Shell.Protector
         SerializedProperty bUseSmallMipTexture;
         SerializedProperty bPreserveMMD;
         SerializedProperty turnOnAllSafetyFallback;
+        ShellProtectorEditorViewModel viewModel;
         bool debug = false;
         bool option = true;
         bool ObfuscatorOption = true;
@@ -114,6 +115,7 @@ namespace Shell.Protector
             bPreserveMMD = serializedObject.FindProperty("bPreserveMMD");
             turnOnAllSafetyFallback = serializedObject.FindProperty("turnOnAllSafetyFallback");
             #endregion
+            viewModel = new ShellProtectorEditorViewModel(root, keySize, syncSize, gameobjectList, materialList);
 
             enc_funcs[0] = "XXTEA";
             enc_funcs[1] = "Chacha8";
@@ -138,7 +140,7 @@ namespace Shell.Protector
         {
             root = target as ShellProtector;
 
-            root.descriptor = EditorGUILayout.ObjectField(root.descriptor, typeof(VRCAvatarDescriptor)) as VRCAvatarDescriptor;
+            root.descriptor = EditorGUILayout.ObjectField(root.descriptor, typeof(VRCAvatarDescriptor), true) as VRCAvatarDescriptor;
             GUILayout.BeginHorizontal();
             GUILayout.Label(Lang("Current version: ") + VersionManager.GetInstance().GetVersion());
             GUILayout.FlexibleSpace();
@@ -210,26 +212,21 @@ namespace Shell.Protector
                 GUILayout.Label(Lang("This password should be memorized. (max:") + keySize.intValue + ")", EditorStyles.wordWrappedLabel);
                 GUILayout.EndHorizontal();
             }
-            int free_parameter = -1;
+            serializedObject.Update();
+            viewModel.Refresh();
 
             GUIStyle red_style = new GUIStyle(GUI.skin.label);
             red_style.normal.textColor = Color.red;
             red_style.wordWrap = true;
 
-            var parameters = root.GetParameter();
-            if (parameters == null)
+            if (!viewModel.HasParameterAsset)
                 GUILayout.Label(Lang("Cannot find VRCExpressionParameters in your avatar!"), red_style);
             else
             {
-                free_parameter = 256 - parameters.CalcTotalCost();
-                GUILayout.Label(Lang("Free parameter:") + free_parameter, EditorStyles.wordWrappedLabel);
+                GUILayout.Label(Lang("Free parameter:") + viewModel.FreeParameter, EditorStyles.wordWrappedLabel);
             }
-            int lock_size = 1;
-            int switch_count = ShellProtector.GetRequiredSwitchCount(keySize.intValue, syncSize.intValue);
-            int using_parameter = switch_count + lock_size + syncSize.intValue * 8;
-            GUILayout.Label(Lang("Parameters to be used:") + using_parameter, EditorStyles.wordWrappedLabel);
+            GUILayout.Label(Lang("Parameters to be used:") + viewModel.UsedParameter, EditorStyles.wordWrappedLabel);
 
-            serializedObject.Update();
             gameobjectList.DoLayoutList();
             materialList.DoLayoutList();
             GUILayout.Label(Lang("Encrypting too many objects can cause lag when loading avatars in-game."));
@@ -370,7 +367,8 @@ namespace Shell.Protector
             }
 #endregion
 
-            if (free_parameter - using_parameter < 0)
+            viewModel.Refresh();
+            if (!viewModel.HasEnoughParameterSpace)
             {
                 GUILayout.Label(Lang("Not enough parameter space!"), red_style);
                 GUILayout.BeginHorizontal();
@@ -380,7 +378,7 @@ namespace Shell.Protector
                 GUILayout.EndHorizontal();
                 GUI.enabled = forceProgress;
             }
-            if (gameobjectList.count == 0 && materialList.count == 0)
+            if (!viewModel.HasTargets)
                 GUI.enabled = false;
 
 

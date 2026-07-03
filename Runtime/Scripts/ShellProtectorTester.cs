@@ -43,7 +43,7 @@ namespace Shell.Protector
                         if (mat.name.Contains("_encrypted") || mat.name.Contains("_duplicated"))
                         {
                             for (int i = 0; i < 16; ++i)
-                                mat.SetInt("_Key" + i, pwd_bytes[i]);
+                                mat.SetInt(ShellProtectorShaderProperties.KeyPrefix + i, pwd_bytes[i]);
                         }
                     }
                 }
@@ -66,7 +66,7 @@ namespace Shell.Protector
                         if (mat.name.Contains("_encrypted") || mat.name.Contains("_duplicated"))
                         {
                             for (int i = 0; i < 16; ++i)
-                                mat.SetInt("_Key" + i, pwd_bytes[i]);
+                                mat.SetInt(ShellProtectorShaderProperties.KeyPrefix + i, pwd_bytes[i]);
                         }
                     }
                 }
@@ -87,11 +87,11 @@ namespace Shell.Protector
                 {
                     if (mat == null)
                         continue;
-                    if (mat.name.Contains("_encrypted") || mat.name.Contains("_duplicated"))
-                    {
-                        for (int i = 16 - userKeyLength; i < 16; ++i)
-                            mat.SetInt("_Key" + i, 0);
-                    }
+                        if (mat.name.Contains("_encrypted") || mat.name.Contains("_duplicated"))
+                        {
+                            for (int i = 16 - userKeyLength; i < 16; ++i)
+                                mat.SetInt(ShellProtectorShaderProperties.KeyPrefix + i, 0);
+                        }
                 }
             }
             var skinned_renderers = transform.root.GetComponentsInChildren<SkinnedMeshRenderer>(true);
@@ -107,11 +107,11 @@ namespace Shell.Protector
                 {
                     if (mat == null)
                         continue;
-                    if (mat.name.Contains("_encrypted") || mat.name.Contains("_duplicated"))
-                    {
-                        for (int i = 16 - userKeyLength; i < 16; ++i)
-                            mat.SetInt("_Key" + i, 0);
-                    }
+                        if (mat.name.Contains("_encrypted") || mat.name.Contains("_duplicated"))
+                        {
+                            for (int i = 16 - userKeyLength; i < 16; ++i)
+                                mat.SetInt(ShellProtectorShaderProperties.KeyPrefix + i, 0);
+                        }
                 }
             }
         }

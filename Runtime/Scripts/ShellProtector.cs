@@ -65,32 +65,20 @@ namespace Shell.Protector
 
         EncryptedHistory history;
 
-        struct ProcessedTexture
-        {
-            public EncryptResult encrypted;
-            public List<Texture2D> fallbacks;
-            public List<int> fallbackOptions;
-            public byte[] nonce;
-        }
-        struct OtherTextures
-        {
-            public Texture2D limTexture;
-            public Texture2D limTexture2;
-            public Texture2D outlineTexture;
-            public Texture2D limShadeTexture;
-        }
-
         //Must clear them before start encrypting//
-        HashSet<GameObject> meshes = new HashSet<GameObject>();
-        Dictionary<Material, Material> encryptedMaterials = new Dictionary<Material, Material>(); // original, encrypted
-        Dictionary<Texture2D, ProcessedTexture> processedTextures = new Dictionary<Texture2D, ProcessedTexture>();
+        ShellProtectorBuildResult buildResult = new ShellProtectorBuildResult();
+        HashSet<GameObject> meshes => buildResult.Meshes;
+        Dictionary<Material, Material> encryptedMaterials => buildResult.EncryptedMaterials; // original, encrypted
+        Dictionary<Texture2D, ShellProtectorProcessedTexture> processedTextures => buildResult.ProcessedTextures;
         //////////////////////////////////
 
         [SerializeField] uint rounds = 20;
         [SerializeField] int filter = 1;
         [SerializeField] int fallback = 5;
         [SerializeField] int algorithm = 1;
+#pragma warning disable CS0414
         [SerializeField] int keySizeIdx = 3;
+#pragma warning restore CS0414
         [SerializeField] int keySize = 12;
         [SerializeField] int syncSize = 1;
         [SerializeField] bool deleteFolders = true;
@@ -98,7 +86,6 @@ namespace Shell.Protector
 
         [SerializeField] bool bPreserveMMD = true;
 
-        [SerializeField] float fallbackTime = 5.0f;
         [SerializeField] bool turnOnAllSafetyFallback = true;
 
         public static readonly string[] filterStrings = new string[2] { "Point", "Bilinear" };
@@ -189,6 +176,65 @@ namespace Shell.Protector
 
         public GameObject Encrypt(bool bUseSmallMip, bool isModular = true)
         {
+            var request = new ShellProtectorBuildRequest(this, descriptor, bUseSmallMip, isModular);
+            var result = new ShellProtectorPipeline().Encrypt(request, CreateSettings());
+            ApplyBuildResult(result);
+            return result.Avatar;
+        }
+
+        internal ShellProtectorBuildResult CurrentBuildResult => buildResult;
+
+        internal void ApplyBuildResult(ShellProtectorBuildResult result)
+        {
+            buildResult = result ?? new ShellProtectorBuildResult();
+        }
+
+        internal ShellProtectorSettings CreateSettings()
+        {
+            return new ShellProtectorSettings
+            {
+                AssetDir = assetDir,
+                FixedPassword = pwd,
+                UserPassword = pwd2,
+                Language = lang,
+                LanguageIndex = langIdx,
+                Rounds = rounds,
+                Filter = filter,
+                Fallback = fallback,
+                Algorithm = algorithm,
+                KeySize = keySize,
+                SyncSize = syncSize,
+                DeleteFolders = deleteFolders,
+                UseSmallMipTexture = bUseSmallMipTexture,
+                PreserveMMD = bPreserveMMD,
+                TurnOnAllSafetyFallback = turnOnAllSafetyFallback
+            };
+        }
+
+        internal void ApplySettings(ShellProtectorSettings settings)
+        {
+            if (settings == null)
+                return;
+
+            assetDir = settings.AssetDir;
+            pwd = settings.FixedPassword;
+            pwd2 = settings.UserPassword;
+            lang = settings.Language;
+            langIdx = settings.LanguageIndex;
+            rounds = settings.Rounds;
+            filter = settings.Filter;
+            fallback = settings.Fallback;
+            algorithm = settings.Algorithm;
+            keySize = settings.KeySize;
+            syncSize = settings.SyncSize;
+            deleteFolders = settings.DeleteFolders;
+            bUseSmallMipTexture = settings.UseSmallMipTexture;
+            bPreserveMMD = settings.PreserveMMD;
+            turnOnAllSafetyFallback = settings.TurnOnAllSafetyFallback;
+        }
+
+        internal GameObject EncryptLegacy(bool bUseSmallMip, bool isModular = true)
+        {
             meshes.Clear();
             encryptedMaterials.Clear();
             processedTextures.Clear();
@@ -198,6 +244,7 @@ namespace Shell.Protector
             string resourceDir = GetPackageAssetDir();
             assetDir = ResolveOutputAssetDir();
             string avatarDir = Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString());
+            buildResult.AvatarDir = avatarDir;
 
             Debug.Log("AssetDir: " + assetDir);
 
@@ -241,6 +288,7 @@ namespace Shell.Protector
                 return null;
             }
             byte[] keyBytes = GetKeyBytes();
+            buildResult.KeyBytes = keyBytes;
 
             CreateFolders();
 
@@ -339,13 +387,13 @@ namespace Shell.Protector
                 var processedTextureResult = GenerateEncryptedTexture(avatarDir, mat, encryptor, keyBytes);
                 if (!processedTextureResult.HasValue)
                     continue;
-                ProcessedTexture processedTexture = processedTextureResult.Value;
+                ShellProtectorProcessedTexture processedTexture = processedTextureResult.Value;
 
                 Texture2D encryptedTex1 = processedTexture.encrypted.Texture1;
                 Texture2D encryptedTex2 = processedTexture.encrypted.Texture2;
 
                 //////////////////////Inject shader///////////////////////
-                OtherTextures otherTex = GetLimOutlineTextures(mat);
+                ShellProtectorAuxiliaryTextures otherTex = GetLimOutlineTextures(mat);
                 Shader encryptedShader = IsEncryptedBefore(mat.shader);
                 if (encryptedShader == null)
                 {
@@ -477,9 +525,9 @@ namespace Shell.Protector
                 }
             }
         }
-        OtherTextures GetLimOutlineTextures(Material mat)
+        ShellProtectorAuxiliaryTextures GetLimOutlineTextures(Material mat)
         {
-            OtherTextures others = new OtherTextures();
+            ShellProtectorAuxiliaryTextures others = new ShellProtectorAuxiliaryTextures();
             if (shaderManager.IsPoiyomi(mat.shader))
             {
                 var tex_properties = mat.GetTexturePropertyNames();
@@ -513,7 +561,7 @@ namespace Shell.Protector
             string avatarDir = Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString());
             foreach (var mat in encryptedMaterials.Values)
             {
-                OtherTextures otherTex = GetLimOutlineTextures(mat);
+                ShellProtectorAuxiliaryTextures otherTex = GetLimOutlineTextures(mat);
 
                 foreach (var name in mat.GetTexturePropertyNames())
                 {
@@ -1086,7 +1134,7 @@ namespace Shell.Protector
             }
             return mip;
         }
-        ProcessedTexture? GenerateEncryptedTexture(string avatarDir, Material mat, IEncryptor encryptor, byte[] keyBytes)
+        ShellProtectorProcessedTexture? GenerateEncryptedTexture(string avatarDir, Material mat, IEncryptor encryptor, byte[] keyBytes)
         {
             Texture2D mainTexture = (Texture2D)mat.mainTexture;
 
@@ -1094,12 +1142,12 @@ namespace Shell.Protector
             string texPath2 = Path.Combine(avatarDir, "tex", mainTexture.GetInstanceID() + "_encrypt2.asset");
 
             bool processed = processedTextures.ContainsKey(mainTexture);
-            ProcessedTexture processedTexture;
+            ShellProtectorProcessedTexture processedTexture;
             if (processed)
                 processedTexture = processedTextures[mainTexture];
             else
             {
-                processedTexture = new ProcessedTexture
+                processedTexture = new ShellProtectorProcessedTexture
                 {
                     encrypted = new EncryptResult(),
                     fallbacks = new List<Texture2D>(),
@@ -1149,7 +1197,7 @@ namespace Shell.Protector
 
             return processedTexture;
         }
-        Texture2D GenerateFallbackTexture(string outputDir, MatOption option, Texture2D mainTexture, ref ProcessedTexture processedTexture)
+        Texture2D GenerateFallbackTexture(string outputDir, MatOption option, Texture2D mainTexture, ref ShellProtectorProcessedTexture processedTexture)
         {
             int fallbackOption = this.fallback;
             if (option != null)
@@ -1221,7 +1269,7 @@ namespace Shell.Protector
 
             return fallback;
         }
-        Material GenerateEncryptedMaterial(string outputDir, Material mat, Shader encryptedShader, Texture2D fallback, Texture2D mip, OtherTextures otherTex, ProcessedTexture processedTexture, byte[] keyBytes, IEncryptor encryptor)
+        Material GenerateEncryptedMaterial(string outputDir, Material mat, Shader encryptedShader, Texture2D fallback, Texture2D mip, ShellProtectorAuxiliaryTextures otherTex, ShellProtectorProcessedTexture processedTexture, byte[] keyBytes, IEncryptor encryptor)
         {
             Material newMat = new Material(mat.shader);
             newMat.CopyPropertiesFromMaterial(mat);
@@ -1232,33 +1280,33 @@ namespace Shell.Protector
             Texture2D encryptedTex0 = processedTexture.encrypted.Texture1;
             Texture2D encryptedTex1 = processedTexture.encrypted.Texture2;
 
-            newMat.SetTexture("_MipTex", mip);
+            newMat.SetTexture(ShellProtectorShaderProperties.MipTexture, mip);
 
             if (encryptedTex0 != null)
-                newMat.SetTexture("_EncryptTex0", encryptedTex0);
+                newMat.SetTexture(ShellProtectorShaderProperties.EncryptTexture0, encryptedTex0);
             if (encryptedTex1 != null)
-                newMat.SetTexture("_EncryptTex1", encryptedTex1);
+                newMat.SetTexture(ShellProtectorShaderProperties.EncryptTexture1, encryptedTex1);
 
             newMat.renderQueue = mat.renderQueue;
             if (turnOnAllSafetyFallback)
                 newMat.SetOverrideTag("VRCFallback", "Unlit");
 
             var (woffset, hoffset) = TextureEncryptManager.CalculateOffsets(originalTex);
-            newMat.SetInteger("_Woffset", woffset);
-            newMat.SetInteger("_Hoffset", hoffset);
+            newMat.SetInteger(ShellProtectorShaderProperties.WidthOffset, woffset);
+            newMat.SetInteger(ShellProtectorShaderProperties.HeightOffset, hoffset);
             for (int i = 0; i < keyBytes.Length; ++i)
-                newMat.SetFloat("_Key" + i, keyBytes[i]);
+                newMat.SetFloat(ShellProtectorShaderProperties.KeyPrefix + i, keyBytes[i]);
 
             if (algorithm == (int)Algorithm.chacha)
             {
                 Chacha20 chacha = encryptor as Chacha20;
-                newMat.SetInteger("_Nonce0", (int)chacha.GetNonceUint3()[0]);
-                newMat.SetInteger("_Nonce1", (int)chacha.GetNonceUint3()[1]);
-                newMat.SetInteger("_Nonce2", (int)chacha.GetNonceUint3()[2]);
+                newMat.SetInteger(ShellProtectorShaderProperties.Nonce0, (int)chacha.GetNonceUint3()[0]);
+                newMat.SetInteger(ShellProtectorShaderProperties.Nonce1, (int)chacha.GetNonceUint3()[1]);
+                newMat.SetInteger(ShellProtectorShaderProperties.Nonce2, (int)chacha.GetNonceUint3()[2]);
             }
             else if (algorithm == (int)Algorithm.xxtea)
             {
-                newMat.SetInteger("_Rounds", (int)rounds);
+                newMat.SetInteger(ShellProtectorShaderProperties.Rounds, (int)rounds);
             }
 
             var key = new byte[16];
@@ -1268,8 +1316,8 @@ namespace Shell.Protector
             uint hashMagic = (uint)mat.GetInstanceID();
 
             var hash = KeyGenerator.SimpleHash(key, hashMagic);
-            newMat.SetInteger("_HashMagic", (int)hashMagic);
-            newMat.SetInteger("_PasswordHash", (int)hash);
+            newMat.SetInteger(ShellProtectorShaderProperties.HashMagic, (int)hashMagic);
+            newMat.SetInteger(ShellProtectorShaderProperties.PasswordHash, (int)hash);
 
             injector.SetKeywords(newMat, otherTex.limTexture != null);
 

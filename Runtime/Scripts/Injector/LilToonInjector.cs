@@ -13,6 +13,11 @@ namespace Shell.Protector
 {
     public class LilToonInjector : Injector
     {
+        public override bool CanHandle(Shader shader)
+        {
+            return shader_manager.IslilToon(shader);
+        }
+
         protected override Shader CustomInject(Material mat, string decode_dir, string output_path, Texture2D tex, bool has_lim_texture = false, bool has_lim_texture2 = false, bool outline_tex = false)
         {
             string[] files = Directory.GetFiles(Path.Combine(asset_dir, "liltoonProtector", "Shaders"));

@@ -16,65 +16,6 @@ namespace Shell.Protector
     {
         Dictionary<AnimationClip, AnimationClip> encryptedClip = new Dictionary<AnimationClip, AnimationClip>();
 
-        static string curve1 = @"
-  - curve:
-      serializedVersion: 2
-      m_Curve:
-      - serializedVersion: 3
-        time: 0
-        value: -128
-        inSlope: -1919.995
-        outSlope: 59.999996
-        tangentMode: 69
-        weightedMode: 0
-        inWeight: 0.33333334
-        outWeight: 0.33333334
-      - serializedVersion: 3
-        time: 2.1333334
-        value: 0
-        inSlope: 59.999996
-        outSlope: -1919.995
-        tangentMode: 69
-        weightedMode: 0
-        inWeight: 0.33333334
-        outWeight: 0.33333334
-      m_PreInfinity: 2
-      m_PostInfinity: 2
-      m_RotationOrder: 4
-    attribute: material._Key0
-    path: Body
-    classID: 137
-    script: {fileID: 0}";
-
-        static string curve2 = @"
-  - curve:
-      serializedVersion: 2
-      m_Curve:
-      - serializedVersion: 3
-        time: 0
-        value: 128
-        inSlope: 423.3333
-        outSlope: 60.000004
-        tangentMode: 69
-        weightedMode: 0
-        inWeight: 0.33333334
-        outWeight: 0.33333334
-      - serializedVersion: 3
-        time: 2.1333334
-        value: 256
-        inSlope: 59.999996
-        outSlope: 60
-        tangentMode: 69
-        weightedMode: 0
-        inWeight: 0.33333334
-        outWeight: 0.33333334
-      m_PreInfinity: 2
-      m_PostInfinity: 2
-      m_RotationOrder: 4
-    attribute: material._Key0
-    path: Body
-    classID: 137
-    script: {fileID: 0}";
         public static AnimatorController DuplicateAnimator(RuntimeAnimatorController anim, string new_dir)
         {
             string dir = AssetDatabase.GetAssetPath(anim);
@@ -102,7 +43,9 @@ namespace Shell.Protector
 
                 string path = Path.Combine(new_dir, filename);
                 AssetDatabase.CopyAsset(file, path);
-                string anim = File.ReadAllText(path);
+                AnimationClip clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(path);
+                if (clip == null)
+                    continue;
 
                 Match match = Regex.Match(filename, "key(\\d+).*?\\.anim");
                 int n = 0;
@@ -111,28 +54,52 @@ namespace Shell.Protector
 
                 foreach (var obj in objs)
                 {
-                    string hr_path = obj.transform.GetHierarchyPath();
-                    hr_path = Regex.Replace(hr_path, ".*?/(.*)", "'$1'");
-
-                    string curve;
-
-                    if (!filename.Contains("_"))
-                        curve = Regex.Replace(curve1, "attribute: material._Key\\d+", "attribute: material._Key" + n);
-                    else
-                        curve = Regex.Replace(curve2, "attribute: material._Key\\d+", "attribute: material._Key" + n);
-                    curve = Regex.Replace(curve, "path: Body", "path: " + hr_path);
-                    //SkinnedMeshRender classID:137
-                    //MeshRenderer classID:23
-                    if (obj.GetComponent<SkinnedMeshRenderer>() == null)
-                        curve = Regex.Replace(curve, "classID: 137", "classID: 23");
-
-                    anim = Regex.Replace(anim, "m_FloatCurves:", "m_FloatCurves:" + curve);
-                    anim = Regex.Replace(anim, "m_EditorCurves:", "m_EditorCurves:" + curve);
+                    AddKeyCurve(clip, obj, n, filename.Contains("_"));
                 }
-                File.WriteAllText(path, anim);
             }
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
+        }
+
+        static void AddKeyCurve(AnimationClip clip, GameObject obj, int keyIndex, bool secondKeyClip)
+        {
+            var binding = new EditorCurveBinding
+            {
+                path = GetAnimationPath(obj.transform),
+                propertyName = "material." + ShellProtectorShaderProperties.KeyPrefix + keyIndex,
+                type = obj.GetComponent<SkinnedMeshRenderer>() == null ? typeof(MeshRenderer) : typeof(SkinnedMeshRenderer)
+            };
+
+            AnimationUtility.SetEditorCurve(clip, binding, CreateKeyCurve(secondKeyClip));
+        }
+
+        static string GetAnimationPath(Transform transform)
+        {
+            var names = new List<string>();
+            Transform current = transform;
+            while (current != null && current.parent != null)
+            {
+                names.Add(current.name);
+                current = current.parent;
+            }
+            names.Reverse();
+            return string.Join("/", names);
+        }
+
+        static AnimationCurve CreateKeyCurve(bool secondKeyClip)
+        {
+            if (!secondKeyClip)
+            {
+                return new AnimationCurve(
+                    new Keyframe(0, -128, -1919.995f, 59.999996f),
+                    new Keyframe(2.1333334f, 0, 59.999996f, -1919.995f)
+                );
+            }
+
+            return new AnimationCurve(
+                new Keyframe(0, 128, 423.3333f, 60.000004f),
+                new Keyframe(2.1333334f, 256, 59.999996f, 60)
+            );
         }
 
         private static BlendTree[] CreateKeyTree(string animation_dir, int key_length, float speed)

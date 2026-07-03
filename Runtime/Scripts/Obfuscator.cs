@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
@@ -18,8 +17,6 @@ namespace Shell.Protector
         Dictionary<string, string> obfuscatedBlendShapeNames = new Dictionary<string, string>(); // before, after
         Dictionary<AnimationClip, AnimationClip> obfuscatedClip = new Dictionary<AnimationClip, AnimationClip>(); // before, after
         HashSet<string> mmdShapes = new HashSet<string>();
-
-        readonly Regex re = new Regex(".*?/(.*)");
 
         public bool clone = true;
         public bool bPreserveMMD = true;
@@ -49,6 +46,20 @@ namespace Shell.Protector
             animDir = "";
             obfuscatedBlendShapeNames.Clear();
             obfuscatedBlendShapeIndex.Clear();
+            obfuscatedClip.Clear();
+        }
+
+        static string GetAnimationPath(Transform transform)
+        {
+            var names = new List<string>();
+            Transform current = transform;
+            while (current != null && current.parent != null)
+            {
+                names.Add(current.name);
+                current = current.parent;
+            }
+            names.Reverse();
+            return string.Join("/", names);
         }
 
         public Mesh ObfuscateBlendShapeMesh(Mesh mesh, string newPath)
@@ -124,7 +135,7 @@ namespace Shell.Protector
             for (int i = 0; i < descriptor.customEyeLookSettings.eyelidsBlendshapes.Length; i++)
             {
                 int idx = descriptor.customEyeLookSettings.eyelidsBlendshapes[i];
-                descriptor.customEyeLookSettings.eyelidsBlendshapes[i] = obfuscatedBlendShapeIndex.FindIndex(0, obfuscatedBlendShapeIndex.Count - 1,
+                descriptor.customEyeLookSettings.eyelidsBlendshapes[i] = obfuscatedBlendShapeIndex.FindIndex(0, obfuscatedBlendShapeIndex.Count,
                     x =>
                     {
                         return x == idx;
@@ -210,8 +221,7 @@ namespace Shell.Protector
             {
                 if (binding.type == typeof(SkinnedMeshRenderer) && binding.propertyName.StartsWith("blendShape."))
                 {
-                    Match m = re.Match(obj.transform.GetHierarchyPath());
-                    string hierarchyPath = m.Groups[1].Value;
+                    string hierarchyPath = GetAnimationPath(obj.transform);
                     
                     if (binding.path != hierarchyPath)
                         continue;
@@ -249,8 +259,7 @@ namespace Shell.Protector
             {
                 if (binding.type == typeof(SkinnedMeshRenderer) && binding.propertyName.StartsWith("blendShape."))
                 {
-                    Match m = re.Match(obj.transform.GetHierarchyPath());
-                    string hierarchyPath = m.Groups[1].Value;
+                    string hierarchyPath = GetAnimationPath(obj.transform);
 
                     string blendShapeName = binding.propertyName.Substring("blendShape.".Length);
                     
