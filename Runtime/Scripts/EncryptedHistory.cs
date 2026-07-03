@@ -40,7 +40,7 @@ namespace Shell.Protector
 
         public void Save(Shader shader)
         {
-            if (AssetManager.GetInstance().IslilToon(shader))
+            if (AssetManager.GetInstance().IsLilToon(shader))
                 return;
 
             string dir = AssetDatabase.GetAssetPath(shader);

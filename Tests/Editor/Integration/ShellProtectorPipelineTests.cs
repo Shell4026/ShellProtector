@@ -124,14 +124,14 @@ namespace Shell.Protector.Tests.Integration
             };
 
             ShellProtector protector = avatar.AddComponent<ShellProtector>();
-            protector.descriptor = descriptor;
-            protector.assetDir = TestAssetScope.GeneratedRoot;
-            SetSerializedField(protector, "gameobjectList", new List<GameObject> { avatar });
-            SetSerializedField(protector, "algorithm", 1);
-            SetSerializedField(protector, "filter", 0);
-            SetSerializedField(protector, "fallback", 5);
-            SetSerializedField(protector, "keySize", 12);
-            SetSerializedField(protector, "syncSize", 1);
+            protector.Descriptor = descriptor;
+            protector.AssetDir = TestAssetScope.GeneratedRoot;
+            SetSerializedField(protector, "_gameObjectList", new List<GameObject> { avatar });
+            SetSerializedField(protector, "_algorithm", 1);
+            SetSerializedField(protector, "_filter", 0);
+            SetSerializedField(protector, "_fallback", 5);
+            SetSerializedField(protector, "_keySize", 12);
+            SetSerializedField(protector, "_syncSize", 1);
             protector.Init();
 
             return new Fixture
@@ -202,7 +202,7 @@ namespace Shell.Protector.Tests.Integration
 
         private static void AssertFxController(GameObject avatar)
         {
-            AnimatorController fx = ShellProtector.Getfx(avatar);
+            AnimatorController fx = ShellProtector.GetFx(avatar);
 
             Assert.That(fx, Is.Not.Null);
             Assert.That(fx.layers.Select(l => l.name), Does.Contain("ShellProtector"));
@@ -234,7 +234,7 @@ namespace Shell.Protector.Tests.Integration
 
         private static void AssertAnimationMaterialWasRewritten(GameObject avatar, Material originalMaterial)
         {
-            AnimatorController fx = ShellProtector.Getfx(avatar);
+            AnimatorController fx = ShellProtector.GetFx(avatar);
             Material encryptedMaterial = avatar.transform.Find("Body").GetComponent<SkinnedMeshRenderer>().sharedMaterial;
             List<AnimationClip> clips = new List<AnimationClip>();
 

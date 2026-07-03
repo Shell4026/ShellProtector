@@ -1,4 +1,4 @@
-﻿#if UNITY_EDITOR
+#if UNITY_EDITOR
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -16,10 +16,10 @@ namespace Shell.Protector
     {
         Dictionary<AnimationClip, AnimationClip> encryptedClip = new Dictionary<AnimationClip, AnimationClip>();
 
-        public static AnimatorController DuplicateAnimator(RuntimeAnimatorController anim, string new_dir)
+        public static AnimatorController DuplicateAnimator(RuntimeAnimatorController anim, string newDir)
         {
             string dir = AssetDatabase.GetAssetPath(anim);
-            string output = Path.Combine(new_dir, anim.name + anim.GetInstanceID().ToString() + "_encrypted.anim");
+            string output = Path.Combine(newDir, anim.name + anim.GetInstanceID().ToString() + "_encrypted.anim");
             if (!AssetDatabase.CopyAsset(dir, output))
             {
                 Debug.LogErrorFormat("Failed to copy a animator: {0}", anim.name);
@@ -30,9 +30,9 @@ namespace Shell.Protector
             return AssetDatabase.LoadAssetAtPath(output, typeof(RuntimeAnimatorController)) as AnimatorController;
         }
 
-        public static void CreateKeyAniamtions(string animation_dir, string new_dir, GameObject[] objs)
+        public static void CreateKeyAnimations(string animationDir, string newDir, GameObject[] objs)
         {
-            string[] files = Directory.GetFiles(animation_dir);
+            string[] files = Directory.GetFiles(animationDir);
             foreach (string file in files)
             {
                 string filename = Path.GetFileName(file);
@@ -41,7 +41,7 @@ namespace Shell.Protector
                 if (filename.Contains("dummy"))
                     continue;
 
-                string path = Path.Combine(new_dir, filename);
+                string path = Path.Combine(newDir, filename);
                 AssetDatabase.CopyAsset(file, path);
                 AnimationClip clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(path);
                 if (clip == null)
@@ -102,30 +102,30 @@ namespace Shell.Protector
             );
         }
 
-        private static BlendTree[] CreateKeyTree(string animation_dir, int key_length, float speed)
+        private static BlendTree[] CreateKeyTree(string animationDir, int keyLength, float speed)
         {
-            BlendTree[] tree = new BlendTree[key_length];
-            int offset = 16 - key_length;
-            for (int i = 0; i < key_length; ++i)
+            BlendTree[] tree = new BlendTree[keyLength];
+            int offset = 16 - keyLength;
+            for (int i = 0; i < keyLength; ++i)
             {
-                BlendTree tree_key = new BlendTree();
-                tree_key.name = "key" + i;
-                tree_key.blendType = BlendTreeType.Simple1D;
-                tree_key.blendParameter = ParameterManager.GetKeyName(i);
-                tree_key.useAutomaticThresholds = false;
+                BlendTree keyTree = new BlendTree();
+                keyTree.name = "key" + i;
+                keyTree.blendType = BlendTreeType.Simple1D;
+                keyTree.blendParameter = ParameterManager.GetKeyName(i);
+                keyTree.useAutomaticThresholds = false;
 
-                Motion motion0 = AssetDatabase.LoadAssetAtPath(Path.Combine(animation_dir, "key" + (i + offset) + ".anim"), typeof(AnimationClip)) as AnimationClip;
-                Motion motion1 = AssetDatabase.LoadAssetAtPath(Path.Combine(animation_dir, "key" + (i + offset) + "_2.anim"), typeof(AnimationClip)) as AnimationClip;
+                Motion motion0 = AssetDatabase.LoadAssetAtPath(Path.Combine(animationDir, "key" + (i + offset) + ".anim"), typeof(AnimationClip)) as AnimationClip;
+                Motion motion1 = AssetDatabase.LoadAssetAtPath(Path.Combine(animationDir, "key" + (i + offset) + "_2.anim"), typeof(AnimationClip)) as AnimationClip;
 
-                tree_key.AddChild(motion0, -1);
-                tree_key.AddChild(motion1, 1);
+                keyTree.AddChild(motion0, -1);
+                keyTree.AddChild(motion1, 1);
 
-                ChildMotion[] motions = tree_key.children;
+                ChildMotion[] motions = keyTree.children;
                 for (int j = 0; j < motions.Length; ++j)
                     motions[j].timeScale = speed;
-                tree_key.children = motions;
+                keyTree.children = motions;
 
-                tree[i] = tree_key;
+                tree[i] = keyTree;
             }
             return tree;
         }
@@ -210,27 +210,27 @@ namespace Shell.Protector
             var layer = anim.layers[anim.layers.Length - 1];
             var state = layer.stateMachine.AddState("keys");
 
-            BlendTree tree_root = new BlendTree
+            BlendTree rootTree = new BlendTree
             {
                 name = "key_root",
                 blendType = BlendTreeType.Direct,
                 blendParameter = "key_weight"
             };
-            AssetDatabase.AddObjectToAsset(tree_root, anim);
-            state.motion = tree_root;
+            AssetDatabase.AddObjectToAsset(rootTree, anim);
+            state.motion = rootTree;
 
-            var key_tree = CreateKeyTree(animationDir, keyLength, speed);
+            var keyTrees = CreateKeyTree(animationDir, keyLength, speed);
             for (int i = 0; i < keyLength; ++i)
             {
-                tree_root.AddChild(key_tree[i]);
-                AssetDatabase.AddObjectToAsset(key_tree[i], anim);
+                rootTree.AddChild(keyTrees[i]);
+                AssetDatabase.AddObjectToAsset(keyTrees[i], anim);
             }
 
-            ChildMotion[] children = tree_root.children;
+            ChildMotion[] children = rootTree.children;
             for (int i = 0; i < children.Length; ++i)
                 children[i].directBlendParameter = "key_weight";
 
-            tree_root.children = children;
+            rootTree.children = children;
         }
 
         private static void AddSyncEnabledCondition(AnimatorStateTransition transition)

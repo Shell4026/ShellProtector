@@ -1,10 +1,11 @@
-﻿#if UNITY_EDITOR
+#if UNITY_EDITOR
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
+using UnityEngine.Serialization;
 using VRC.SDK3.Avatars.Components;
 
 namespace Shell.Protector
@@ -18,8 +19,10 @@ namespace Shell.Protector
         Dictionary<AnimationClip, AnimationClip> obfuscatedClip = new Dictionary<AnimationClip, AnimationClip>(); // before, after
         HashSet<string> mmdShapes = new HashSet<string>();
 
-        public bool clone = true;
-        public bool bPreserveMMD = true;
+        [FormerlySerializedAs("clone")]
+        public bool Clone = true;
+        [FormerlySerializedAs("bPreserveMMD")]
+        public bool PreserveMmd = true;
 
         public Obfuscator()
         {
@@ -42,7 +45,7 @@ namespace Shell.Protector
         }
         public void Clean()
         {
-            clone = true;
+            Clone = true;
             animDir = "";
             obfuscatedBlendShapeNames.Clear();
             obfuscatedBlendShapeIndex.Clear();
@@ -94,7 +97,7 @@ namespace Shell.Protector
                     float weight = mesh.GetBlendShapeFrameWeight(shapeIndex, frameIndex);
                     string blendShapeName = mesh.GetBlendShapeName(shapeIndex);
 
-                    if (bPreserveMMD)
+                    if (PreserveMmd)
                     {
                         if (mmdShapes.Contains(blendShapeName))
                         {
@@ -240,7 +243,7 @@ namespace Shell.Protector
             }
 
             AnimationClip newClip = clip;
-            if (clone)
+            if (Clone)
             {
                 if (obfuscatedClip.ContainsKey(clip))
                     newClip = obfuscatedClip[clip];

@@ -61,7 +61,7 @@ namespace Shell.Protector.Tests.Unit
         public void EncryptTextureCreatesExpectedResultTextures(TextureFormat sourceFormat, bool alpha, TextureFormat encryptedFormat)
         {
             Texture2D texture = TestAssetScope.CreatePatternTexture(16, 16, sourceFormat, alpha);
-            XXTEA xxtea = new XXTEA { m_rounds = 20 };
+            XXTEA xxtea = new XXTEA { Rounds = 20 };
             byte[] key = KeyGenerator.MakeKeyBytes("password", "pass", 12);
 
             EncryptResult result = TextureEncryptManager.EncryptTexture(texture, key, xxtea);

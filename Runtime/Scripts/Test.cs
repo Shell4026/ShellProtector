@@ -7,21 +7,21 @@ public class Test
 {
     public static void XXTEATest(string fixedKey, string userKey, int userKeySize)
     {
-        byte[] data_byte = new byte[12] { 255, 250, 245, 240, 235, 230, 225, 220, 215, 210, 205, 200 };
-        byte[] key_byte = KeyGenerator.MakeKeyBytes(fixedKey, userKey, userKeySize);
+        byte[] dataBytes = new byte[12] { 255, 250, 245, 240, 235, 230, 225, 220, 215, 210, 205, 200 };
+        byte[] keyBytes = KeyGenerator.MakeKeyBytes(fixedKey, userKey, userKeySize);
 
         uint[] data = new uint[3];
-        data[0] = (uint)(data_byte[0] | (data_byte[1] << 8) | (data_byte[2] << 16) | (data_byte[3] << 24));
-        data[1] = (uint)(data_byte[4] | (data_byte[5] << 8) | (data_byte[6] << 16) | (data_byte[7] << 24));
-        data[2] = (uint)(data_byte[8] | (data_byte[9] << 8) | (data_byte[10] << 16) | (data_byte[11] << 24));
+        data[0] = (uint)(dataBytes[0] | (dataBytes[1] << 8) | (dataBytes[2] << 16) | (dataBytes[3] << 24));
+        data[1] = (uint)(dataBytes[4] | (dataBytes[5] << 8) | (dataBytes[6] << 16) | (dataBytes[7] << 24));
+        data[2] = (uint)(dataBytes[8] | (dataBytes[9] << 8) | (dataBytes[10] << 16) | (dataBytes[11] << 24));
 
         uint[] key = new uint[4];
-        key[0] = (uint)(key_byte[0] | (key_byte[1] << 8) | (key_byte[2] << 16) | (key_byte[3] << 24));
-        key[1] = (uint)(key_byte[4] | (key_byte[5] << 8) | (key_byte[6] << 16) | (key_byte[7] << 24));
-        key[2] = (uint)(key_byte[8] | (key_byte[9] << 8) | (key_byte[10] << 16) | (key_byte[11] << 24));
-        key[3] = (uint)(key_byte[12] | (key_byte[13] << 8) | (key_byte[14] << 16) | (key_byte[15] << 24));
+        key[0] = (uint)(keyBytes[0] | (keyBytes[1] << 8) | (keyBytes[2] << 16) | (keyBytes[3] << 24));
+        key[1] = (uint)(keyBytes[4] | (keyBytes[5] << 8) | (keyBytes[6] << 16) | (keyBytes[7] << 24));
+        key[2] = (uint)(keyBytes[8] | (keyBytes[9] << 8) | (keyBytes[10] << 16) | (keyBytes[11] << 24));
+        key[3] = (uint)(keyBytes[12] | (keyBytes[13] << 8) | (keyBytes[14] << 16) | (keyBytes[15] << 24));
 
-        Debug.Log("Key bytes: " + string.Join(", ", key_byte));
+        Debug.Log("Key bytes: " + string.Join(", ", keyBytes));
         Debug.Log(string.Format("key1:{0}, key2:{1}, key3:{2}", key[0], key[1], key[2]));
         Debug.Log("Data: " + string.Join(", ", data));
 
@@ -34,20 +34,20 @@ public class Test
     }
     public static void ChachaTest(string fixedKey, string userKey, int userKeySize)
     {
-        byte[] data_byte = new byte[8] { 255, 255, 245, 240, 235, 230, 225, 220 };
-        byte[] key_byte = KeyGenerator.MakeKeyBytes(fixedKey, userKey, userKeySize);
+        byte[] dataBytes = new byte[8] { 255, 255, 245, 240, 235, 230, 225, 220 };
+        byte[] keyBytes = KeyGenerator.MakeKeyBytes(fixedKey, userKey, userKeySize);
 
         uint[] data = new uint[2];
-        data[0] = (uint)(data_byte[0] | (data_byte[1] << 8) | (data_byte[2] << 16) | (data_byte[3] << 24));
-        data[1] = (uint)(data_byte[4] | (data_byte[5] << 8) | (data_byte[6] << 16) | (data_byte[7] << 24));
+        data[0] = (uint)(dataBytes[0] | (dataBytes[1] << 8) | (dataBytes[2] << 16) | (dataBytes[3] << 24));
+        data[1] = (uint)(dataBytes[4] | (dataBytes[5] << 8) | (dataBytes[6] << 16) | (dataBytes[7] << 24));
 
         uint[] key = new uint[4];
-        key[0] = (uint)(key_byte[0] | (key_byte[1] << 8) | (key_byte[2] << 16) | (key_byte[3] << 24));
-        key[1] = (uint)(key_byte[4] | (key_byte[5] << 8) | (key_byte[6] << 16) | (key_byte[7] << 24));
-        key[2] = (uint)(key_byte[8] | (key_byte[9] << 8) | (key_byte[10] << 16) | (key_byte[11] << 24));
-        key[3] = (uint)(key_byte[12] | (key_byte[13] << 8) | (key_byte[14] << 16) | (key_byte[15] << 24));
+        key[0] = (uint)(keyBytes[0] | (keyBytes[1] << 8) | (keyBytes[2] << 16) | (keyBytes[3] << 24));
+        key[1] = (uint)(keyBytes[4] | (keyBytes[5] << 8) | (keyBytes[6] << 16) | (keyBytes[7] << 24));
+        key[2] = (uint)(keyBytes[8] | (keyBytes[9] << 8) | (keyBytes[10] << 16) | (keyBytes[11] << 24));
+        key[3] = (uint)(keyBytes[12] | (keyBytes[13] << 8) | (keyBytes[14] << 16) | (keyBytes[15] << 24));
 
-        Debug.Log("Key bytes: " + string.Join(", ", key_byte));
+        Debug.Log("Key bytes: " + string.Join(", ", keyBytes));
         Debug.Log(string.Format("key1:{0}, key2:{1}, key3:{2}", key[0], key[1], key[2]));
         Debug.Log("Data: " + string.Join(", ", data));
 

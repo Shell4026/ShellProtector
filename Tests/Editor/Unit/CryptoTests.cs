@@ -48,7 +48,7 @@ namespace Shell.Protector.Tests.Unit
         [Test]
         public void Xxtea_WithExplicitShellProtectorRounds_RoundTrips()
         {
-            XXTEA xxtea = new XXTEA { m_rounds = 20 };
+            XXTEA xxtea = new XXTEA { Rounds = 20 };
             uint[] data = { 0x10203040u, 0x50607080u };
             uint[] key = { 0x00112233u, 0x44556677u, 0x8899aabbu, 0xccddeeffu };
 
@@ -62,8 +62,8 @@ namespace Shell.Protector.Tests.Unit
         public void Chacha20_EncryptsStableVector_AndRoundTrips()
         {
             Chacha20 chacha = new Chacha20();
-            for (int i = 0; i < chacha.nonce.Length; i++)
-                chacha.nonce[i] = (byte)i;
+            for (int i = 0; i < chacha.Nonce.Length; i++)
+                chacha.Nonce[i] = (byte)i;
 
             uint[] data = { 0x00010203u, 0x04050607u, 0x08090a0bu, 0x0c0d0e0fu };
             uint[] key = { 0x00112233u, 0x44556677u, 0x8899aabbu, 0xccddeeffu };

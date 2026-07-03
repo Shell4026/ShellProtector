@@ -46,7 +46,7 @@ namespace Shell.Protector.Tests.Gpu
         [TestCase(TextureFormat.DXT5, true, true)]
         public void XxteaEncryptedTexture_DecryptsToOriginalGpuSample(TextureFormat format, bool alpha, bool bilinear)
         {
-            XXTEA xxtea = new XXTEA { m_rounds = 20 };
+            XXTEA xxtea = new XXTEA { Rounds = 20 };
 
             AssertDecryptsToOriginalGpuSample(format, alpha, bilinear, xxtea, material =>
             {
@@ -65,8 +65,8 @@ namespace Shell.Protector.Tests.Gpu
         public void ChachaEncryptedTexture_DecryptsToOriginalGpuSample(TextureFormat format, bool alpha, bool bilinear)
         {
             Chacha20 chacha = new Chacha20();
-            for (int i = 0; i < chacha.nonce.Length; i++)
-                chacha.nonce[i] = (byte)i;
+            for (int i = 0; i < chacha.Nonce.Length; i++)
+                chacha.Nonce[i] = (byte)i;
 
             AssertDecryptsToOriginalGpuSample(format, alpha, bilinear, chacha, material =>
             {

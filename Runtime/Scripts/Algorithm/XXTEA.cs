@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using UnityEngine;
 
 namespace Shell.Protector
@@ -8,7 +8,7 @@ namespace Shell.Protector
         public string Keyword => ShellProtectorShaderProperties.XXTEAKeyword;
         const uint Delta = 0x9E3779B9;
 
-        public uint m_rounds = 0;
+        public uint Rounds { get; set; }
         public uint[] Encrypt(uint[] data, uint[] key)
         {
             uint n = (uint)data.Length;
@@ -28,10 +28,10 @@ namespace Shell.Protector
             uint y, z, sum;
             uint p, rounds, e;
 
-            if (m_rounds == 0)
+            if (Rounds == 0)
                 rounds = 6 + 52 / n;
             else
-                rounds = m_rounds;
+                rounds = Rounds;
             sum = 0;
             z = result[n - 1];
             do
@@ -63,10 +63,10 @@ namespace Shell.Protector
             uint y, z, sum;
             uint p, rounds, e;
 
-            if (m_rounds == 0)
+            if (Rounds == 0)
                 rounds = 6 + 52 / n;
             else
-                rounds = m_rounds;
+                rounds = Rounds;
             sum = rounds * Delta;
 
             y = result[0];

@@ -1,4 +1,4 @@
-﻿#if UNITY_EDITOR
+#if UNITY_EDITOR
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -15,20 +15,20 @@ namespace Shell.Protector
     {
         public override bool CanHandle(Shader shader)
         {
-            return shader_manager.IslilToon(shader);
+            return ShaderManager.IsLilToon(shader);
         }
 
-        protected override Shader CustomInject(Material mat, string decode_dir, string output_path, Texture2D tex, bool has_lim_texture = false, bool has_lim_texture2 = false, bool outline_tex = false)
+        protected override Shader CustomInject(Material mat, string decodeDir, string outputPath, Texture2D tex, bool hasLimTexture = false, bool hasLimTexture2 = false, bool outlineTex = false)
         {
-            string[] files = Directory.GetFiles(Path.Combine(asset_dir, "liltoonProtector", "Shaders"));
+            string[] files = Directory.GetFiles(Path.Combine(AssetDir, "liltoonProtector", "Shaders"));
             // Find pass
-            string shader_dir = AssetDatabase.GetAssetPath(mat.shader);
-            string shader_name = Path.GetFileNameWithoutExtension(shader_dir);
+            string shaderDir = AssetDatabase.GetAssetPath(mat.shader);
+            string shaderName = Path.GetFileNameWithoutExtension(shaderDir);
             string pass = "";
             foreach (string file in files)
             {
                 string filename = Path.GetFileName(file);
-                if (filename.Contains(shader_name))
+                if (filename.Contains(shaderName))
                 {
                     string f = File.ReadAllText(file);
                     Match match = Regex.Match(f, "lilPassShaderName \".*/(.*?)\"");
@@ -43,10 +43,10 @@ namespace Shell.Protector
                 string filename = Path.GetFileName(file);
                 if (filename.Contains(".lilcontainer"))
                 {
-                    if (filename == shader_name + ".lilcontainer")
+                    if (filename == shaderName + ".lilcontainer")
                     {
                         Debug.Log(filename);
-                        return AssetDatabase.LoadAssetAtPath<Shader>(Path.Combine(Path.Combine(asset_dir, "liltoonProtector", "Shaders"), filename));
+                        return AssetDatabase.LoadAssetAtPath<Shader>(Path.Combine(Path.Combine(AssetDir, "liltoonProtector", "Shaders"), filename));
                     }
                 }
             }

@@ -6,18 +6,18 @@ namespace Shell.Protector
 {
     public struct ShellProtectorProcessedTexture
     {
-        public EncryptResult encrypted;
-        public List<Texture2D> fallbacks;
-        public List<int> fallbackOptions;
-        public byte[] nonce;
+        public EncryptResult Encrypted;
+        public List<Texture2D> Fallbacks;
+        public List<int> FallbackOptions;
+        public byte[] Nonce;
     }
 
     public struct ShellProtectorAuxiliaryTextures
     {
-        public Texture2D limTexture;
-        public Texture2D limTexture2;
-        public Texture2D outlineTexture;
-        public Texture2D limShadeTexture;
+        public Texture2D LimTexture;
+        public Texture2D LimTexture2;
+        public Texture2D OutlineTexture;
+        public Texture2D LimShadeTexture;
     }
 
     public sealed class ShellProtectorBuildContext

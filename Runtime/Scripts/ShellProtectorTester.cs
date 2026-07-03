@@ -1,29 +1,31 @@
-﻿#if UNITY_EDITOR
-using System.Collections;
-using System.Collections.Generic;
-using System.Text;
+#if UNITY_EDITOR
 using UnityEngine;
+using UnityEngine.Serialization;
 using VRC.SDKBase;
 
 namespace Shell.Protector
 {
     public class ShellProtectorTester : MonoBehaviour, IEditorOnly
     {
-        public string lang = "eng";
-        public int langIdx = 0;
-        public int userKeyLength = 4;
+        [FormerlySerializedAs("lang")]
+        public string Language = "eng";
+        [FormerlySerializedAs("langIdx")]
+        public int LanguageIndex;
+        [FormerlySerializedAs("userKeyLength")]
+        public int UserKeyLength = 4;
 
-        public ShellProtector protector;
+        [FormerlySerializedAs("protector")]
+        public ShellProtector Protector;
 
         public void CheckEncryption()
         {
-            if(protector == null)
+            if (Protector == null)
             {
                 Debug.LogWarning("First, you need to set protector");
                 return;
             }
 
-            byte[] pwd_bytes = protector.GetKeyBytes();
+            byte[] passwordBytes = Protector.GetKeyBytes();
 
             var renderers = transform.root.GetComponentsInChildren<MeshRenderer>(true);
             if (renderers != null)
@@ -43,15 +45,15 @@ namespace Shell.Protector
                         if (mat.name.Contains("_encrypted") || mat.name.Contains("_duplicated"))
                         {
                             for (int i = 0; i < 16; ++i)
-                                mat.SetInt(ShellProtectorShaderProperties.KeyPrefix + i, pwd_bytes[i]);
+                                mat.SetInt(ShellProtectorShaderProperties.KeyPrefix + i, passwordBytes[i]);
                         }
                     }
                 }
             }
-            var skinned_renderers = transform.root.GetComponentsInChildren<SkinnedMeshRenderer>(true);
-            if (skinned_renderers != null)
+            var skinnedRenderers = transform.root.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+            if (skinnedRenderers != null)
             {
-                foreach (var r in skinned_renderers)
+                foreach (var r in skinnedRenderers)
                 {
                     var mats = r.sharedMaterials;
                     if (mats == null)
@@ -66,7 +68,7 @@ namespace Shell.Protector
                         if (mat.name.Contains("_encrypted") || mat.name.Contains("_duplicated"))
                         {
                             for (int i = 0; i < 16; ++i)
-                                mat.SetInt(ShellProtectorShaderProperties.KeyPrefix + i, pwd_bytes[i]);
+                                mat.SetInt(ShellProtectorShaderProperties.KeyPrefix + i, passwordBytes[i]);
                         }
                     }
                 }
@@ -89,13 +91,13 @@ namespace Shell.Protector
                         continue;
                         if (mat.name.Contains("_encrypted") || mat.name.Contains("_duplicated"))
                         {
-                            for (int i = 16 - userKeyLength; i < 16; ++i)
+                            for (int i = 16 - UserKeyLength; i < 16; ++i)
                                 mat.SetInt(ShellProtectorShaderProperties.KeyPrefix + i, 0);
                         }
                 }
             }
-            var skinned_renderers = transform.root.GetComponentsInChildren<SkinnedMeshRenderer>(true);
-            foreach (var r in skinned_renderers)
+            var skinnedRenderers = transform.root.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+            foreach (var r in skinnedRenderers)
             {
                 var mats = r.sharedMaterials;
                 if (mats == null)
@@ -109,7 +111,7 @@ namespace Shell.Protector
                         continue;
                         if (mat.name.Contains("_encrypted") || mat.name.Contains("_duplicated"))
                         {
-                            for (int i = 16 - userKeyLength; i < 16; ++i)
+                            for (int i = 16 - UserKeyLength; i < 16; ++i)
                                 mat.SetInt(ShellProtectorShaderProperties.KeyPrefix + i, 0);
                         }
                 }

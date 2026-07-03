@@ -1,4 +1,4 @@
-﻿#if UNITY_EDITOR
+#if UNITY_EDITOR
 using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
@@ -18,7 +18,7 @@ namespace Shell.Protector
         {
             if (root == null)
                 return "";
-            return lang.GetLang(root.lang, word);
+            return lang.GetLang(root.Language, word);
         }
         public void OnEnable()
         {
@@ -29,14 +29,14 @@ namespace Shell.Protector
         }
         public override void OnInspectorGUI()
         {
-            root.protector = EditorGUILayout.ObjectField(root.protector, typeof(ShellProtector), true, GUILayout.Width(200)) as ShellProtector;
+            root.Protector = EditorGUILayout.ObjectField(root.Protector, typeof(ShellProtector), true, GUILayout.Width(200)) as ShellProtector;
 
             GUILayout.Space(10);
 
             GUILayout.BeginHorizontal();
             GUILayout.Label(Lang("Max password length"));
             GUILayout.FlexibleSpace();
-            root.userKeyLength = EditorGUILayout.IntField(root.userKeyLength, GUILayout.Width(50));
+            root.UserKeyLength = EditorGUILayout.IntField(root.UserKeyLength, GUILayout.Width(50));
             GUILayout.EndHorizontal();
 
             GUILayout.Space(10);
@@ -47,24 +47,24 @@ namespace Shell.Protector
 
             GUILayout.Space(10);
 
-            root.langIdx = EditorGUILayout.Popup(root.langIdx, languages, GUILayout.Width(100));
-            switch (root.langIdx)
+            root.LanguageIndex = EditorGUILayout.Popup(root.LanguageIndex, languages, GUILayout.Width(100));
+            switch (root.LanguageIndex)
             {
                 case 0:
-                    root.lang = "eng";
+                    root.Language = "eng";
                     break;
                 case 1:
-                    root.lang = "kor";
+                    root.Language = "kor";
                     break;
                 default:
-                    root.lang = "eng";
+                    root.Language = "eng";
                     break;
             }
             GUILayout.EndHorizontal();
             
             GUILayout.Space(10);
 
-            if (root.userKeyLength == 0)
+            if (root.UserKeyLength == 0)
             {
                 GUILayout.Label(Lang("It's okay for the 0-digit password to be the same as the original."));
             }
