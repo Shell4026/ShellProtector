@@ -5,7 +5,7 @@ namespace Shell.Protector
 {
     public class XXTEA : IEncryptor
     {
-        public string Keyword => ShellProtectorShaderProperties.XXTEAKeyword;
+        public string Keyword => ShaderProperties.XXTEAKeyword;
         const uint Delta = 0x9E3779B9;
 
         public uint Rounds { get; set; }

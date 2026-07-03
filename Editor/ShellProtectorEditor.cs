@@ -65,11 +65,6 @@ namespace Shell.Protector
         {
             root = target as ShellProtector;
 
-            MonoScript monoScript = MonoScript.FromMonoBehaviour(root);
-            string scriptPath = AssetDatabase.GetAssetPath(monoScript);
-
-            root.AssetDir = Path.GetDirectoryName(Path.GetDirectoryName(scriptPath));
-
             gameobjectList = new ReorderableList(serializedObject, serializedObject.FindProperty("_gameObjectList"), true, true, true, true);
             gameobjectList.drawHeaderCallback = rect => EditorGUI.LabelField(rect, Lang("Object list"));
             gameobjectList.drawElementCallback = (rect, index, is_active, is_focused) =>
@@ -428,15 +423,14 @@ namespace Shell.Protector
 
                         last = result.Texture1;
 
-                        if (!AssetDatabase.IsValidFolder(root.AssetDir + '/' + root.Descriptor.gameObject.name))
-                            AssetDatabase.CreateFolder(root.AssetDir, root.Descriptor.gameObject.name);
-                        if (!AssetDatabase.IsValidFolder(root.AssetDir + '/' + root.Descriptor.gameObject.name + "/mat"))
-                            AssetDatabase.CreateFolder(root.AssetDir + '/' + root.Descriptor.gameObject.name, "mat");
+                        var writer = new AssetWriter();
+                        var outputPaths = new OutputPaths(root.AssetDir, root.Descriptor.gameObject);
+                        outputPaths.PrepareFolders(writer, false);
 
-                        AssetDatabase.CreateAsset(result.Texture1, root.AssetDir + '/' + root.Descriptor.gameObject.name + '/' + texture.name + "_encrypt.asset");
-                        File.WriteAllBytes(root.AssetDir + '/' + root.Descriptor.gameObject.name + '/' + texture.name + "_encrypt.png", result.Texture2.EncodeToPNG());
+                        writer.CreateAssetInFolder(result.Texture1, outputPaths.Folders.TexGuid, outputPaths.EncryptedTextureName(texture, 0));
+                        File.WriteAllBytes(writer.UniquePathInFolder(outputPaths.Folders.TexGuid, OutputPaths.Sanitize(texture.name) + "_encrypt.png"), result.Texture2.EncodeToPNG());
                         if (result.Texture2 != null)
-                            AssetDatabase.CreateAsset(result.Texture2, root.AssetDir + '/' + root.Descriptor.gameObject.name + '/' + texture.name + "_encrypt2.asset");
+                            writer.CreateAssetInFolder(result.Texture2, outputPaths.Folders.TexGuid, outputPaths.EncryptedTextureName(texture, 2));
                         AssetDatabase.SaveAssets();
 
                         AssetDatabase.Refresh();

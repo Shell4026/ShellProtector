@@ -1,4 +1,4 @@
-Shader "Hidden/ShellProtectorGpuDecryptTest"
+Shader "Hidden/GpuDecryptTest"
 {
     Properties
     {
@@ -79,7 +79,7 @@ Shader "Hidden/ShellProtectorGpuDecryptTest"
             half4 _EncryptTex0_TexelSize;
             int _PasswordHash;
 
-            #include "../../../../../Runtime/Shader/ShellProtector.cginc"
+            #include "../../../../../Runtime/Shader/Protector.cginc"
 
             half4 frag(v2f_img i) : SV_Target
             {
@@ -108,7 +108,7 @@ Shader "Hidden/ShellProtectorGpuDecryptTest"
             half4 _EncryptTex0_TexelSize;
             int _PasswordHash;
 
-            #include "../../../../../Runtime/Shader/ShellProtector.cginc"
+            #include "../../../../../Runtime/Shader/Protector.cginc"
 
             half4 frag(v2f_img i) : SV_Target
             {

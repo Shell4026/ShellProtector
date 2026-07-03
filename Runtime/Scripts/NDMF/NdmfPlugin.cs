@@ -4,9 +4,9 @@ using nadena.dev.ndmf;
 using Shell.Protector;
 using UnityEngine;
 
-[assembly: ExportsPlugin(typeof(ShellProtectorNDMFPlugin))]
+[assembly: ExportsPlugin(typeof(NdmfPlugin))]
 
-public class ShellProtectorNDMFPlugin : Plugin<ShellProtectorNDMFPlugin>
+public class NdmfPlugin : Plugin<NdmfPlugin>
 {
     protected override void Configure()
     {

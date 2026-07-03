@@ -3,9 +3,9 @@ using VRC.SDK3.Avatars.Components;
 
 namespace Shell.Protector
 {
-    public sealed class ShellProtectorBuildRequest
+    public sealed class BuildRequest
     {
-        public ShellProtectorBuildRequest(ShellProtector owner, VRCAvatarDescriptor descriptor, bool useSmallMipTexture, bool isModular)
+        public BuildRequest(ShellProtector owner, VRCAvatarDescriptor descriptor, bool useSmallMipTexture, bool isModular)
         {
             Owner = owner;
             Descriptor = descriptor;

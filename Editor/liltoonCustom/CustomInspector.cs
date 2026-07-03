@@ -33,14 +33,14 @@ namespace lilToon
             //isShowRenderMode = false;
 
             //LoadCustomLanguage("");
-            mipTexture = FindProperty(ShellProtectorShaderProperties.MipTexture, props);
-            encryptedTexture0 = FindProperty(ShellProtectorShaderProperties.EncryptTexture0, props);
-            encryptedTexture1 = FindProperty(ShellProtectorShaderProperties.EncryptTexture1, props);
-            passwordHash = FindProperty(ShellProtectorShaderProperties.PasswordHash, props);
-            hashMagic = FindProperty(ShellProtectorShaderProperties.HashMagic, props);
+            mipTexture = FindProperty(ShaderProperties.MipTexture, props);
+            encryptedTexture0 = FindProperty(ShaderProperties.EncryptTexture0, props);
+            encryptedTexture1 = FindProperty(ShaderProperties.EncryptTexture1, props);
+            passwordHash = FindProperty(ShaderProperties.PasswordHash, props);
+            hashMagic = FindProperty(ShaderProperties.HashMagic, props);
 
             for (int i = 0; i < key.Length; ++i)
-				key[i] = FindProperty(ShellProtectorShaderProperties.KeyPrefix + i, props);
+				key[i] = FindProperty(ShaderProperties.KeyPrefix + i, props);
         }
 
         protected override void DrawCustomProperties(Material material)

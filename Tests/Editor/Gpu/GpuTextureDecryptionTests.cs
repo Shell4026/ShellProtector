@@ -16,7 +16,7 @@ namespace Shell.Protector.Tests.Gpu
         [SetUp]
         public void SetUp()
         {
-            Shader shader = Shader.Find("Hidden/ShellProtectorGpuDecryptTest");
+            Shader shader = Shader.Find("Hidden/GpuDecryptTest");
             Assert.That(shader, Is.Not.Null, "GPU decrypt test shader was not imported.");
             Assert.That(shader.isSupported, Is.True, "GPU decrypt test shader is not supported or failed to compile.");
 

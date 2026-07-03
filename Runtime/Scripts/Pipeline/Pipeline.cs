@@ -3,17 +3,17 @@ using UnityEngine;
 
 namespace Shell.Protector
 {
-    public sealed class ShellProtectorPipeline
+    public sealed class Pipeline
     {
-        public ShellProtectorBuildResult Encrypt(ShellProtectorBuildRequest request, ShellProtectorSettings settings)
+        public BuildResult Encrypt(BuildRequest request, BuildSettings settings)
         {
             if (request == null || request.Owner == null)
-                return new ShellProtectorBuildResult();
+                return new BuildResult();
 
             request.Owner.ApplySettings(settings);
             GameObject avatar = request.Owner.EncryptLegacy(request.UseSmallMipTexture, request.IsModular);
 
-            ShellProtectorBuildResult result = request.Owner.CurrentBuildResult;
+            BuildResult result = request.Owner.CurrentBuildResult;
             result.Avatar = avatar;
             return result;
         }

@@ -12,7 +12,8 @@ namespace Shell.Protector
 {
     public class Obfuscator : ScriptableObject
     {
-        string animDir = "";
+        OutputPaths outputPaths;
+        AssetWriter assetWriter;
 
         List<int> obfuscatedBlendShapeIndex = new List<int>();
         Dictionary<string, string> obfuscatedBlendShapeNames = new Dictionary<string, string>(); // before, after
@@ -46,7 +47,8 @@ namespace Shell.Protector
         public void Clean()
         {
             Clone = true;
-            animDir = "";
+            outputPaths = null;
+            assetWriter = null;
             obfuscatedBlendShapeNames.Clear();
             obfuscatedBlendShapeIndex.Clear();
             obfuscatedClip.Clear();
@@ -65,7 +67,7 @@ namespace Shell.Protector
             return string.Join("/", names);
         }
 
-        public Mesh ObfuscateBlendShapeMesh(Mesh mesh, string newPath)
+        public Mesh ObfuscateBlendShapeMesh(Mesh mesh, OutputPaths paths, AssetWriter writer)
         {
             Mesh obfuscatedMesh = Instantiate(mesh);
             obfuscatedMesh.ClearBlendShapes();
@@ -123,7 +125,7 @@ namespace Shell.Protector
             }
             Debug.LogFormat("Obfuscator blendshapes : {0}", string.Join(", ", obfuscatedBlendShapeNames.Select(kv => $"{kv.Key}: {kv.Value}")));
 
-            AssetDatabase.CreateAsset(obfuscatedMesh, Path.Combine(newPath, obfuscatedMesh.name + obfuscatedMesh.GetHashCode() + ".asset"));
+            writer.CreateAssetInFolder(obfuscatedMesh, paths.Folders.MeshGuid, paths.MeshAssetName(mesh));
             AssetDatabase.Refresh();
             return obfuscatedMesh;
         }
@@ -148,12 +150,13 @@ namespace Shell.Protector
             
         }
 
-        public void ObfuscateBlendshapeInAnim(AnimatorController anim, GameObject obj, string newDir)
+        public void ObfuscateBlendshapeInAnim(AnimatorController anim, GameObject obj, OutputPaths paths, AssetWriter writer)
         {
             if (anim == null)
                 return;
 
-            animDir = newDir;
+            outputPaths = paths;
+            assetWriter = writer;
 
             var layers = anim.layers;
             foreach (var layer in layers)
@@ -250,7 +253,7 @@ namespace Shell.Protector
                 else
                 {
                     newClip = Instantiate(clip);
-                    AssetDatabase.CreateAsset(newClip, Path.Combine(animDir, clip.name + clip.GetHashCode() + "_obfuscated.anim"));
+                    assetWriter.CreateAssetInFolder(newClip, outputPaths.Folders.AnimGuid, outputPaths.AnimationClipName(clip, "_obfuscated"));
                     AssetDatabase.SaveAssets();
                     AssetDatabase.Refresh();
                     obfuscatedClip.Add(clip, newClip);

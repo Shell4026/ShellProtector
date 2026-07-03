@@ -24,7 +24,7 @@ namespace Shell.Protector
         Size128 = 7
     }
 
-    public static class ShellProtectorShaderProperties
+    public static class ShaderProperties
     {
         public const string KeywordPrefix = "_SHELL_PROTECTOR_";
         public const string XXTEAKeyword = "_SHELL_PROTECTOR_XXTEA";

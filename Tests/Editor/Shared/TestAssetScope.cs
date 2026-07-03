@@ -10,10 +10,12 @@ namespace Shell.Protector.Tests
     internal static class TestAssetScope
     {
         public const string GeneratedRoot = "Assets/ShellProtector/Tests/__Generated";
+        public const string DefaultGeneratedRoot = "Assets/ShellProtector/Generated";
 
         public static void Reset()
         {
             DeleteGeneratedRoot();
+            DeleteDefaultGeneratedRoot();
             EnsureFolder(GeneratedRoot);
         }
 
@@ -22,6 +24,15 @@ namespace Shell.Protector.Tests
             if (AssetDatabase.IsValidFolder(GeneratedRoot))
             {
                 AssetDatabase.DeleteAsset(GeneratedRoot);
+                AssetDatabase.Refresh();
+            }
+        }
+
+        public static void DeleteDefaultGeneratedRoot()
+        {
+            if (AssetDatabase.IsValidFolder(DefaultGeneratedRoot))
+            {
+                AssetDatabase.DeleteAsset(DefaultGeneratedRoot);
                 AssetDatabase.Refresh();
             }
         }

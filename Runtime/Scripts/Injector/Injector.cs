@@ -94,7 +94,7 @@ namespace Shell.Protector
             var keywords = material.shaderKeywords;
             foreach (string keyword in keywords)
             {
-                if (keyword.StartsWith(ShellProtectorShaderProperties.KeywordPrefix)) {
+                if (keyword.StartsWith(ShaderProperties.KeywordPrefix)) {
                     material.DisableKeyword(keyword);
                 }
             }
@@ -104,13 +104,13 @@ namespace Shell.Protector
 
             // Set rimlight keyword
             if (hasLimTexture)
-                material.EnableKeyword(ShellProtectorShaderProperties.RimLightKeyword);
+                material.EnableKeyword(ShaderProperties.RimLightKeyword);
 
             // Set encryptor keyword
             material.EnableKeyword(Encryptor.Keyword);
         }
 
-        public Shader Inject(Material material, string decoderPath, string outputPath, Texture2D mainTexture, ShellProtectorAuxiliaryTextures auxiliaryTextures)
+        public Shader Inject(Material material, string decoderPath, string outputPath, Texture2D mainTexture, AuxiliaryTextures auxiliaryTextures)
         {
             return Inject(
                 material,

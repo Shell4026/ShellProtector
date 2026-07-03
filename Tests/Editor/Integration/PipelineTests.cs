@@ -12,7 +12,7 @@ using VRC.SDKBase;
 
 namespace Shell.Protector.Tests.Integration
 {
-    public class ShellProtectorPipelineTests
+    public class PipelineTests
     {
         private readonly List<Object> sceneObjects = new List<Object>();
 
@@ -27,6 +27,7 @@ namespace Shell.Protector.Tests.Integration
         {
             TestAssetScope.DestroyObjects(sceneObjects);
             TestAssetScope.DeleteGeneratedRoot();
+            TestAssetScope.DeleteDefaultGeneratedRoot();
         }
 
         [Test]
@@ -45,6 +46,7 @@ namespace Shell.Protector.Tests.Integration
             Assert.That(encryptedAvatar.GetComponentInChildren<ShellProtectorTester>(true), Is.Not.Null);
 
             AssertEncryptedRenderer(encryptedAvatar, fixture.Material);
+            AssertGeneratedPaths(encryptedAvatar, fixture.Material, TestAssetScope.GeneratedRoot);
             AssertFxController(encryptedAvatar);
             AssertExpressionParameters(encryptedAvatar);
             AssertBlendShapeWasObfuscated(encryptedAvatar);
@@ -70,13 +72,27 @@ namespace Shell.Protector.Tests.Integration
             Assert.That(avatar.GetComponentInChildren<ShellProtectorTester>(true), Is.Null);
 
             AssertEncryptedRenderer(avatar, fixture.Material);
+            AssertGeneratedPaths(avatar, fixture.Material, TestAssetScope.GeneratedRoot);
             AssertFxController(avatar);
             AssertExpressionParameters(avatar);
             AssertBlendShapeWasObfuscated(avatar);
             AssertAnimationMaterialWasRewritten(avatar, fixture.Material);
         }
 
-        private Fixture CreateFixture(string name)
+        [Test]
+        public void DefaultAssetDir_UsesGeneratedRootAndFolderGuids()
+        {
+            Fixture fixture = CreateFixture("Default", null);
+
+            GameObject encryptedAvatar = fixture.Protector.Encrypt(false);
+            sceneObjects.Add(encryptedAvatar);
+
+            string avatarName = encryptedAvatar.name.Replace("_encrypted", "");
+            AssertGeneratedPaths(encryptedAvatar, fixture.Material, TestAssetScope.DefaultGeneratedRoot);
+            AssertOutputFoldersHaveGuids(TestAssetScope.DefaultGeneratedRoot, avatarName);
+        }
+
+        private Fixture CreateFixture(string name, string assetDir = TestAssetScope.GeneratedRoot)
         {
             Texture2D texture = TestAssetScope.CreatePatternTexture(128, 128, TextureFormat.RGBA32, true);
             texture.name = name + "Texture";
@@ -125,7 +141,8 @@ namespace Shell.Protector.Tests.Integration
 
             ShellProtector protector = avatar.AddComponent<ShellProtector>();
             protector.Descriptor = descriptor;
-            protector.AssetDir = TestAssetScope.GeneratedRoot;
+            if (assetDir != null)
+                protector.AssetDir = assetDir;
             SetSerializedField(protector, "_gameObjectList", new List<GameObject> { avatar });
             SetSerializedField(protector, "_algorithm", 1);
             SetSerializedField(protector, "_filter", 0);
@@ -198,6 +215,36 @@ namespace Shell.Protector.Tests.Integration
             Assert.That(encryptedMaterial.GetTag("VRCFallback", false), Is.EqualTo("Unlit"));
             Assert.That(encryptedMaterial.IsKeywordEnabled("_SHELL_PROTECTOR_CHACHA"), Is.True);
             Assert.That(AssetDatabase.GetAssetPath(encryptedMaterial), Does.StartWith(TestAssetScope.GeneratedRoot));
+        }
+
+        private static void AssertGeneratedPaths(GameObject avatar, Material originalMaterial, string expectedRoot)
+        {
+            string avatarRoot = expectedRoot + "/" + avatar.name.Replace("_encrypted", "");
+            Material encryptedMaterial = avatar.transform.Find("Body").GetComponent<SkinnedMeshRenderer>().sharedMaterial;
+            Texture2D encryptedTexture = encryptedMaterial.GetTexture("_EncryptTex0") as Texture2D;
+            Texture2D mipTexture = encryptedMaterial.GetTexture("_MipTex") as Texture2D;
+            string materialPath = AssetDatabase.GetAssetPath(encryptedMaterial).Replace('\\', '/');
+            string texturePath = AssetDatabase.GetAssetPath(encryptedTexture).Replace('\\', '/');
+            string mipPath = AssetDatabase.GetAssetPath(mipTexture).Replace('\\', '/');
+
+            Assert.That(materialPath, Does.StartWith(avatarRoot + "/Mat/"));
+            Assert.That(texturePath, Does.StartWith(avatarRoot + "/Tex/"));
+            Assert.That(mipPath, Does.StartWith(avatarRoot + "/Tex/"));
+            Assert.That(materialPath, Does.Contain(originalMaterial.name));
+            Assert.That(materialPath, Does.Not.Contain(originalMaterial.GetInstanceID().ToString()));
+            Assert.That(materialPath, Does.Not.StartWith("Assets/ShellProtector/Runtime/"));
+        }
+
+        private static void AssertOutputFoldersHaveGuids(string root, string avatarName)
+        {
+            string avatarRoot = root + "/" + avatarName;
+            foreach (string folderName in new[] { "Tex", "Mat", "Shader", "Anim", "Mesh" })
+            {
+                string folderPath = avatarRoot + "/" + folderName;
+                string guid = AssetDatabase.AssetPathToGUID(folderPath);
+                Assert.That(guid, Is.Not.Empty, folderPath);
+                Assert.That(AssetDatabase.GUIDToAssetPath(guid).Replace('\\', '/'), Is.EqualTo(folderPath));
+            }
         }
 
         private static void AssertFxController(GameObject avatar)

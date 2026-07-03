@@ -1,7 +1,7 @@
 #if UNITY_EDITOR
 namespace Shell.Protector
 {
-    public sealed class ShellProtectorSettings
+    public sealed class BuildSettings
     {
         public string AssetDir { get; set; }
         public string FixedPassword { get; set; }

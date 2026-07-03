@@ -137,21 +137,21 @@ namespace Shell.Protector
             {
                 int suffixIndex = match.Index + match.Length;
                 string properties = @"
-" + ShellProtectorShaderProperties.MipTexture + @" (""MipReference"", 2D) = ""white"" { }
-" + ShellProtectorShaderProperties.EncryptTexture0 + @" (""Encrypted0"", 2D) = ""white"" { }
-" + ShellProtectorShaderProperties.EncryptTexture1 + @" (""Encrypted1"", 2D) = ""white"" { }
-" + ShellProtectorShaderProperties.WidthOffset + @" (""Woffset"", integer) = 0
-" + ShellProtectorShaderProperties.HeightOffset + @" (""Hoffset"", integer) = 0
-" + ShellProtectorShaderProperties.Nonce0 + @" (""Nonce"", integer) = 0
-" + ShellProtectorShaderProperties.Nonce1 + @" (""Nonce"", integer) = 0
-" + ShellProtectorShaderProperties.Nonce2 + @" (""Nonce"", integer) = 0
-" + ShellProtectorShaderProperties.Rounds + @" (""Rounds"", integer) = 0
-" + ShellProtectorShaderProperties.PasswordHash + @" (""PasswordHash"", integer) = 0
-" + ShellProtectorShaderProperties.HashMagic + @" (""HashMagic"", integer) = 0
+" + ShaderProperties.MipTexture + @" (""MipReference"", 2D) = ""white"" { }
+" + ShaderProperties.EncryptTexture0 + @" (""Encrypted0"", 2D) = ""white"" { }
+" + ShaderProperties.EncryptTexture1 + @" (""Encrypted1"", 2D) = ""white"" { }
+" + ShaderProperties.WidthOffset + @" (""Woffset"", integer) = 0
+" + ShaderProperties.HeightOffset + @" (""Hoffset"", integer) = 0
+" + ShaderProperties.Nonce0 + @" (""Nonce"", integer) = 0
+" + ShaderProperties.Nonce1 + @" (""Nonce"", integer) = 0
+" + ShaderProperties.Nonce2 + @" (""Nonce"", integer) = 0
+" + ShaderProperties.Rounds + @" (""Rounds"", integer) = 0
+" + ShaderProperties.PasswordHash + @" (""PasswordHash"", integer) = 0
+" + ShaderProperties.HashMagic + @" (""HashMagic"", integer) = 0
 ";
 
                 for (int i = 0; i < 16; ++i)
-                    properties += ShellProtectorShaderProperties.KeyPrefix + i + " (\"key" + i + "\", float) = 0\n";
+                    properties += ShaderProperties.KeyPrefix + i + " (\"key" + i + "\", float) = 0\n";
 
                 data = data.Insert(suffixIndex, properties);
             }

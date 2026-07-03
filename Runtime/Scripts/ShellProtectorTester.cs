@@ -45,7 +45,7 @@ namespace Shell.Protector
                         if (mat.name.Contains("_encrypted") || mat.name.Contains("_duplicated"))
                         {
                             for (int i = 0; i < 16; ++i)
-                                mat.SetInt(ShellProtectorShaderProperties.KeyPrefix + i, passwordBytes[i]);
+                                mat.SetInt(ShaderProperties.KeyPrefix + i, passwordBytes[i]);
                         }
                     }
                 }
@@ -68,7 +68,7 @@ namespace Shell.Protector
                         if (mat.name.Contains("_encrypted") || mat.name.Contains("_duplicated"))
                         {
                             for (int i = 0; i < 16; ++i)
-                                mat.SetInt(ShellProtectorShaderProperties.KeyPrefix + i, passwordBytes[i]);
+                                mat.SetInt(ShaderProperties.KeyPrefix + i, passwordBytes[i]);
                         }
                     }
                 }
@@ -92,7 +92,7 @@ namespace Shell.Protector
                         if (mat.name.Contains("_encrypted") || mat.name.Contains("_duplicated"))
                         {
                             for (int i = 16 - UserKeyLength; i < 16; ++i)
-                                mat.SetInt(ShellProtectorShaderProperties.KeyPrefix + i, 0);
+                                mat.SetInt(ShaderProperties.KeyPrefix + i, 0);
                         }
                 }
             }
@@ -112,7 +112,7 @@ namespace Shell.Protector
                         if (mat.name.Contains("_encrypted") || mat.name.Contains("_duplicated"))
                         {
                             for (int i = 16 - UserKeyLength; i < 16; ++i)
-                                mat.SetInt(ShellProtectorShaderProperties.KeyPrefix + i, 0);
+                                mat.SetInt(ShaderProperties.KeyPrefix + i, 0);
                         }
                 }
             }

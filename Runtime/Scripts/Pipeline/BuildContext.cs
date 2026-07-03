@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Shell.Protector
 {
-    public struct ShellProtectorProcessedTexture
+    public struct ProcessedTexture
     {
         public EncryptResult Encrypted;
         public List<Texture2D> Fallbacks;
@@ -12,7 +12,7 @@ namespace Shell.Protector
         public byte[] Nonce;
     }
 
-    public struct ShellProtectorAuxiliaryTextures
+    public struct AuxiliaryTextures
     {
         public Texture2D LimTexture;
         public Texture2D LimTexture2;
@@ -20,18 +20,18 @@ namespace Shell.Protector
         public Texture2D LimShadeTexture;
     }
 
-    public sealed class ShellProtectorBuildContext
+    public sealed class BuildContext
     {
-        public ShellProtectorBuildContext(ShellProtectorBuildRequest request, ShellProtectorSettings settings)
+        public BuildContext(BuildRequest request, BuildSettings settings)
         {
             Request = request;
             Settings = settings;
-            Result = new ShellProtectorBuildResult();
+            Result = new BuildResult();
         }
 
-        public ShellProtectorBuildRequest Request { get; }
-        public ShellProtectorSettings Settings { get; }
-        public ShellProtectorBuildResult Result { get; }
+        public BuildRequest Request { get; }
+        public BuildSettings Settings { get; }
+        public BuildResult Result { get; }
         public IEncryptor Encryptor { get; set; }
         public EncryptedHistory History { get; set; }
         public Texture2D FallbackWhite { get; set; }

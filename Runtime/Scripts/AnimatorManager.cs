@@ -16,11 +16,10 @@ namespace Shell.Protector
     {
         Dictionary<AnimationClip, AnimationClip> encryptedClip = new Dictionary<AnimationClip, AnimationClip>();
 
-        public static AnimatorController DuplicateAnimator(RuntimeAnimatorController anim, string newDir)
+        public static AnimatorController DuplicateAnimator(RuntimeAnimatorController anim, OutputPaths paths, AssetWriter writer)
         {
             string dir = AssetDatabase.GetAssetPath(anim);
-            string output = Path.Combine(newDir, anim.name + anim.GetInstanceID().ToString() + "_encrypted.anim");
-            if (!AssetDatabase.CopyAsset(dir, output))
+            if (!writer.CopyAssetToFolder(dir, paths.Folders.AnimGuid, paths.ControllerName(anim), out string output))
             {
                 Debug.LogErrorFormat("Failed to copy a animator: {0}", anim.name);
             }
@@ -30,7 +29,7 @@ namespace Shell.Protector
             return AssetDatabase.LoadAssetAtPath(output, typeof(RuntimeAnimatorController)) as AnimatorController;
         }
 
-        public static void CreateKeyAnimations(string animationDir, string newDir, GameObject[] objs)
+        public static void CreateKeyAnimations(string animationDir, OutputPaths paths, AssetWriter writer, GameObject[] objs)
         {
             string[] files = Directory.GetFiles(animationDir);
             foreach (string file in files)
@@ -41,8 +40,8 @@ namespace Shell.Protector
                 if (filename.Contains("dummy"))
                     continue;
 
-                string path = Path.Combine(newDir, filename);
-                AssetDatabase.CopyAsset(file, path);
+                if (!writer.CopyAssetToFolder(file, paths.Folders.AnimGuid, filename, out string path))
+                    continue;
                 AnimationClip clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(path);
                 if (clip == null)
                     continue;
@@ -66,7 +65,7 @@ namespace Shell.Protector
             var binding = new EditorCurveBinding
             {
                 path = GetAnimationPath(obj.transform),
-                propertyName = "material." + ShellProtectorShaderProperties.KeyPrefix + keyIndex,
+                propertyName = "material." + ShaderProperties.KeyPrefix + keyIndex,
                 type = obj.GetComponent<SkinnedMeshRenderer>() == null ? typeof(MeshRenderer) : typeof(SkinnedMeshRenderer)
             };
 
@@ -448,12 +447,12 @@ namespace Shell.Protector
             }
         }
 
-        void SearchStateMachine(AnimatorStateMachine stateMachine, Material targetMaterial, Material encrypted, bool clone, string clonePath)
+        void SearchStateMachine(AnimatorStateMachine stateMachine, Material targetMaterial, Material encrypted, bool clone, OutputPaths paths, AssetWriter writer)
         {
             for (int i = 0; i < stateMachine.states.Length; i++)
             {
                 ChildAnimatorState state = stateMachine.states[i];
-                AnimationClip clip = SearchMotion(state.state.motion, targetMaterial, encrypted, clone, clonePath);
+                AnimationClip clip = SearchMotion(state.state.motion, targetMaterial, encrypted, clone, paths, writer);
                 if (clip != null)
                 {
                     state.state.motion = clip;
@@ -463,11 +462,11 @@ namespace Shell.Protector
 
             foreach (ChildAnimatorStateMachine childStateMachine in stateMachine.stateMachines)
             {
-                SearchStateMachine(childStateMachine.stateMachine, targetMaterial, encrypted, clone, clonePath);
+                SearchStateMachine(childStateMachine.stateMachine, targetMaterial, encrypted, clone, paths, writer);
             }
         }
 
-        AnimationClip SearchMotion(Motion motion, Material targetMaterial, Material encrypted, bool clone, string clonePath)
+        AnimationClip SearchMotion(Motion motion, Material targetMaterial, Material encrypted, bool clone, OutputPaths paths, AssetWriter writer)
         {
             if (motion is AnimationClip clip)
             {
@@ -477,7 +476,6 @@ namespace Shell.Protector
                     if (clone)
                     {
                         string path = AssetDatabase.GetAssetPath(clip);
-                        string copyPath = Path.Combine(clonePath, clip.name + "_encrypted.anim");
 
                         if (encryptedClip.ContainsKey(clip))
                         {
@@ -485,7 +483,7 @@ namespace Shell.Protector
                         }
                         else
                         {
-                            if (!AssetDatabase.CopyAsset(path, copyPath))
+                            if (!writer.CopyAssetToFolder(path, paths.Folders.AnimGuid, paths.AnimationClipName(clip, "_encrypted"), out string copyPath))
                             {
                                 Debug.LogError("Copy error: " + copyPath);
                                 return null;
@@ -506,7 +504,7 @@ namespace Shell.Protector
                 for (int i = 0; i < blendTree.children.Length; ++i)
                 {
                     ChildMotion childMotion = blendTree.children[i];
-                    AnimationClip result = SearchMotion(childMotion.motion, targetMaterial, encrypted, clone, clonePath);
+                    AnimationClip result = SearchMotion(childMotion.motion, targetMaterial, encrypted, clone, paths, writer);
                     if (result != null)
                     {
                         childMotion.motion = result;
@@ -520,7 +518,7 @@ namespace Shell.Protector
             return null;
         }
 
-        public void ChangeAnimationMaterial(AnimatorController anim, Material original, Material encrypted, bool clone, string clonePath)
+        public void ChangeAnimationMaterial(AnimatorController anim, Material original, Material encrypted, bool clone, OutputPaths paths, AssetWriter writer)
         {
             if (anim == null || original == null)
                 return;
@@ -535,7 +533,7 @@ namespace Shell.Protector
                 var stateMachine = layer.stateMachine;
                 if (stateMachine == null)
                     continue;
-                SearchStateMachine(stateMachine, original, encrypted, clone, clonePath);
+                SearchStateMachine(stateMachine, original, encrypted, clone, paths, writer);
             }
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();

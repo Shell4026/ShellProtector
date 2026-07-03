@@ -8,7 +8,7 @@ namespace Shell.Protector
         bool CanHandle(Shader shader);
         bool WasInjected(Shader shader);
         void SetKeywords(Material material, bool hasLimTexture = false);
-        Shader Inject(Material material, string decoderPath, string outputPath, Texture2D mainTexture, ShellProtectorAuxiliaryTextures auxiliaryTextures);
+        Shader Inject(Material material, string decoderPath, string outputPath, Texture2D mainTexture, AuxiliaryTextures auxiliaryTextures);
     }
 }
 #endif

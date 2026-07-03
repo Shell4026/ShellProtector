@@ -7,7 +7,7 @@ namespace Shell.Protector
 {
     public class Chacha20 : IEncryptor
     {
-        public string Keyword => ShellProtectorShaderProperties.ChachaKeyword;
+        public string Keyword => ShaderProperties.ChachaKeyword;
         public byte[] Nonce { get; } = new byte[12];
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         byte[] U32t8le(uint v)
