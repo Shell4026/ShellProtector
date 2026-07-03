@@ -140,6 +140,7 @@ namespace Shell.Protector
         _Nonce0 (""Nonce"", integer) = 0
         _Nonce1 (""Nonce"", integer) = 0
         _Nonce2 (""Nonce"", integer) = 0
+        _Rounds (""Rounds"", integer) = 0
         _PasswordHash (""PasswordHash"", integer) = 0
         _HashMagic (""HashMagic"", integer) = 0
 ";

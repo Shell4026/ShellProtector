@@ -10,23 +10,23 @@ int GetIndex(half2 uv, int m) {
 	return (mw[m + (uint)_Woffset] * floor(y * mh[m + _Hoffset])) + floor(x * mw[m + (uint)_Woffset]);
 }
 
-void GetData(inout uint data[3], half2 uv, int m) {
+void GetData(Texture2D tex1, SamplerState tex0Sampler, inout uint data[3], half2 uv, int m) {
 	const int pos[4] = { 0, -1, -2, -3 };
 	int idx = GetIndex(uv, m);
 	int offset = pos[idx % 4];
 
     half3 pixels[4];
-	pixels[0] = _EncryptTex0.SampleLevel(sampler_EncryptTex0, GetUV(idx + 0 + offset, m, (uint)_Woffset, _Hoffset), m);
-	pixels[1] = _EncryptTex0.SampleLevel(sampler_EncryptTex0, GetUV(idx + 1 + offset, m, (uint)_Woffset, _Hoffset), m);
-	pixels[2] = _EncryptTex0.SampleLevel(sampler_EncryptTex0, GetUV(idx + 2 + offset, m, (uint)_Woffset, _Hoffset), m);
-	pixels[3] = _EncryptTex0.SampleLevel(sampler_EncryptTex0, GetUV(idx + 3 + offset, m, (uint)_Woffset, _Hoffset), m);
+	pixels[0] = tex1.SampleLevel(tex0Sampler, GetUV(idx + 0 + offset, m, (uint)_Woffset, _Hoffset), m);
+	pixels[1] = tex1.SampleLevel(tex0Sampler, GetUV(idx + 1 + offset, m, (uint)_Woffset, _Hoffset), m);
+	pixels[2] = tex1.SampleLevel(tex0Sampler, GetUV(idx + 2 + offset, m, (uint)_Woffset, _Hoffset), m);
+	pixels[3] = tex1.SampleLevel(tex0Sampler, GetUV(idx + 3 + offset, m, (uint)_Woffset, _Hoffset), m);
 
 	data[0] = ((uint)round(pixels[0].r * 255.0f) | ((uint)round(pixels[0].g * 255.0f) << 8) | ((uint)round(pixels[0].b * 255.0f) << 16) | ((uint)round(pixels[1].r * 255.0f) << 24));
 	data[1] = ((uint)round(pixels[1].g * 255.0f) | ((uint)round(pixels[1].b * 255.0f) << 8) | ((uint)round(pixels[2].r * 255.0f) << 16) | ((uint)round(pixels[2].g * 255.0f) << 24));
 	data[2] = ((uint)round(pixels[2].b * 255.0f) | ((uint)round(pixels[3].r * 255.0f) << 8) | ((uint)round(pixels[3].g * 255.0f) << 16) | ((uint)round(pixels[3].b * 255.0f) << 24));
 }
 
-half4 GetPixel(inout uint data[3], half2 uv, int m) {
+half4 GetPixel(Texture2D tex0, SamplerState tex0Sampler, inout uint data[3], half2 uv, int m) {
     const int pos[4] = { 0, -1, -2, -3 };
 	int idx = GetIndex(uv, m);
 	int offset = pos[idx % 4];

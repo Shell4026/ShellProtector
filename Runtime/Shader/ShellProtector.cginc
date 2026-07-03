@@ -6,6 +6,11 @@
 #pragma shader_feature_local _SHELL_PROTECTOR_FORMAT1
 #pragma shader_feature_local _SHELL_PROTECTOR_RIMLIGHT
 
+// Unity also compiles a no-keyword variant while importing shaders.
+#if !_SHELL_PROTECTOR_XXTEA && !_SHELL_PROTECTOR_CHACHA
+    #define _SHELL_PROTECTOR_CHACHA
+#endif
+
 // Format keywords
 #if !_SHELL_PROTECTOR_FORMAT0 && !_SHELL_PROTECTOR_FORMAT1
     #define _SHELL_PROTECTOR_DXT
@@ -61,7 +66,11 @@ half4 DecryptTexture(Texture2D tex0, Texture2D tex1, SamplerState tex0Sampler, h
 	};
 	
 	uint data[_SHELL_PROTECTOR_DATA_LENGTH];
+#ifdef _SHELL_PROTECTOR_DXT
     GetData(tex1, tex0Sampler, data, uv, m);
+#else
+    GetData(tex0, tex0Sampler, data, uv, m);
+#endif
 	Decrypt(data, key);
     return GetPixel(tex0, tex0Sampler, data, uv, m);
 }

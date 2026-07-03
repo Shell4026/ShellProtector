@@ -29,6 +29,7 @@ namespace Shell.Protector
         Injector injector;
         AssetManager shaderManager = AssetManager.GetInstance();
         bool init = false;
+        string packageAssetDir = null;
 
         enum Algorithm
         {
@@ -106,6 +107,25 @@ namespace Shell.Protector
         Texture2D fallbackWhite = null;
         Texture2D fallbackBlack = null;
 
+        string GetPackageAssetDir()
+        {
+            if (!string.IsNullOrEmpty(packageAssetDir))
+                return packageAssetDir;
+
+            MonoScript monoScript = MonoScript.FromMonoBehaviour(this);
+            string script_path = AssetDatabase.GetAssetPath(monoScript);
+            packageAssetDir = Path.GetDirectoryName(Path.GetDirectoryName(script_path));
+            return packageAssetDir;
+        }
+
+        string ResolveOutputAssetDir()
+        {
+            string packageDir = GetPackageAssetDir();
+            if (string.IsNullOrEmpty(assetDir) || assetDir == "Assets/ShellProtect")
+                assetDir = packageDir;
+            return assetDir;
+        }
+
         public void Init()
         {
             if (init)
@@ -175,17 +195,16 @@ namespace Shell.Protector
 
             SyncMatOption();
 
-            MonoScript monoScript = MonoScript.FromMonoBehaviour(this);
-            string script_path = AssetDatabase.GetAssetPath(monoScript);
-            assetDir = Path.GetDirectoryName(Path.GetDirectoryName(script_path));
+            string resourceDir = GetPackageAssetDir();
+            assetDir = ResolveOutputAssetDir();
             string avatarDir = Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString());
 
             Debug.Log("AssetDir: " + assetDir);
 
             if (fallbackWhite == null)
-                fallbackWhite = AssetDatabase.LoadAssetAtPath(Path.Combine(assetDir, "white.png"), typeof(Texture2D)) as Texture2D;
+                fallbackWhite = AssetDatabase.LoadAssetAtPath(Path.Combine(resourceDir, "white.png"), typeof(Texture2D)) as Texture2D;
             if (fallbackBlack == null)
-                fallbackBlack = AssetDatabase.LoadAssetAtPath(Path.Combine(assetDir, "black.png"), typeof(Texture2D)) as Texture2D;
+                fallbackBlack = AssetDatabase.LoadAssetAtPath(Path.Combine(resourceDir, "black.png"), typeof(Texture2D)) as Texture2D;
 
             if (descriptor == null)
             {
@@ -247,7 +266,7 @@ namespace Shell.Protector
                 history = AssetDatabase.LoadAssetAtPath(Path.Combine(assetDir, "EncryptedHistory.asset"), typeof(EncryptedHistory)) as EncryptedHistory;
                 if (history == null)
                 {
-                    history = new EncryptedHistory();
+                    history = ScriptableObject.CreateInstance<EncryptedHistory>();
                     AssetDatabase.CreateAsset(history, Path.Combine(assetDir, "EncryptedHistory.asset"));
                 }
             }
@@ -301,7 +320,7 @@ namespace Shell.Protector
                 Debug.LogFormat("{0} : Start encrypt...", mat.name);
 
                 Texture2D mainTexture = (Texture2D)mat.mainTexture;
-                injector.Init(descriptor.gameObject, mainTexture, keyBytes, keySize, filter, assetDir, encryptor);
+                injector.Init(descriptor.gameObject, mainTexture, keyBytes, keySize, filter, resourceDir, encryptor);
 
                 int mipRefSize = Math.Max(mat.mainTexture.width, mat.mainTexture.height);
                 if (!mips.ContainsKey(mipRefSize))
@@ -334,7 +353,7 @@ namespace Shell.Protector
                     {
                         encryptedShader = injector.Inject(
                             mat, 
-                            Path.Combine(assetDir, "Shader/ShellProtector.cginc"),
+                            Path.Combine(resourceDir, "Shader/ShellProtector.cginc"),
                             encryptedShader_path,
                             encryptedTex1,
                             otherTex.limTexture != null,
@@ -657,6 +676,7 @@ namespace Shell.Protector
                 }
             }
         }
+
         public void SetAnimations(GameObject avatar, bool clone)
         {
             var av3 = avatar.GetComponent<VRCAvatarDescriptor>();
@@ -671,7 +691,7 @@ namespace Shell.Protector
 
             GameObject[] meshArray = new GameObject[meshes.Count];
             meshes.CopyTo(meshArray);
-            AnimatorManager.CreateKeyAniamtions(Path.Combine(assetDir, "Animations"), animationDir, meshArray);
+            AnimatorManager.CreateKeyAniamtions(Path.Combine(GetPackageAssetDir(), "Animations"), animationDir, meshArray);
             AnimatorManager.AddKeyLayer(fx, animationDir, keySize, syncSize, 3.0f);
 
             AssetDatabase.SaveAssets();
@@ -689,7 +709,7 @@ namespace Shell.Protector
             var fx = av3.baseAnimationLayers[4].animatorController as AnimatorController;
             string animationDir = Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString(), "animations");
 
-            AnimatorManager animManager = new AnimatorManager();
+            AnimatorManager animManager = ScriptableObject.CreateInstance<AnimatorManager>();
             foreach (var pair in encryptedMaterials)
             {
                 Debug.LogFormat("{0}, {1}", pair.Key.name, pair.Value.name);
@@ -736,7 +756,7 @@ namespace Shell.Protector
             AnimatorController fx = Getfx(avatar);
             string animDir = Path.Combine(assetDir, descriptor.gameObject.GetInstanceID().ToString(), "animations");
 
-            Obfuscator obfuscator = new Obfuscator();
+            Obfuscator obfuscator = ScriptableObject.CreateInstance<Obfuscator>();
             obfuscator.clone = bClone;
             obfuscator.bPreserveMMD = bPreserveMMD;
 
@@ -927,7 +947,7 @@ namespace Shell.Protector
                 history = AssetDatabase.LoadAssetAtPath(Path.Combine(assetDir, "EncryptedHistory.asset"), typeof(EncryptedHistory)) as EncryptedHistory;
                 if (history == null)
                 {
-                    history = new EncryptedHistory();
+                    history = ScriptableObject.CreateInstance<EncryptedHistory>();
                     AssetDatabase.CreateAsset(history, Path.Combine(assetDir, "EncryptedHistory.asset"));
                 }
             }
@@ -1226,7 +1246,7 @@ namespace Shell.Protector
             var (woffset, hoffset) = TextureEncryptManager.CalculateOffsets(originalTex);
             newMat.SetInteger("_Woffset", woffset);
             newMat.SetInteger("_Hoffset", hoffset);
-            for (int i = 0; i < 16 - keySize; ++i)
+            for (int i = 0; i < keyBytes.Length; ++i)
                 newMat.SetFloat("_Key" + i, keyBytes[i]);
 
             if (algorithm == (int)Algorithm.chacha)
@@ -1235,6 +1255,10 @@ namespace Shell.Protector
                 newMat.SetInteger("_Nonce0", (int)chacha.GetNonceUint3()[0]);
                 newMat.SetInteger("_Nonce1", (int)chacha.GetNonceUint3()[1]);
                 newMat.SetInteger("_Nonce2", (int)chacha.GetNonceUint3()[2]);
+            }
+            else if (algorithm == (int)Algorithm.xxtea)
+            {
+                newMat.SetInteger("_Rounds", (int)rounds);
             }
 
             var key = new byte[16];
