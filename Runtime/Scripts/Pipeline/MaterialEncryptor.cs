@@ -64,6 +64,7 @@ namespace Shell.Protector
             result.SetInteger(ShaderProperties.PasswordHash, (int)hash);
 
             injector.SetKeywords(result, auxiliary.LimTexture != null);
+            TextureEncryptManager.SetFormatKeywords(result, originalTex);
             writer.CreateAssetInFolder(result, folderGuid, fileName);
             writer.SaveAndRefresh();
             return result;

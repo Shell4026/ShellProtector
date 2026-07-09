@@ -156,6 +156,13 @@ namespace Shell.Protector
             format.SetFormatKeywords(material);
         }
 
+        public static void SetFormatKeywords(Material material, Texture texture)
+        {
+            var format = GetFormat(texture);
+            if (format == null) return;
+            format.SetFormatKeywords(material);
+        }
+
         public static (int, int) CalculateOffsets(Texture2D texture)
         {
             var format = GetFormat(texture);
