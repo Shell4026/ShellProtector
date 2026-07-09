@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace Shell.Protector.Tests.Unit
 {
@@ -77,6 +78,22 @@ namespace Shell.Protector.Tests.Unit
             {
                 Assert.That(result.Texture2, Is.Null);
             }
+        }
+
+        [TestCase(15, 16)]
+        [TestCase(16, 15)]
+        public void EncryptTextureRejectsTextureWhenEitherDimensionIsOdd(int width, int height)
+        {
+            Texture2D texture = TestAssetScope.CreatePatternTexture(width, height, TextureFormat.RGBA32, true);
+            texture.name = "OddTexture";
+            XXTEA xxtea = new XXTEA { Rounds = 20 };
+            byte[] key = KeyGenerator.MakeKeyBytes("password", "pass", 12);
+
+            LogAssert.Expect(LogType.Error, "OddTexture : The texture size must be a multiple of 2!");
+            EncryptResult result = TextureEncryptManager.EncryptTexture(texture, key, xxtea);
+
+            Assert.That(result.Texture1, Is.Null);
+            Assert.That(result.Texture2, Is.Null);
         }
     }
 }

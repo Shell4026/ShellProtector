@@ -648,103 +648,79 @@ namespace Shell.Protector
                 }
             } // Encrypted materials loop
 
-            var renderers = avatar.GetComponentsInChildren<MeshRenderer>(true);
-            if (renderers != null)
+            var duplicatedMaterials = new Dictionary<Material, Material>();
+            bool changedFallbackMaterials = ReplaceProcessedTexturesWithFallbacks(avatar.GetComponentsInChildren<MeshRenderer>(true), paths, duplicatedMaterials);
+            changedFallbackMaterials |= ReplaceProcessedTexturesWithFallbacks(avatar.GetComponentsInChildren<SkinnedMeshRenderer>(true), paths, duplicatedMaterials);
+            if (changedFallbackMaterials)
+                _assetWriter.SaveAndRefresh();
+        }
+
+        bool ReplaceProcessedTexturesWithFallbacks<T>(IEnumerable<T> renderers, OutputPaths paths, Dictionary<Material, Material> duplicatedMaterials) where T : Renderer
+        {
+            bool changed = false;
+            foreach (T renderer in renderers)
             {
-                for (int i = 0; i < renderers.Length; ++i)
+                Material[] mats = renderer.sharedMaterials;
+                if (mats == null)
+                    continue;
+
+                bool rendererChanged = false;
+                for (int i = 0; i < mats.Length; ++i)
                 {
-                    var mats = renderers[i].sharedMaterials;
-                    if (mats == null)
+                    Material sourceMaterial = mats[i];
+                    if (sourceMaterial == null)
                         continue;
-                    for (int j = 0; j < mats.Length; ++j)
+
+                    Material duplicatedMaterial = null;
+                    foreach (string name in sourceMaterial.GetTexturePropertyNames())
                     {
-                        if (mats[j] == null)
+                        Texture2D texture = sourceMaterial.GetTexture(name) as Texture2D;
+                        if (texture == null || !ProcessedTextures.TryGetValue(texture, out ProcessedTexture processedTexture))
                             continue;
 
-                        Material tmp = null;
-                        foreach (var name in mats[j].GetTexturePropertyNames())
-                        {
-                            if (mats[j].GetTexture(name) == null)
-                                continue;
-                            if (!(mats[j].GetTexture(name) is Texture2D))
-                                continue;
-                            Texture2D tex = (Texture2D)mats[j].GetTexture(name);
-                            if (ProcessedTextures.ContainsKey(tex))
-                            {
-                                int idx = ProcessedTextures[tex].FallbackOptions.IndexOf(ProcessedTextures[tex].FallbackOptions.Max());
-                                Texture2D bigFallbackTexture = ProcessedTextures[tex].Fallbacks[idx];
-                                if (tmp == null)
-                                {
-                                    string duplicatedPath = OutputPaths.Combine(_assetWriter.ResolveFolderPath(paths.Folders.MatGuid), paths.DuplicatedMaterialName(mats[j]));
-                                    Material mat = AssetDatabase.LoadAssetAtPath<Material>(duplicatedPath);
-                                    if (mat == null)
-                                    {
-                                        tmp = Instantiate(mats[j]);
-                                        _assetWriter.CreateAssetInFolder(tmp, paths.Folders.MatGuid, paths.DuplicatedMaterialName(mats[j]));
-                                        AssetDatabase.SaveAssets();
-                                    }
-                                    else
-                                        tmp = mat;
-                                }
-                                tmp.SetTexture(name, bigFallbackTexture);
-                            }
-                        }
-                        AssetDatabase.Refresh();
-                        if (tmp != null)
-                            mats[j] = tmp;
+                        if (duplicatedMaterial == null)
+                            duplicatedMaterial = GetOrCreateDuplicatedMaterial(sourceMaterial, paths, duplicatedMaterials);
+
+                        duplicatedMaterial.SetTexture(name, GetLargestFallback(processedTexture));
+                        EditorUtility.SetDirty(duplicatedMaterial);
+                        changed = true;
                     }
-                    renderers[i].sharedMaterials = mats;
-                }
-            }
-            var skinnedRenderers = avatar.GetComponentsInChildren<SkinnedMeshRenderer>(true);
-            if (skinnedRenderers != null)
-            {
-                for (int i = 0; i < skinnedRenderers.Length; ++i)
-                {
-                    var mats = skinnedRenderers[i].sharedMaterials;
-                    if (mats == null)
-                        continue;
-                    for (int j = 0; j < mats.Length; ++j)
+
+                    if (duplicatedMaterial != null)
                     {
-                        if (mats[j] == null)
-                            continue;
-
-                        Material tmp = null;
-                        foreach (var name in mats[j].GetTexturePropertyNames())
-                        {
-                            if (mats[j].GetTexture(name) == null)
-                                continue;
-                            if (!(mats[j].GetTexture(name) is Texture2D))
-                                continue;
-
-                            if (ProcessedTextures.ContainsKey((Texture2D)mats[j].GetTexture(name)))
-                            {
-                                Texture2D mainTex = (Texture2D)mats[j].GetTexture(name);
-                                int idx = ProcessedTextures[mainTex].FallbackOptions.IndexOf(ProcessedTextures[mainTex].FallbackOptions.Max());
-                                Texture2D bigFallbackTexture = ProcessedTextures[mainTex].Fallbacks[idx];
-                                if (tmp == null)
-                                {
-                                    string duplicatedPath = OutputPaths.Combine(_assetWriter.ResolveFolderPath(paths.Folders.MatGuid), paths.DuplicatedMaterialName(mats[j]));
-                                    Material mat = AssetDatabase.LoadAssetAtPath<Material>(duplicatedPath);
-                                    if (mat == null)
-                                    {
-                                        tmp = Instantiate(mats[j]);
-                                        _assetWriter.CreateAssetInFolder(tmp, paths.Folders.MatGuid, paths.DuplicatedMaterialName(mats[j]));
-                                        AssetDatabase.SaveAssets();
-                                    }
-                                    else
-                                        tmp = mat;
-                                }
-                                tmp.SetTexture(name, bigFallbackTexture);
-                            }
-                        }
-                        AssetDatabase.Refresh();
-                        if (tmp != null)
-                            mats[j] = tmp;
+                        mats[i] = duplicatedMaterial;
+                        rendererChanged = true;
                     }
-                    skinnedRenderers[i].sharedMaterials = mats;
                 }
+
+                if (rendererChanged)
+                    renderer.sharedMaterials = mats;
             }
+
+            return changed;
+        }
+
+        Material GetOrCreateDuplicatedMaterial(Material source, OutputPaths paths, Dictionary<Material, Material> duplicatedMaterials)
+        {
+            if (duplicatedMaterials.TryGetValue(source, out Material duplicatedMaterial))
+                return duplicatedMaterial;
+
+            string duplicatedPath = OutputPaths.Combine(_assetWriter.ResolveFolderPath(paths.Folders.MatGuid), paths.DuplicatedMaterialName(source));
+            duplicatedMaterial = AssetDatabase.LoadAssetAtPath<Material>(duplicatedPath);
+            if (duplicatedMaterial == null)
+            {
+                duplicatedMaterial = Instantiate(source);
+                _assetWriter.CreateAssetInFolder(duplicatedMaterial, paths.Folders.MatGuid, paths.DuplicatedMaterialName(source));
+            }
+
+            duplicatedMaterials[source] = duplicatedMaterial;
+            return duplicatedMaterial;
+        }
+
+        static Texture2D GetLargestFallback(ProcessedTexture processedTexture)
+        {
+            int idx = processedTexture.FallbackOptions.IndexOf(processedTexture.FallbackOptions.Max());
+            return processedTexture.Fallbacks[idx];
         }
 
         public void SetAnimations(GameObject avatar, bool clone)

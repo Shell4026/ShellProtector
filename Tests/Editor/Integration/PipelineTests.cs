@@ -92,6 +92,24 @@ namespace Shell.Protector.Tests.Integration
             AssertOutputFoldersHaveGuids(TestAssetScope.DefaultGeneratedRoot, avatarName);
         }
 
+        [Test]
+        public void AddKeyLayer_DoesNotDuplicateShellProtectorParametersOrLayers()
+        {
+            string controllerDir = TestAssetScope.GeneratedRoot + "/Repeat";
+            TestAssetScope.EnsureFolder(controllerDir);
+            AnimatorController controller = AnimatorController.CreateAnimatorControllerAtPath(controllerDir + "/fx.controller");
+            string animationDir = "Assets/ShellProtector/Runtime/Animations";
+
+            AnimatorManager.AddKeyLayer(controller, animationDir, 4, 1, 3.0f);
+            AnimatorManager.AddKeyLayer(controller, animationDir, 4, 1, 3.0f);
+
+            Assert.That(controller.layers.Count(l => l.name == "ShellProtector"), Is.EqualTo(1));
+            Assert.That(controller.parameters.Count(p => p.name == "key_weight"), Is.EqualTo(1));
+            Assert.That(controller.parameters.Count(p => p.name == ParameterManager.GetKeyName(0)), Is.EqualTo(1));
+            Assert.That(controller.parameters.Count(p => p.name == ParameterManager.GetSyncLockName(true)), Is.EqualTo(1));
+            Assert.That(controller.parameters.Count(p => p.name == ParameterManager.GetSyncSwitchName(0, true)), Is.EqualTo(1));
+        }
+
         private Fixture CreateFixture(string name, string assetDir = TestAssetScope.GeneratedRoot)
         {
             Texture2D texture = TestAssetScope.CreatePatternTexture(128, 128, TextureFormat.RGBA32, true);

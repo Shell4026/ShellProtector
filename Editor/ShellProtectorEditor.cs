@@ -1,13 +1,10 @@
 #if UNITY_EDITOR
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using UnityEditorInternal;
-using System.Text;
 using System;
 using System.IO;
-using System.Text.RegularExpressions;
 using VRC.SDK3.Avatars.Components;
 
 namespace Shell.Protector
@@ -47,12 +44,9 @@ namespace Shell.Protector
         readonly string[] keyLengthLabels = new string[5];
 
         List<string> shaders = new List<string>();
+        readonly List<Texture2D> debugTextures = new List<Texture2D>();
 
         bool showPassword = false;
-
-        Texture2D tex;
-
-        string githubVersion;
 
         private string Lang(string word)
         {
@@ -81,12 +75,11 @@ namespace Shell.Protector
                 EditorGUI.PropertyField(new Rect(rect.x, rect.y, rect.width, EditorGUIUtility.singleLineHeight), element, GUIContent.none);
             };
 
-            textureList = new ReorderableList(serializedObject, serializedObject.FindProperty("textureList"), true, true, true, true);
+            textureList = new ReorderableList(debugTextures, typeof(Texture2D), true, true, true, true);
             textureList.drawHeaderCallback = rect => EditorGUI.LabelField(rect, Lang("Texture List"));
             textureList.drawElementCallback = (rect, index, is_active, is_focused) =>
             {
-                SerializedProperty element = textureList.serializedProperty.GetArrayElementAtIndex(index);
-                EditorGUI.PropertyField(new Rect(rect.x, rect.y, rect.width, EditorGUIUtility.singleLineHeight), element, GUIContent.none);
+                debugTextures[index] = EditorGUI.ObjectField(new Rect(rect.x, rect.y, rect.width, EditorGUIUtility.singleLineHeight), debugTextures[index], typeof(Texture2D), false) as Texture2D;
             };
 
             obfuscationList = new ReorderableList(serializedObject, serializedObject.FindProperty("_obfuscationRenderers"), true, true, true, true);
@@ -412,14 +405,17 @@ namespace Shell.Protector
                 if (GUILayout.Button(Lang("Encrypt")))
                 {
                     Texture2D last = null;
-                    for (int i = 0; i < textureList.count; i++)
+                    for (int i = 0; i < debugTextures.Count; i++)
                     {
-                        SerializedProperty element = textureList.serializedProperty.GetArrayElementAtIndex(i);
-                        Texture2D texture = element.objectReferenceValue as Texture2D;
+                        Texture2D texture = debugTextures[i];
+                        if (texture == null)
+                            continue;
 
                         TextureSettings.SetRWEnableTexture(texture);
 
                         var result = TextureEncryptManager.EncryptTexture(texture, KeyGenerator.MakeKeyBytes(root.FixedPassword, root.UserPassword, keySize.intValue), new XXTEA());
+                        if (result.Texture1 == null)
+                            continue;
 
                         last = result.Texture1;
 
@@ -428,9 +424,11 @@ namespace Shell.Protector
                         outputPaths.PrepareFolders(writer, false);
 
                         writer.CreateAssetInFolder(result.Texture1, outputPaths.Folders.TexGuid, outputPaths.EncryptedTextureName(texture, 0));
-                        File.WriteAllBytes(writer.UniquePathInFolder(outputPaths.Folders.TexGuid, OutputPaths.Sanitize(texture.name) + "_encrypt.png"), result.Texture2.EncodeToPNG());
                         if (result.Texture2 != null)
+                        {
+                            File.WriteAllBytes(writer.UniquePathInFolder(outputPaths.Folders.TexGuid, OutputPaths.Sanitize(texture.name) + "_encrypt.png"), result.Texture2.EncodeToPNG());
                             writer.CreateAssetInFolder(result.Texture2, outputPaths.Folders.TexGuid, outputPaths.EncryptedTextureName(texture, 2));
+                        }
                         AssetDatabase.SaveAssets();
 
                         AssetDatabase.Refresh();

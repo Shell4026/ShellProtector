@@ -118,7 +118,7 @@ namespace Shell.Protector
 
         public static EncryptResult EncryptTexture(Texture2D texture, byte[] key, IEncryptor encryptor)
         {
-            if (texture.width % 2 != 0 && texture.height % 2 != 0)
+            if (texture.width % 2 != 0 || texture.height % 2 != 0)
             {
                 Debug.LogErrorFormat("{0} : The texture size must be a multiple of 2!", texture.name);
                 return new EncryptResult();

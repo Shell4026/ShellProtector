@@ -33,6 +33,18 @@ namespace Shell.Protector.Tests.Unit
         }
 
         [Test]
+        public void GenerateRandomString_UsesRequestedLengthAndAllowedCharacters()
+        {
+            const string allowedChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_-+=|\\/?.>,<~`\'\" ";
+
+            string value = KeyGenerator.GenerateRandomString(64);
+
+            Assert.That(value, Has.Length.EqualTo(64));
+            Assert.That(value.All(c => allowedChars.IndexOf(c) >= 0), Is.True);
+            Assert.That(KeyGenerator.GenerateRandomString(0), Is.Empty);
+        }
+
+        [Test]
         public void Xxtea_EncryptsStableVector_AndRoundTrips()
         {
             XXTEA xxtea = new XXTEA();

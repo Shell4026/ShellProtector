@@ -1,5 +1,4 @@
 #if UNITY_EDITOR
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -154,46 +153,58 @@ namespace Shell.Protector
         private static void AddParameters(AnimatorController anim, int keyLength, int syncSize)
         {
             bool bLegacy = syncSize == 1;
-            anim.AddParameter(new AnimatorControllerParameter
+            AddParameterIfMissing(anim, new AnimatorControllerParameter
             {
                 defaultFloat = 1.0f,
                 name = "key_weight",
                 type = AnimatorControllerParameterType.Float
             });
 
-            if (anim.parameters.All(p => p.name != ParameterManager.GetIsLocalName()))
+            AddParameterIfMissing(anim, new AnimatorControllerParameter
             {
-                anim.AddParameter(new AnimatorControllerParameter
-                {
-                    defaultBool = false,
-                    name = ParameterManager.GetIsLocalName(),
-                    type = AnimatorControllerParameterType.Bool
-                });
-            }
+                defaultBool = false,
+                name = ParameterManager.GetIsLocalName(),
+                type = AnimatorControllerParameterType.Bool
+            });
 
             for (var i = 0; i < keyLength; ++i)
-                anim.AddParameter(ParameterManager.GetKeyName(i), AnimatorControllerParameterType.Float);
+                AddParameterIfMissing(anim, ParameterManager.GetKeyName(i), AnimatorControllerParameterType.Float);
 
-            anim.AddParameter(ParameterManager.GetSyncLockName(bLegacy), AnimatorControllerParameterType.Bool);
+            AddParameterIfMissing(anim, ParameterManager.GetSyncLockName(bLegacy), AnimatorControllerParameterType.Bool);
             var switchCount = ShellProtector.GetRequiredSwitchCount(keyLength, syncSize);
 
             if (!bLegacy)
             {
                 for (var i = 0; i < keyLength; ++i)
-                    anim.AddParameter(ParameterManager.GetSavedKeyName(i), AnimatorControllerParameterType.Float);
+                    AddParameterIfMissing(anim, ParameterManager.GetSavedKeyName(i), AnimatorControllerParameterType.Float);
             }
             for (var i = 0; i < syncSize; ++i)
-                anim.AddParameter(ParameterManager.GetSyncedKeyName(i, bLegacy), AnimatorControllerParameterType.Float);
+                AddParameterIfMissing(anim, ParameterManager.GetSyncedKeyName(i, bLegacy), AnimatorControllerParameterType.Float);
             for (var i = 0; i < switchCount; ++i)
-                anim.AddParameter(ParameterManager.GetSyncSwitchName(i, bLegacy), AnimatorControllerParameterType.Bool);
+                AddParameterIfMissing(anim, ParameterManager.GetSyncSwitchName(i, bLegacy), AnimatorControllerParameterType.Bool);
+        }
+
+        private static void AddParameterIfMissing(AnimatorController anim, string name, AnimatorControllerParameterType type)
+        {
+            if (anim.parameters.Any(p => p.name == name))
+                return;
+
+            anim.AddParameter(name, type);
+        }
+
+        private static void AddParameterIfMissing(AnimatorController anim, AnimatorControllerParameter parameter)
+        {
+            if (anim.parameters.Any(p => p.name == parameter.name))
+                return;
+
+            anim.AddParameter(parameter);
         }
 
         public static void AddKeyLayer(AnimatorController anim, string animationDir, int keyLength, int syncSize, float speed)
         {
-            bool bLegacy = syncSize == 1;
-            AddParameters(anim, keyLength, syncSize);
-
             if (anim.layers.Any(l => l.name == "ShellProtector")) return;
+
+            AddParameters(anim, keyLength, syncSize);
 
             AddMuxLayer(anim, keyLength, syncSize, 0.15f, 0.1f, 1f); // 10hz
             AddDemuxLayer(anim, keyLength, syncSize);
