@@ -788,12 +788,12 @@ namespace Shell.Protector
             return av3.expressionParameters;
         }
 
-        public static AnimatorController GetFx(GameObject avatar)
+        public static AnimatorController GetFx(GameObject avatar, int playableLayer = 4)
         {
             var av3 = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
             if (av3 == null)
                 return null;
-            return av3.baseAnimationLayers[4].animatorController as AnimatorController;
+            return av3.baseAnimationLayers[playableLayer].animatorController as AnimatorController;
         }
 
         public void ObfuscateBlendShape(GameObject avatar, bool clone)
@@ -903,7 +903,13 @@ namespace Shell.Protector
                     }
                 }
 #endif
-                obfuscator.ObfuscateBlendshapeInAnim(fx, selectRenderer.gameObject, paths, _assetWriter);
+                for (int i = 0; i <= 4; ++i)
+                {
+                    AnimatorController playableLayer = GetFx(avatar, 0);
+                    if (playableLayer == null) 
+                        continue;
+                    obfuscator.ObfuscateBlendshapeInAnim(playableLayer, selectRenderer.gameObject, paths, _assetWriter);
+                }
                 obfuscator.ChangeObfuscatedBlendShapeInDescriptor(av3);
                 obfuscator.Clean();
             }
