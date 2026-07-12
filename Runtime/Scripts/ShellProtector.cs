@@ -905,7 +905,7 @@ namespace Shell.Protector
 #endif
                 for (int i = 0; i <= 4; ++i)
                 {
-                    AnimatorController playableLayer = GetFx(avatar, 0);
+                    AnimatorController playableLayer = GetFx(avatar, i);
                     if (playableLayer == null) 
                         continue;
                     obfuscator.ObfuscateBlendshapeInAnim(playableLayer, selectRenderer.gameObject, paths, _assetWriter);
