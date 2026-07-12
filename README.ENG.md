@@ -19,13 +19,15 @@ You can easily enter the password with the OSC program.
 Source code of OSC: https://github.com/Shell4026/ShellProtectorOSC
 
 ## Supported shaders
-- Poiyomi 8.0, 8.1, 8.2, 9.0, 9.1, 9.2, 9.3(pro), PCSS(Need to more testing)
-- lilToon (1.3.8 ~ 2.3.2)(VCC)
-
+- Poiyomi 8.x, 9.x, 10.x(pro), PCSS(Not recommended)
+- lilToon (1.3.8 ~ 2.3.4)(VCC)
+	
 ## Supported texture formats
 - RGB24, RGBA32
 - DXT1, DXT5
 - The Crunch Compression format will auto-convert to DXT1 or DXT5.
+- **BC7 is not supported**
+	- For textures without transparency, halving the size while keeping the RGB24 format will result in similar quality and texture size.
 
 ## Features
 - Texture Encryption
@@ -38,7 +40,7 @@ Source code of OSC: https://github.com/Shell4026/ShellProtectorOSC
 1. Right-click on your avatar and select "Shell Protector" to add the component.
 2. Set a password and specify the Material or GameObject to encrypt.
 
-(The steps below are not required when using Modular avatar)
+(The steps(3,4) below are not required when using Modular avatar)
 
 3. Click the Encrypt button.
 4. Check the encryption via the Testor component in the new avatar and press the Done button.
@@ -47,10 +49,13 @@ Source code of OSC: https://github.com/Shell4026/ShellProtectorOSC
 ### If your password is more than 4 digits (OSC)
 1. Download ShellProtectorOSC.zip from the release, unzip it, and run ShellProtectorOSC.exe. (You only need to run it once the first time. If you use a reset avatar, keep it on.)
 2. Replace your uploaded avatar and enter your user password in the OSC program.
-3. If changing the password doesn't change the appearance of your avatar, try going to the Action menu - Options - OSC - Reset Config in VRChat.
-4. If you're still having trouble, try clearing the C:\Users\UserName\AppData\LocalLow\VRChat\VRChat\OSC folder.
+3. Starting with version 2.5.0, you must enable 'Parameter-multiplexing'.
+4. If changing the password doesn't change the appearance of your avatar, try going to the Action menu - Options - OSC - Reset Config in VRChat.
+5. If you're still having trouble, try clearing the C:\Users\UserName\AppData\LocalLow\VRChat\VRChat\OSC folder.
 
 ### Parameter-multiplexing
+**Supported by default starting with version 2.5.0.**
+
 Detailed principle:https://github.com/seanedwards/vrc-worldobject/blob/main/docs/parameter-multiplexing.md
 
 This is a parameter-saving technique. After checking, OSC must always be turned on and Parameter-multiplexing must be checked in the OSC program.

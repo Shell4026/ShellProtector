@@ -19,13 +19,15 @@ OSC 프로그램으로 간편하게 비밀번호를 입력할 수 있습니다.
 OSC 소스 코드: https://github.com/Shell4026/ShellProtectorOSC
 
 ## 지원 셰이더
-- Poiyomi 8.0, 8.1, 8.2, 9.0, 9.1, 9.2, 9.3(pro), PCSS(테스트 더 필요)
-- lilToon (1.3.8 ~ 2.3.2)(VCC)
+- Poiyomi 8.x, 9.x, 10.x(pro) PCSS(권장하지 않음)
+- lilToon (1.3.8 ~ 2.3.4)(VCC)
 
 ## 지원 텍스쳐 형식
 - RGB24, RGBA32
 - DXT1, DXT5
 - Crunch Compression 포멧은 자동으로 DXT1이나 DXT5로 변환 됩니다.
+- **BC7은 지원하지 않습니다**
+	- 투명도가 없는 텍스쳐의 경우 RGB24에 사이즈를 반으로 줄이면 비슷한 품질과 텍스쳐 사이즈를 보입니다.
 
 ## 지원하는 기능
 - 텍스쳐 암호화
@@ -37,7 +39,7 @@ OSC 소스 코드: https://github.com/Shell4026/ShellProtectorOSC
 1. 아바타를 우클릭해 'Shell Protector'를 눌러 컴포넌트를 추가합니다.
 2. 비밀번호를 설정해주고 암호화 할 메테리얼이나 게임오브젝트를 지정해줍니다.
 
-(모듈러 사용시 아래 과정은 필요 없습니다.)
+(모듈러 사용시 아래 과정(3,4)은 필요 없습니다.)
 
 3. Encrypt 버튼을 누르세요.
 4. 새로 생긴 아바타에 들어간 Testor컴포넌트를 통해 암호화 여부를 확인하고 완료 버튼을 누르세요.
@@ -46,10 +48,13 @@ OSC 소스 코드: https://github.com/Shell4026/ShellProtectorOSC
 ### 자신의 비밀번호가 4자리 이상인 경우 (OSC)
 1. Release에 있는 ShellProtectorOSC.zip을 다운 후 압축을 풀고 ShellProtectorOSC.exe를 실행시킵니다. (최초 한 번만 실행하면 됩니다. 리셋 아바타나 파라미터 멀티플렉싱을 사용한다면 계속 켜두세요.)
 2. 업로드 한 아바타로 바꾼 후 OSC프로그램에서 사용자 비밀번호를 입력합니다.
-3. 만약 비밀번호가 바뀌어도 아바타의 외형에 변화가 없다면 VRChat에서 액션 메뉴 - Options - OSC - Reset Config를 눌러보세요.
-4. 그래도 문제가 있다면 C:\Users\유저\AppData\LocalLow\VRChat\VRChat\OSC 폴더를 지워보세요.
+3. 2.5.0이후부터 Parameter-multiplexing를 필수로 체크해야 합니다.
+4. 만약 비밀번호가 바뀌어도 아바타의 외형에 변화가 없다면 VRChat에서 액션 메뉴 - Options - OSC - Reset Config를 눌러보세요.
+5. 그래도 문제가 있다면 C:\Users\유저\AppData\LocalLow\VRChat\VRChat\OSC 폴더를 지워보세요.
 
 ### 파라미터 멀티플렉싱
+**2.5.0부터 기본적으로 지원합니다.**
+
 세부 원리:https://github.com/seanedwards/vrc-worldobject/blob/main/docs/parameter-multiplexing.md
 
 파라미터 절약 기술입니다. 체크 후 OSC를 항상 켜둬야하며 OSC프로그램에도 Parameter-multiplexing을 체크 해야합니다.
