@@ -10,15 +10,15 @@ namespace lilToon
     public class ShellProtectorInspector : lilToonInspector
     {
         // Custom properties
-        MaterialProperty mip_tex;
-        MaterialProperty encrypted_tex0;
-        MaterialProperty encrypted_tex1;
+        MaterialProperty mipTexture;
+        MaterialProperty encryptedTexture0;
+        MaterialProperty encryptedTexture1;
         MaterialProperty[] key = new MaterialProperty[16];
-        MaterialProperty password_hash;
+        MaterialProperty passwordHash;
         MaterialProperty hashMagic;
 
         private static bool isShowCustomProperties;
-		private static bool show_pwd = false;
+		private static bool showPassword = false;
         private const string shaderName = "ShellProtector";
 
         protected override void LoadCustomProperties(MaterialProperty[] props, Material material)
@@ -33,14 +33,14 @@ namespace lilToon
             //isShowRenderMode = false;
 
             //LoadCustomLanguage("");
-            mip_tex = FindProperty("_MipTex", props);
-            encrypted_tex0 = FindProperty("_EncryptTex0", props);
-            encrypted_tex1 = FindProperty("_EncryptTex1", props);
-            password_hash = FindProperty("_PasswordHash", props);
-            hashMagic = FindProperty("_HashMagic", props);
+            mipTexture = FindProperty(ShaderProperties.MipTexture, props);
+            encryptedTexture0 = FindProperty(ShaderProperties.EncryptTexture0, props);
+            encryptedTexture1 = FindProperty(ShaderProperties.EncryptTexture1, props);
+            passwordHash = FindProperty(ShaderProperties.PasswordHash, props);
+            hashMagic = FindProperty(ShaderProperties.HashMagic, props);
 
             for (int i = 0; i < key.Length; ++i)
-				key[i] = FindProperty("_Key" + i, props);
+				key[i] = FindProperty(ShaderProperties.KeyPrefix + i, props);
         }
 
         protected override void DrawCustomProperties(Material material)
@@ -60,21 +60,21 @@ namespace lilToon
                 EditorGUILayout.LabelField(GetLoc("ShellProtector"), customToggleFont);
                 EditorGUILayout.BeginVertical(boxInnerHalf);
 
-                if (mip_tex != null)
-                    m_MaterialEditor.ShaderProperty(mip_tex, "Mip reference texture");
-                if(encrypted_tex0 != null)
-                    m_MaterialEditor.ShaderProperty(encrypted_tex0, "Encrypted texture0");
-                if (encrypted_tex1 != null)
-                    m_MaterialEditor.ShaderProperty(encrypted_tex1, "Encrypted texture1");
+                if (mipTexture != null)
+                    m_MaterialEditor.ShaderProperty(mipTexture, "Mip reference texture");
+                if(encryptedTexture0 != null)
+                    m_MaterialEditor.ShaderProperty(encryptedTexture0, "Encrypted texture0");
+                if (encryptedTexture1 != null)
+                    m_MaterialEditor.ShaderProperty(encryptedTexture1, "Encrypted texture1");
 
                 EditorGUILayout.EndVertical();
                 EditorGUILayout.EndVertical();
 				
-                m_MaterialEditor.ShaderProperty(password_hash, "Password hash");
+                m_MaterialEditor.ShaderProperty(passwordHash, "Password hash");
                 m_MaterialEditor.ShaderProperty(hashMagic, "Hash Salt");
 
-                show_pwd = Foldout("Keys", "Keys", show_pwd);
-				if(show_pwd)
+                showPassword = Foldout("Keys", "Keys", showPassword);
+				if(showPassword)
 				{
 					for(int i = 0; i < key.Length; ++i)
 					{

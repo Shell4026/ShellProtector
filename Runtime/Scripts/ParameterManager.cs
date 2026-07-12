@@ -1,10 +1,11 @@
 ﻿#if UNITY_EDITOR
 using System.Collections.Generic;
 using System.Linq;
-using Shell.Protector;
 using UnityEngine;
 using VRC.SDK3.Avatars.ScriptableObjects;
 
+namespace Shell.Protector
+{
 public static class ParameterManager
 {
     private const string Prefix = "SHELL_PROTECTOR_";
@@ -98,5 +99,6 @@ public static class ParameterManager
         result.parameters = vrcParameters.parameters.Concat(parameters).ToArray();;
         return result;
     }
+}
 }
 #endif

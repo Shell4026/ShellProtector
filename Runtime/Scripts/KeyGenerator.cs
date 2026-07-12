@@ -2,6 +2,9 @@
 using System.Security.Cryptography;
 using System;
 using UnityEngine;
+
+namespace Shell.Protector
+{
 public class KeyGenerator
 {
     //key1 is fixed key
@@ -59,11 +62,15 @@ public class KeyGenerator
         const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_-+=|\\/?.>,<~`\'\" ";
         StringBuilder builder = new StringBuilder();
 
-        System.Random random = new System.Random();
-        for (int i = 0; i < length; i++)
+        using (RandomNumberGenerator random = RandomNumberGenerator.Create())
         {
-            int index = random.Next(chars.Length);
-            builder.Append(chars[index]);
+            byte[] buffer = new byte[4];
+            for (int i = 0; i < length; i++)
+            {
+                random.GetBytes(buffer);
+                int index = (int)(BitConverter.ToUInt32(buffer, 0) % chars.Length);
+                builder.Append(chars[index]);
+            }
         }
 
         return builder.ToString();
@@ -99,4 +106,5 @@ public class KeyGenerator
 
         return hash;
     }
+}
 }

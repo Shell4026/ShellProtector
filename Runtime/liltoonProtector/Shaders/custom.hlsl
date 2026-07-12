@@ -1,6 +1,12 @@
 //----------------------------------------------------------------------------------------------------------------------
 // Macro
 
+#define LIL_CUSTOM_V2F_MEMBER(id0,id1,id2,id3,id4,id5,id6,id7) \
+	int isDecrypted : TEXCOORD##id0;
+	
+#define LIL_CUSTOM_VERT_COPY \
+	output.isDecrypted = IsDecrypted();
+
 #define LIL_CUSTOM_PROPERTIES\
 	half4 _EncryptTex0_TexelSize;\
 	int _PasswordHash;
@@ -24,7 +30,7 @@
 #define OVERRIDE_MAIN\
 	LIL_GET_MAIN_TEX\
 	UNITY_BRANCH\
-	if(!IsDecrypted())\
+	if(input.isDecrypted == 0)\
 	{\
 		LIL_APPLY_MAIN_TONECORRECTION\
 		fd.col *= _Color;\

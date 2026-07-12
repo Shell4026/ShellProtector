@@ -1,5 +1,4 @@
-﻿#if UNITY_EDITOR
-using System.Collections;
+#if UNITY_EDITOR
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -16,70 +15,10 @@ namespace Shell.Protector
     {
         Dictionary<AnimationClip, AnimationClip> encryptedClip = new Dictionary<AnimationClip, AnimationClip>();
 
-        static string curve1 = @"
-  - curve:
-      serializedVersion: 2
-      m_Curve:
-      - serializedVersion: 3
-        time: 0
-        value: -128
-        inSlope: -1919.995
-        outSlope: 59.999996
-        tangentMode: 69
-        weightedMode: 0
-        inWeight: 0.33333334
-        outWeight: 0.33333334
-      - serializedVersion: 3
-        time: 2.1333334
-        value: 0
-        inSlope: 59.999996
-        outSlope: -1919.995
-        tangentMode: 69
-        weightedMode: 0
-        inWeight: 0.33333334
-        outWeight: 0.33333334
-      m_PreInfinity: 2
-      m_PostInfinity: 2
-      m_RotationOrder: 4
-    attribute: material._Key0
-    path: Body
-    classID: 137
-    script: {fileID: 0}";
-
-        static string curve2 = @"
-  - curve:
-      serializedVersion: 2
-      m_Curve:
-      - serializedVersion: 3
-        time: 0
-        value: 128
-        inSlope: 423.3333
-        outSlope: 60.000004
-        tangentMode: 69
-        weightedMode: 0
-        inWeight: 0.33333334
-        outWeight: 0.33333334
-      - serializedVersion: 3
-        time: 2.1333334
-        value: 256
-        inSlope: 59.999996
-        outSlope: 60
-        tangentMode: 69
-        weightedMode: 0
-        inWeight: 0.33333334
-        outWeight: 0.33333334
-      m_PreInfinity: 2
-      m_PostInfinity: 2
-      m_RotationOrder: 4
-    attribute: material._Key0
-    path: Body
-    classID: 137
-    script: {fileID: 0}";
-        public static AnimatorController DuplicateAnimator(RuntimeAnimatorController anim, string new_dir)
+        public static AnimatorController DuplicateAnimator(RuntimeAnimatorController anim, OutputPaths paths, AssetWriter writer)
         {
             string dir = AssetDatabase.GetAssetPath(anim);
-            string output = Path.Combine(new_dir, anim.name + anim.GetInstanceID().ToString() + "_encrypted.anim");
-            if (!AssetDatabase.CopyAsset(dir, output))
+            if (!writer.CopyAssetToFolder(dir, paths.Folders.AnimGuid, paths.ControllerName(anim), out string output))
             {
                 Debug.LogErrorFormat("Failed to copy a animator: {0}", anim.name);
             }
@@ -89,9 +28,9 @@ namespace Shell.Protector
             return AssetDatabase.LoadAssetAtPath(output, typeof(RuntimeAnimatorController)) as AnimatorController;
         }
 
-        public static void CreateKeyAniamtions(string animation_dir, string new_dir, GameObject[] objs)
+        public static void CreateKeyAnimations(string animationDir, OutputPaths paths, AssetWriter writer, GameObject[] objs)
         {
-            string[] files = Directory.GetFiles(animation_dir);
+            string[] files = Directory.GetFiles(animationDir);
             foreach (string file in files)
             {
                 string filename = Path.GetFileName(file);
@@ -100,9 +39,11 @@ namespace Shell.Protector
                 if (filename.Contains("dummy"))
                     continue;
 
-                string path = Path.Combine(new_dir, filename);
-                AssetDatabase.CopyAsset(file, path);
-                string anim = File.ReadAllText(path);
+                if (!writer.CopyAssetToFolder(file, paths.Folders.AnimGuid, filename, out string path))
+                    continue;
+                AnimationClip clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(path);
+                if (clip == null)
+                    continue;
 
                 Match match = Regex.Match(filename, "key(\\d+).*?\\.anim");
                 int n = 0;
@@ -111,54 +52,78 @@ namespace Shell.Protector
 
                 foreach (var obj in objs)
                 {
-                    string hr_path = obj.transform.GetHierarchyPath();
-                    hr_path = Regex.Replace(hr_path, ".*?/(.*)", "'$1'");
-
-                    string curve;
-
-                    if (!filename.Contains("_"))
-                        curve = Regex.Replace(curve1, "attribute: material._Key\\d+", "attribute: material._Key" + n);
-                    else
-                        curve = Regex.Replace(curve2, "attribute: material._Key\\d+", "attribute: material._Key" + n);
-                    curve = Regex.Replace(curve, "path: Body", "path: " + hr_path);
-                    //SkinnedMeshRender classID:137
-                    //MeshRenderer classID:23
-                    if (obj.GetComponent<SkinnedMeshRenderer>() == null)
-                        curve = Regex.Replace(curve, "classID: 137", "classID: 23");
-
-                    anim = Regex.Replace(anim, "m_FloatCurves:", "m_FloatCurves:" + curve);
-                    anim = Regex.Replace(anim, "m_EditorCurves:", "m_EditorCurves:" + curve);
+                    AddKeyCurve(clip, obj, n, filename.Contains("_"));
                 }
-                File.WriteAllText(path, anim);
             }
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
         }
 
-        private static BlendTree[] CreateKeyTree(string animation_dir, int key_length, float speed)
+        static void AddKeyCurve(AnimationClip clip, GameObject obj, int keyIndex, bool secondKeyClip)
         {
-            BlendTree[] tree = new BlendTree[key_length];
-            int offset = 16 - key_length;
-            for (int i = 0; i < key_length; ++i)
+            var binding = new EditorCurveBinding
             {
-                BlendTree tree_key = new BlendTree();
-                tree_key.name = "key" + i;
-                tree_key.blendType = BlendTreeType.Simple1D;
-                tree_key.blendParameter = ParameterManager.GetKeyName(i);
-                tree_key.useAutomaticThresholds = false;
+                path = GetAnimationPath(obj.transform),
+                propertyName = "material." + ShaderProperties.KeyPrefix + keyIndex,
+                type = obj.GetComponent<SkinnedMeshRenderer>() == null ? typeof(MeshRenderer) : typeof(SkinnedMeshRenderer)
+            };
 
-                Motion motion0 = AssetDatabase.LoadAssetAtPath(Path.Combine(animation_dir, "key" + (i + offset) + ".anim"), typeof(AnimationClip)) as AnimationClip;
-                Motion motion1 = AssetDatabase.LoadAssetAtPath(Path.Combine(animation_dir, "key" + (i + offset) + "_2.anim"), typeof(AnimationClip)) as AnimationClip;
+            AnimationUtility.SetEditorCurve(clip, binding, CreateKeyCurve(secondKeyClip));
+        }
 
-                tree_key.AddChild(motion0, -1);
-                tree_key.AddChild(motion1, 1);
+        static string GetAnimationPath(Transform transform)
+        {
+            var names = new List<string>();
+            Transform current = transform;
+            while (current != null && current.parent != null)
+            {
+                names.Add(current.name);
+                current = current.parent;
+            }
+            names.Reverse();
+            return string.Join("/", names);
+        }
 
-                ChildMotion[] motions = tree_key.children;
+        static AnimationCurve CreateKeyCurve(bool secondKeyClip)
+        {
+            if (!secondKeyClip)
+            {
+                return new AnimationCurve(
+                    new Keyframe(0, -128, -1919.995f, 59.999996f),
+                    new Keyframe(2.1333334f, 0, 59.999996f, -1919.995f)
+                );
+            }
+
+            return new AnimationCurve(
+                new Keyframe(0, 128, 423.3333f, 60.000004f),
+                new Keyframe(2.1333334f, 256, 59.999996f, 60)
+            );
+        }
+
+        private static BlendTree[] CreateKeyTree(string animationDir, int keyLength, float speed)
+        {
+            BlendTree[] tree = new BlendTree[keyLength];
+            int offset = 16 - keyLength;
+            for (int i = 0; i < keyLength; ++i)
+            {
+                BlendTree keyTree = new BlendTree();
+                keyTree.name = "key" + i;
+                keyTree.blendType = BlendTreeType.Simple1D;
+                keyTree.blendParameter = ParameterManager.GetKeyName(i);
+                keyTree.useAutomaticThresholds = false;
+
+                Motion motion0 = AssetDatabase.LoadAssetAtPath(Path.Combine(animationDir, "key" + (i + offset) + ".anim"), typeof(AnimationClip)) as AnimationClip;
+                Motion motion1 = AssetDatabase.LoadAssetAtPath(Path.Combine(animationDir, "key" + (i + offset) + "_2.anim"), typeof(AnimationClip)) as AnimationClip;
+
+                keyTree.AddChild(motion0, -1);
+                keyTree.AddChild(motion1, 1);
+
+                ChildMotion[] motions = keyTree.children;
                 for (int j = 0; j < motions.Length; ++j)
                     motions[j].timeScale = speed;
-                tree_key.children = motions;
+                keyTree.children = motions;
 
-                tree[i] = tree_key;
+                tree[i] = keyTree;
             }
             return tree;
         }
@@ -188,46 +153,58 @@ namespace Shell.Protector
         private static void AddParameters(AnimatorController anim, int keyLength, int syncSize)
         {
             bool bLegacy = syncSize == 1;
-            anim.AddParameter(new AnimatorControllerParameter
+            AddParameterIfMissing(anim, new AnimatorControllerParameter
             {
                 defaultFloat = 1.0f,
                 name = "key_weight",
                 type = AnimatorControllerParameterType.Float
             });
 
-            if (anim.parameters.All(p => p.name != ParameterManager.GetIsLocalName()))
+            AddParameterIfMissing(anim, new AnimatorControllerParameter
             {
-                anim.AddParameter(new AnimatorControllerParameter
-                {
-                    defaultBool = false,
-                    name = ParameterManager.GetIsLocalName(),
-                    type = AnimatorControllerParameterType.Bool
-                });
-            }
+                defaultBool = false,
+                name = ParameterManager.GetIsLocalName(),
+                type = AnimatorControllerParameterType.Bool
+            });
 
             for (var i = 0; i < keyLength; ++i)
-                anim.AddParameter(ParameterManager.GetKeyName(i), AnimatorControllerParameterType.Float);
+                AddParameterIfMissing(anim, ParameterManager.GetKeyName(i), AnimatorControllerParameterType.Float);
 
-            anim.AddParameter(ParameterManager.GetSyncLockName(bLegacy), AnimatorControllerParameterType.Bool);
+            AddParameterIfMissing(anim, ParameterManager.GetSyncLockName(bLegacy), AnimatorControllerParameterType.Bool);
             var switchCount = ShellProtector.GetRequiredSwitchCount(keyLength, syncSize);
 
             if (!bLegacy)
             {
                 for (var i = 0; i < keyLength; ++i)
-                    anim.AddParameter(ParameterManager.GetSavedKeyName(i), AnimatorControllerParameterType.Float);
+                    AddParameterIfMissing(anim, ParameterManager.GetSavedKeyName(i), AnimatorControllerParameterType.Float);
             }
             for (var i = 0; i < syncSize; ++i)
-                anim.AddParameter(ParameterManager.GetSyncedKeyName(i, bLegacy), AnimatorControllerParameterType.Float);
+                AddParameterIfMissing(anim, ParameterManager.GetSyncedKeyName(i, bLegacy), AnimatorControllerParameterType.Float);
             for (var i = 0; i < switchCount; ++i)
-                anim.AddParameter(ParameterManager.GetSyncSwitchName(i, bLegacy), AnimatorControllerParameterType.Bool);
+                AddParameterIfMissing(anim, ParameterManager.GetSyncSwitchName(i, bLegacy), AnimatorControllerParameterType.Bool);
+        }
+
+        private static void AddParameterIfMissing(AnimatorController anim, string name, AnimatorControllerParameterType type)
+        {
+            if (anim.parameters.Any(p => p.name == name))
+                return;
+
+            anim.AddParameter(name, type);
+        }
+
+        private static void AddParameterIfMissing(AnimatorController anim, AnimatorControllerParameter parameter)
+        {
+            if (anim.parameters.Any(p => p.name == parameter.name))
+                return;
+
+            anim.AddParameter(parameter);
         }
 
         public static void AddKeyLayer(AnimatorController anim, string animationDir, int keyLength, int syncSize, float speed)
         {
-            bool bLegacy = syncSize == 1;
-            AddParameters(anim, keyLength, syncSize);
-
             if (anim.layers.Any(l => l.name == "ShellProtector")) return;
+
+            AddParameters(anim, keyLength, syncSize);
 
             AddMuxLayer(anim, keyLength, syncSize, 0.15f, 0.1f, 1f); // 10hz
             AddDemuxLayer(anim, keyLength, syncSize);
@@ -243,27 +220,27 @@ namespace Shell.Protector
             var layer = anim.layers[anim.layers.Length - 1];
             var state = layer.stateMachine.AddState("keys");
 
-            BlendTree tree_root = new BlendTree
+            BlendTree rootTree = new BlendTree
             {
                 name = "key_root",
                 blendType = BlendTreeType.Direct,
                 blendParameter = "key_weight"
             };
-            AssetDatabase.AddObjectToAsset(tree_root, anim);
-            state.motion = tree_root;
+            AssetDatabase.AddObjectToAsset(rootTree, anim);
+            state.motion = rootTree;
 
-            var key_tree = CreateKeyTree(animationDir, keyLength, speed);
+            var keyTrees = CreateKeyTree(animationDir, keyLength, speed);
             for (int i = 0; i < keyLength; ++i)
             {
-                tree_root.AddChild(key_tree[i]);
-                AssetDatabase.AddObjectToAsset(key_tree[i], anim);
+                rootTree.AddChild(keyTrees[i]);
+                AssetDatabase.AddObjectToAsset(keyTrees[i], anim);
             }
 
-            ChildMotion[] children = tree_root.children;
+            ChildMotion[] children = rootTree.children;
             for (int i = 0; i < children.Length; ++i)
                 children[i].directBlendParameter = "key_weight";
 
-            tree_root.children = children;
+            rootTree.children = children;
         }
 
         private static void AddSyncEnabledCondition(AnimatorStateTransition transition)
@@ -481,12 +458,12 @@ namespace Shell.Protector
             }
         }
 
-        void SearchStateMachine(AnimatorStateMachine stateMachine, Material targetMaterial, Material encrypted, bool clone, string clonePath)
+        void SearchStateMachine(AnimatorStateMachine stateMachine, Material targetMaterial, Material encrypted, bool clone, OutputPaths paths, AssetWriter writer)
         {
             for (int i = 0; i < stateMachine.states.Length; i++)
             {
                 ChildAnimatorState state = stateMachine.states[i];
-                AnimationClip clip = SearchMotion(state.state.motion, targetMaterial, encrypted, clone, clonePath);
+                AnimationClip clip = SearchMotion(state.state.motion, targetMaterial, encrypted, clone, paths, writer);
                 if (clip != null)
                 {
                     state.state.motion = clip;
@@ -496,11 +473,11 @@ namespace Shell.Protector
 
             foreach (ChildAnimatorStateMachine childStateMachine in stateMachine.stateMachines)
             {
-                SearchStateMachine(childStateMachine.stateMachine, targetMaterial, encrypted, clone, clonePath);
+                SearchStateMachine(childStateMachine.stateMachine, targetMaterial, encrypted, clone, paths, writer);
             }
         }
 
-        AnimationClip SearchMotion(Motion motion, Material targetMaterial, Material encrypted, bool clone, string clonePath)
+        AnimationClip SearchMotion(Motion motion, Material targetMaterial, Material encrypted, bool clone, OutputPaths paths, AssetWriter writer)
         {
             if (motion is AnimationClip clip)
             {
@@ -510,7 +487,6 @@ namespace Shell.Protector
                     if (clone)
                     {
                         string path = AssetDatabase.GetAssetPath(clip);
-                        string copyPath = Path.Combine(clonePath, clip.name + "_encrypted.anim");
 
                         if (encryptedClip.ContainsKey(clip))
                         {
@@ -518,7 +494,7 @@ namespace Shell.Protector
                         }
                         else
                         {
-                            if (!AssetDatabase.CopyAsset(path, copyPath))
+                            if (!writer.CopyAssetToFolder(path, paths.Folders.AnimGuid, paths.AnimationClipName(clip, "_encrypted"), out string copyPath))
                             {
                                 Debug.LogError("Copy error: " + copyPath);
                                 return null;
@@ -539,7 +515,7 @@ namespace Shell.Protector
                 for (int i = 0; i < blendTree.children.Length; ++i)
                 {
                     ChildMotion childMotion = blendTree.children[i];
-                    AnimationClip result = SearchMotion(childMotion.motion, targetMaterial, encrypted, clone, clonePath);
+                    AnimationClip result = SearchMotion(childMotion.motion, targetMaterial, encrypted, clone, paths, writer);
                     if (result != null)
                     {
                         childMotion.motion = result;
@@ -553,7 +529,7 @@ namespace Shell.Protector
             return null;
         }
 
-        public void ChangeAnimationMaterial(AnimatorController anim, Material original, Material encrypted, bool clone, string clonePath)
+        public void ChangeAnimationMaterial(AnimatorController anim, Material original, Material encrypted, bool clone, OutputPaths paths, AssetWriter writer)
         {
             if (anim == null || original == null)
                 return;
@@ -568,7 +544,7 @@ namespace Shell.Protector
                 var stateMachine = layer.stateMachine;
                 if (stateMachine == null)
                     continue;
-                SearchStateMachine(stateMachine, original, encrypted, clone, clonePath);
+                SearchStateMachine(stateMachine, original, encrypted, clone, paths, writer);
             }
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();

@@ -42,8 +42,8 @@ namespace Shell.Protector
         }
 
         public override void SetFormatKeywords(Material material) {
-            material.DisableKeyword("_SHELL_PROTECTOR_FORMAT0");
-            material.DisableKeyword("_SHELL_PROTECTOR_FORMAT1");
+            material.DisableKeyword(ShaderProperties.Format0Keyword);
+            material.DisableKeyword(ShaderProperties.Format1Keyword);
         }
 
         public override (int, int) CalculateOffsets(Texture2D texture) {

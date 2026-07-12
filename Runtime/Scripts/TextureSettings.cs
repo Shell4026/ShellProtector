@@ -1,59 +1,72 @@
-using System.IO;
-using System.Text.RegularExpressions;
+#if UNITY_EDITOR
 using UnityEditor;
 using UnityEngine;
 
-#if UNITY_EDITOR
-
-public class TextureSettings
+namespace Shell.Protector
 {
-    public static void SetRWEnableTexture(Texture2D texture)
+    public struct TextureImportChange
     {
-        if (texture.isReadable)
-            return;
-        string path = AssetDatabase.GetAssetPath(texture);
-        string meta = File.ReadAllText(path + ".meta");
-
-        meta = Regex.Replace(meta, "isReadable: 0", "isReadable: 1");
-        File.WriteAllText(path + ".meta", meta);
-
-        AssetDatabase.Refresh();
+        public bool changed;
+        public bool readWriteChanged;
+        public bool crunchChanged;
+        public bool mipmapChanged;
     }
-    public static void SetCrunchCompression(Texture2D texture, bool crunch)
-    {
-        string path = AssetDatabase.GetAssetPath(texture);
-        string meta = File.ReadAllText(path + ".meta");
 
-        if (crunch == false)
+    public class TextureSettings
+    {
+        public static TextureImportChange SetRWEnableTexture(Texture2D texture)
         {
-            if (texture.format == TextureFormat.DXT1Crunched)
-            {
-                int format = 10;
-                meta = Regex.Replace(meta, "textureFormat: \\d+", "textureFormat: " + format);
-            }
-            else if (texture.format == TextureFormat.DXT5Crunched)
-            {
-                int format = 12;
-                meta = Regex.Replace(meta, "textureFormat: \\d+", "textureFormat: " + format);
-            }
+            return Apply(texture, readable: true, crunch: null, generateMipmaps: null);
         }
-        int enable = crunch ? 1 : 0;
-        meta = Regex.Replace(meta, "crunchedCompression: \\d+", "crunchedCompression: " + enable);
-        File.WriteAllText(path + ".meta", meta);
 
-        AssetDatabase.SaveAssets();
-        AssetDatabase.Refresh();
-    }
-    public static void SetGenerateMipmap(Texture2D texture, bool generate)
-    {
-        string path = AssetDatabase.GetAssetPath(texture);
-        string meta = File.ReadAllText(path + ".meta");
+        public static TextureImportChange SetCrunchCompression(Texture2D texture, bool crunch)
+        {
+            return Apply(texture, readable: null, crunch: crunch, generateMipmaps: null);
+        }
 
-        int enable = generate ? 1 : 0;
-        meta = Regex.Replace(meta, "enableMipMap: \\d+", "enableMipMap: " + enable);
-        File.WriteAllText(path + ".meta", meta);
+        public static TextureImportChange SetGenerateMipmap(Texture2D texture, bool generate)
+        {
+            return Apply(texture, readable: null, crunch: null, generateMipmaps: generate);
+        }
 
-        AssetDatabase.Refresh();
+        static TextureImportChange Apply(Texture2D texture, bool? readable, bool? crunch, bool? generateMipmaps)
+        {
+            TextureImportChange result = new TextureImportChange();
+            if (texture == null)
+                return result;
+
+            string path = AssetDatabase.GetAssetPath(texture);
+            if (string.IsNullOrEmpty(path))
+                return result;
+
+            TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
+            if (importer == null)
+                return result;
+
+            if (readable.HasValue && importer.isReadable != readable.Value)
+            {
+                importer.isReadable = readable.Value;
+                result.readWriteChanged = true;
+            }
+
+            if (crunch.HasValue && importer.crunchedCompression != crunch.Value)
+            {
+                importer.crunchedCompression = crunch.Value;
+                result.crunchChanged = true;
+            }
+
+            if (generateMipmaps.HasValue && importer.mipmapEnabled != generateMipmaps.Value)
+            {
+                importer.mipmapEnabled = generateMipmaps.Value;
+                result.mipmapChanged = true;
+            }
+
+            result.changed = result.readWriteChanged || result.crunchChanged || result.mipmapChanged;
+            if (result.changed)
+                importer.SaveAndReimport();
+
+            return result;
+        }
     }
 }
 #endif

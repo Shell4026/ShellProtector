@@ -1,4 +1,4 @@
-﻿#if UNITY_EDITOR
+#if UNITY_EDITOR
 using System;
 using System.Collections.Generic;
 using UnityEditor;
@@ -10,26 +10,26 @@ namespace Shell.Protector
 {
     public class AssetManager
     {
-        static AssetManager instance;
-        readonly Dictionary<string, int> support_version = new Dictionary<string, int>();
+        static AssetManager _instance;
+        readonly Dictionary<string, int> _supportedVersions = new Dictionary<string, int>();
 
-        static public AssetManager GetInstance()
+        public static AssetManager GetInstance()
         {
-            if(instance == null)
-                instance = new AssetManager();
-            return instance;
+            if (_instance == null)
+                _instance = new AssetManager();
+            return _instance;
         }
         AssetManager()
         {
-            support_version.Add("Poiyomi 7.3", 73);
-            support_version.Add("Poiyomi 8.0", 80);
-            support_version.Add("Poiyomi 8.1", 81);
-            support_version.Add("Poiyomi 8.2", 82);
-            support_version.Add("Poiyomi 9.0", 90);
-            support_version.Add("Poiyomi 9.1", 91);
-            support_version.Add("Poiyomi 9.2", 92);
-            support_version.Add("Poiyomi 9.3", 93);
-            support_version.Add("lilToon", 0);
+            _supportedVersions.Add("Poiyomi 8.0", 80);
+            _supportedVersions.Add("Poiyomi 8.1", 81);
+            _supportedVersions.Add("Poiyomi 8.2", 82);
+            _supportedVersions.Add("Poiyomi 9.0", 90);
+            _supportedVersions.Add("Poiyomi 9.1", 91);
+            _supportedVersions.Add("Poiyomi 9.2", 92);
+            _supportedVersions.Add("Poiyomi 9.3", 93);
+           _supportedVersions.Add("Poiyomi 10.0", 100);
+            _supportedVersions.Add("lilToon", 0);
         }
         public bool IsPoiyomi(Shader shader)
         {
@@ -39,7 +39,7 @@ namespace Shell.Protector
                 return true;
             return false;
         }
-        public bool IslilToon(Shader shader)
+        public bool IsLilToon(Shader shader)
         {
             if (shader.name.Contains("lilToon"))
                 return true;
@@ -51,29 +51,31 @@ namespace Shell.Protector
         }
         public int GetShaderType(Shader shader)
         {
-            foreach (var version in support_version)
+            foreach (var version in _supportedVersions)
             {
                 if (shader.name.Contains(version.Key))
-                    return support_version[version.Key];
+                    return _supportedVersions[version.Key];
             }
             int poiyomiLabel = shader.FindPropertyIndex("shader_master_label");
             if (poiyomiLabel != -1)
             {
                 var str = shader.GetPropertyDescription(poiyomiLabel);
+                if (str.Contains("Poiyomi 10.0"))
+                    return _supportedVersions["Poiyomi 10.0"];
                 if (str.Contains("Poiyomi 9.3"))
-                    return support_version["Poiyomi 9.3"];
-                else if (str.Contains("Poiyomi 9.2"))
-                    return support_version["Poiyomi 9.2"];
-                else if (str.Contains("Poiyomi 9.1"))
-                    return support_version["Poiyomi 9.1"];
-                else if (str.Contains("Poiyomi 9.0"))
-                    return support_version["Poiyomi 9.0"];
-                else if(str.Contains("Poiymoi 8.0"))
-                    return support_version["Poiyomi 8.0"];
-                else if(str.Contains("Poiyomi 8.1"))
-                    return support_version["Poiyomi 8.1"];
-                else if (str.Contains("Poiyomi 8.2"))
-                    return support_version["Poiyomi 8.2"];
+                    return _supportedVersions["Poiyomi 9.3"];
+                if (str.Contains("Poiyomi 9.2"))
+                    return _supportedVersions["Poiyomi 9.2"];
+                if (str.Contains("Poiyomi 9.1"))
+                    return _supportedVersions["Poiyomi 9.1"];
+                if (str.Contains("Poiyomi 9.0"))
+                    return _supportedVersions["Poiyomi 9.0"];
+                if(str.Contains("Poiymoi 8.0"))
+                    return _supportedVersions["Poiyomi 8.0"];
+                if(str.Contains("Poiyomi 8.1"))
+                    return _supportedVersions["Poiyomi 8.1"];
+                if (str.Contains("Poiyomi 8.2"))
+                    return _supportedVersions["Poiyomi 8.2"];
             }
             return -1;
         }
@@ -90,15 +92,15 @@ namespace Shell.Protector
             Debug.Log("Checking Shader...");
             string[] guids = AssetDatabase.FindAssets("lilConstants");
             string symbols = PlayerSettings.GetScriptingDefineSymbolsForGroup(EditorUserBuildSettings.selectedBuildTargetGroup);
-            string symbols_original = string.Copy(symbols);
+            string originalSymbols = string.Copy(symbols);
 
             symbols = symbols.Replace(";LILTOON", "");
             symbols = symbols.Replace(";POIYOMI91", "");
             symbols = symbols.Replace(";POIYOMI", "");
-            List<string> return_shader = new List<string>();
+            List<string> availableShaders = new List<string>();
             if(guids.Length > 0)
             {
-                return_shader.Add("lilToon");
+                availableShaders.Add("lilToon");
                 symbols += ";LILTOON";
             }
             guids = AssetDatabase.FindAssets("ThryEditor");
@@ -107,22 +109,22 @@ namespace Shell.Protector
                 if (ClassExists("Thry.ThryEditor.ShaderOptimizer"))
                 {
                     symbols += ";POIYOMI91";
-                    return_shader.Add("Poiyomi9.1>");
+                    availableShaders.Add("Poiyomi9.1>");
                 }
                 else // < 9.1
                 {
                     symbols += ";POIYOMI";
-                    return_shader.Add("Poiyomi");
+                    availableShaders.Add("Poiyomi");
                 }
             }
 
-            if (symbols_original.Contains(";LILTOON") != symbols.Contains(";LILTOON") || 
-                symbols_original.Contains(";POIYOMI") != symbols.Contains(";POIYOMI"))
+            if (originalSymbols.Contains(";LILTOON") != symbols.Contains(";LILTOON") ||
+                originalSymbols.Contains(";POIYOMI") != symbols.Contains(";POIYOMI"))
             {
                 PlayerSettings.SetScriptingDefineSymbolsForGroup(EditorUserBuildSettings.selectedBuildTargetGroup, symbols);
             }
 
-            return return_shader;
+            return availableShaders;
         }
         public static bool NamespaceExists(string namespaceName)
         {
@@ -140,20 +142,20 @@ namespace Shell.Protector
         public void CheckModular()
         {
             string symbols = PlayerSettings.GetScriptingDefineSymbolsForGroup(EditorUserBuildSettings.selectedBuildTargetGroup);
-            string symbols_original = string.Copy(symbols);
+            string originalSymbols = string.Copy(symbols);
             symbols = symbols.Replace(";MODULAR", "");
 
             if (!NamespaceExists("nadena.dev.ndmf"))
             {
                 Debug.Log("ShellProtector: Can't find Modular!");
-                if (symbols != symbols_original)
+                if (symbols != originalSymbols)
                     PlayerSettings.SetScriptingDefineSymbolsForGroup(EditorUserBuildSettings.selectedBuildTargetGroup, symbols);
                 return;
             }
             Debug.Log("ShellProtector: Find Modular!");
             symbols += ";MODULAR";
 
-            if (symbols_original.Contains(";MODULAR") != symbols.Contains(";MODULAR"))
+            if (originalSymbols.Contains(";MODULAR") != symbols.Contains(";MODULAR"))
             {
                 PlayerSettings.SetScriptingDefineSymbolsForGroup(EditorUserBuildSettings.selectedBuildTargetGroup, symbols);
             }
@@ -176,12 +178,12 @@ namespace Shell.Protector
             if (IsLockPoiyomi(mat))
                 return true;
 
-            bool bOldOptimizer = false;
+            bool isOldOptimizer = false;
 
             Type optimizer = Type.GetType("Thry.ThryEditor.ShaderOptimizer, ThryAssemblyDefinition");
             if (optimizer == null)
             {
-                bOldOptimizer = true;
+                isOldOptimizer = true;
                 optimizer = Type.GetType("Thry.ShaderOptimizer, ThryAssemblyDefinition");
             }
                 
@@ -190,7 +192,7 @@ namespace Shell.Protector
                 Debug.LogError("Not found the ShaderOptimizer!");
                 return false;
             }
-            if (!bOldOptimizer)
+            if (!isOldOptimizer)
             {
                 MethodInfo lockFn = optimizer.GetMethod("LockMaterials");
                 if (lockFn == null)

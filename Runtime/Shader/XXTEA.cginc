@@ -1,7 +1,11 @@
 #pragma once
 static const uint Delta = 0x9e3779b9;
-static const uint ROUNDS = 6;
-static const uint SUM = Delta * ROUNDS;
+uint _Rounds;
+
+uint GetXXTEARounds(uint n)
+{
+	return _Rounds == 0 ? 6 + 52 / n : _Rounds;
+}
 
 void Decrypt(inout uint data[3], const uint key[4])
 {
@@ -9,10 +13,11 @@ void Decrypt(inout uint data[3], const uint key[4])
 	uint v0, v1, sum;
 	uint p, e;
 	
-	sum = SUM;
+	uint rounds = GetXXTEARounds(n);
+	sum = Delta * rounds;
 
 	v0 = data[0];
-	for(int i = 0; i < ROUNDS; ++i)
+	for(uint i = 0; i < rounds; ++i)
 	{
 		e = (sum >> 2) & 3;
 		for (p = n-1; p > 0; p--)
@@ -34,10 +39,11 @@ void Decrypt(inout uint data[2], const uint key[4])
 	uint v0, v1, sum;
 	uint p, e;
 
-	sum = SUM;
+	uint rounds = GetXXTEARounds(n);
+	sum = Delta * rounds;
 
 	v0 = data[0];
-	for(int i = 0; i < ROUNDS; ++i)
+	for(uint i = 0; i < rounds; ++i)
 	{
 		e = (sum >> 2) & 3;
 		for (p = n-1; p > 0; p--)

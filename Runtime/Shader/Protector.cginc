@@ -6,6 +6,11 @@
 #pragma shader_feature_local _SHELL_PROTECTOR_FORMAT1
 #pragma shader_feature_local _SHELL_PROTECTOR_RIMLIGHT
 
+// Unity also compiles a no-keyword variant while importing shaders.
+#if !_SHELL_PROTECTOR_XXTEA && !_SHELL_PROTECTOR_CHACHA
+    #define _SHELL_PROTECTOR_CHACHA
+#endif
+
 // Format keywords
 #if !_SHELL_PROTECTOR_FORMAT0 && !_SHELL_PROTECTOR_FORMAT1
     #define _SHELL_PROTECTOR_DXT
@@ -49,9 +54,13 @@ uint _HashMagic;
 	#include "DXT.cginc"
 #endif
 
-half4 DecryptTexture(Texture2D tex0, Texture2D tex1, SamplerState tex0Sampler, half2 uv, int m)
+void DecryptData(inout uint data[_SHELL_PROTECTOR_DATA_LENGTH], Texture2D tex0, Texture2D tex1, SamplerState tex0Sampler, float2 uv, int m)
 {
-	int idx = GetIndex(uv, m);
+	#ifdef _SHELL_PROTECTOR_DXT
+	const int idx = GetBlockIndex(uv, m);
+#else
+	const int idx = GetIndex(uv, m);
+#endif
 	const uint key[4] = 
 	{
 		((uint)round(_Key0) | ((uint)round(_Key1) << 8) | ((uint)round(_Key2) << 16) | ((uint)round(_Key3) << 24)),
@@ -59,45 +68,80 @@ half4 DecryptTexture(Texture2D tex0, Texture2D tex1, SamplerState tex0Sampler, h
 		((uint)round(_Key8) | ((uint)round(_Key9) << 8) | ((uint)round(_Key10) << 16) | ((uint)round(_Key11) << 24)),
 		((uint)round(_Key12) | ((uint)round(_Key13) << 8) | ((uint)round(_Key14) << 16) | ((uint)round(_Key15) << 24)) ^ (uint)((idx >> _SHELL_PROTECTOR_INDEX_ALIGNMENT) << _SHELL_PROTECTOR_INDEX_ALIGNMENT)
 	};
-	
-	uint data[_SHELL_PROTECTOR_DATA_LENGTH];
+#ifdef _SHELL_PROTECTOR_DXT
     GetData(tex1, tex0Sampler, data, uv, m);
+#else
+    GetData(tex0, tex0Sampler, data, uv, m);
+#endif
 	Decrypt(data, key);
+}
+
+float4 DecryptTexture(Texture2D tex0, Texture2D tex1, SamplerState tex0Sampler, float2 uv, int m)
+{
+	uint data[_SHELL_PROTECTOR_DATA_LENGTH];
+	DecryptData(data, tex0, tex1, tex0Sampler, uv, m);
     return GetPixel(tex0, tex0Sampler, data, uv, m);
 }
 
-half4 DecryptTextureBox(Texture2D tex0, Texture2D tex1, SamplerState texSampler, half4 texSize, Texture2D mipTex, SamplerState mipSamp, half2 uv)
+float4 DecryptTextureBox(Texture2D tex0, Texture2D tex1, SamplerState texSampler, float4 texSize, Texture2D mipTex, SamplerState mipSamp, float2 uv)
 {
-	half4 mipPixel = mipTex.Sample(mipSamp, uv);
+	float4 mipPixel = mipTex.Sample(mipSamp, uv);
 
 	int mip = round(mipPixel.r * 255 / 10); //fucking precision problems
 	const int m[13] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10 }; // max size 4k
 
-    half4 c00 = DecryptTexture(tex0, tex1, texSampler, uv, m[mip]);
+    float4 c00 = DecryptTexture(tex0, tex1, texSampler, uv, m[mip]);
 
 	return c00;
 }
 
-half4 DecryptTextureBilinear(Texture2D tex0, Texture2D tex1, SamplerState texSampler, half4 texSize, Texture2D mipTex, SamplerState mipSamp, half2 uv)
+float4 DecryptTextureBilinear(Texture2D tex0, Texture2D tex1, SamplerState texSampler, float4 originalTexSize, Texture2D mipTex, SamplerState mipSamp, float2 uv)
 {
-	const half4 mipPixel = mipTex.Sample(mipSamp, uv);
-	const half2 uvUnit = texSize.xy;
+	const float4 mipPixel = mipTex.Sample(mipSamp, uv);
+	const float2 uvUnit = originalTexSize.xy;
 	//bilinear interpolation
-	const half2 uvBilinear = uv - 0.5 * uvUnit;
+	const float2 uvBilinear = uv - 0.5 * uvUnit;
 	const int mip = round(mipPixel.r * 255 / 10); //fucking precision problems
 	const int m[13] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10 }; // max size 4k
 
-	half4 c00 = DecryptTexture(tex0, tex1, texSampler, uvBilinear + half2(uvUnit.x * 0, uvUnit.y * 0), m[mip]);
-	half4 c10 = DecryptTexture(tex0, tex1, texSampler, uvBilinear + half2(uvUnit.x * 1, uvUnit.y * 0), m[mip]);
-	half4 c01 = DecryptTexture(tex0, tex1, texSampler, uvBilinear + half2(uvUnit.x * 0, uvUnit.y * 1), m[mip]);
-	half4 c11 = DecryptTexture(tex0, tex1, texSampler, uvBilinear + half2(uvUnit.x * 1, uvUnit.y * 1), m[mip]);
+	const float2 uv00 = uvBilinear + float2(uvUnit.x * 0, uvUnit.y * 0);
+	const float2 uv10 = uvBilinear + float2(uvUnit.x * 1, uvUnit.y * 0);
+	const float2 uv01 = uvBilinear + float2(uvUnit.x * 0, uvUnit.y * 1);
+	const float2 uv11 = uvBilinear + float2(uvUnit.x * 1, uvUnit.y * 1);
 
-	half2 f = frac(uvBilinear * texSize.zw);
+#ifdef _SHELL_PROTECTOR_DXT
+	const int idx00 = GetBlockIndex(uv00, m[mip]);
+	const int idx10 = GetBlockIndex(uv10, m[mip]);
+	const int idx01 = GetBlockIndex(uv01, m[mip]);
+	const int idx11 = GetBlockIndex(uv11, m[mip]);
+	if ((idx00 == idx10) && (idx10 == idx01) && (idx01 == idx11))
+	{
+		uint data[_SHELL_PROTECTOR_DATA_LENGTH];
+		DecryptData(data, tex0, tex1, texSampler, uv00, m[mip]);
 
-	half4 c0 = lerp(c00, c10, f.x);
-	half4 c1 = lerp(c01, c11, f.x);
+		const float4 c00 = GetPixel(tex0, texSampler, data, uv00, m[mip]);
+		const float4 c10 = GetPixel(tex0, texSampler, data, uv10, m[mip]);
+		const float4 c01 = GetPixel(tex0, texSampler, data, uv01, m[mip]);
+		const float4 c11 = GetPixel(tex0, texSampler, data, uv11, m[mip]);
+		const float2 f = frac(uvBilinear * originalTexSize.zw);
+		const float4 c0 = lerp(c00, c10, f.x);
+		const float4 c1 = lerp(c01, c11, f.x);
+		const float4 bilinear = lerp(c0, c1, f.y);
+		return bilinear;
+	}
+#endif
 
-	half4 bilinear = lerp(c0, c1, f.y);
+	float4 c00 = DecryptTexture(tex0, tex1, texSampler, uv00, m[mip]);
+	float4 c10 = DecryptTexture(tex0, tex1, texSampler, uv10, m[mip]);
+	float4 c01 = DecryptTexture(tex0, tex1, texSampler, uv01, m[mip]);
+	float4 c11 = DecryptTexture(tex0, tex1, texSampler, uv11, m[mip]);
+
+	float2 f = frac(uvBilinear * originalTexSize.zw);
+
+	float4 c0 = lerp(c00, c10, f.x);
+	float4 c1 = lerp(c01, c11, f.x);
+
+	float4 bilinear = lerp(c0, c1, f.y);
 
 	return bilinear;
 }
