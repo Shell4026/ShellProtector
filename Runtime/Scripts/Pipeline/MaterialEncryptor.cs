@@ -39,8 +39,8 @@ namespace Shell.Protector
             var (widthOffset, heightOffset) = TextureEncryptManager.CalculateOffsets(originalTex);
             result.SetInteger(ShaderProperties.WidthOffset, widthOffset);
             result.SetInteger(ShaderProperties.HeightOffset, heightOffset);
-            for (int i = 0; i < keyBytes.Length; ++i)
-                result.SetFloat(ShaderProperties.KeyPrefix + i, keyBytes[i]);
+            //for (int i = 0; i < keyBytes.Length; ++i)
+            //    result.SetFloat(ShaderProperties.KeyPrefix + i, keyBytes[i]);
 
             if (algorithm == (int)ShellProtectorAlgorithm.Chacha)
             {
