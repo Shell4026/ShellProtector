@@ -15,7 +15,7 @@ void GetData(Texture2D tex1, SamplerState tex0Sampler, inout uint data[3], half2
 	int idx = GetIndex(uv, m);
 	int offset = pos[idx % 4];
 
-    half3 pixels[4];
+    float3 pixels[4];
 	pixels[0] = tex1.SampleLevel(tex0Sampler, GetUV(idx + 0 + offset, m, (uint)_Woffset, _Hoffset), m);
 	pixels[1] = tex1.SampleLevel(tex0Sampler, GetUV(idx + 1 + offset, m, (uint)_Woffset, _Hoffset), m);
 	pixels[2] = tex1.SampleLevel(tex0Sampler, GetUV(idx + 2 + offset, m, (uint)_Woffset, _Hoffset), m);
@@ -34,7 +34,7 @@ half4 GetPixel(Texture2D tex0, SamplerState tex0Sampler, inout uint data[3], hal
 	half r[4] = { (data[0] & 0x000000FF)/255.0f, ((data[0] & 0xFF000000) >> 24)/255.0f, ((data[1] & 0x00FF0000) >> 16)/255.0f, ((data[2] & 0x0000FF00) >> 8)/255.0f };
 	half g[4] = { ((data[0] & 0x0000FF00) >> 8)/255.0f, ((data[1] & 0x000000FF) >> 0)/255.0f, ((data[1] & 0xFF000000) >> 24)/255.0f, ((data[2] & 0x00FF0000) >> 16)/255.0f };
 	half b[4] = { ((data[0] & 0x00FF0000) >> 16)/255.0f, ((data[1] & 0x0000FF00) >> 8)/255.0f, ((data[2] & 0x000000FF) >> 0)/255.0f, ((data[2] & 0xFF000000) >> 24)/255.0f };
-	half3 decrypt = half3(r[idx % 4], g[idx % 4], b[idx % 4]);
+	float3 decrypt = float3(r[idx % 4], g[idx % 4], b[idx % 4]);
 
 	return half4(GammaCorrection(decrypt), 1.0);
 }

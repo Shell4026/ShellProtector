@@ -3,18 +3,18 @@
 #define _SHELL_PROTECTOR_DATA_LENGTH 2
 #define _SHELL_PROTECTOR_INDEX_ALIGNMENT 1
 
-int GetIndex(half2 uv, int m) {
+int GetIndex(float2 uv, int m) {
 	half x = frac(uv.x);
 	half y = frac(uv.y);
 
 	return (mw[m + (uint)_Woffset] * floor(y * mh[m + _Hoffset])) + floor(x * mw[m + (uint)_Woffset]);
 }
 
-void GetData(Texture2D tex1, SamplerState tex0Sampler, inout uint data[2], half2 uv, int m) {
+void GetData(Texture2D tex1, SamplerState tex0Sampler, inout uint data[2], float2 uv, int m) {
 	int idx = GetIndex(uv, m);
 	int offset = (idx & 1) == 0 ? 0 : -1;
 	
-	half4 pixels[2];
+	float4 pixels[2];
 	pixels[0] = tex1.SampleLevel(tex0Sampler, GetUV(idx + 0 + offset, m, (uint)_Woffset, _Hoffset), m);
 	pixels[1] = tex1.SampleLevel(tex0Sampler, GetUV(idx + 1 + offset, m, (uint)_Woffset, _Hoffset), m);
 
@@ -22,13 +22,13 @@ void GetData(Texture2D tex1, SamplerState tex0Sampler, inout uint data[2], half2
 	data[1] = ((uint)round(pixels[1].r * 255.0f) | ((uint)round(pixels[1].g * 255.0f) << 8) | ((uint)round(pixels[1].b * 255.0f) << 16) | ((uint)round(pixels[1].a * 255.0f) << 24));
 }
 
-half4 GetPixel(Texture2D tex0, SamplerState tex0Sampler, inout uint data[2], half2 uv, int m) {
+float4 GetPixel(Texture2D tex0, SamplerState tex0Sampler, inout uint data[2], float2 uv, int m) {
 	int idx = GetIndex(uv, m);
 	half r = ((data[idx & 1] & 0x000000FF) >>  0)/255.0f;
 	half g = ((data[idx & 1] & 0x0000FF00) >>  8)/255.0f;
 	half b = ((data[idx & 1] & 0x00FF0000) >> 16)/255.0f;
 	half a = ((data[idx & 1] & 0xFF000000) >> 24)/255.0f;
-	half4 decrypt = half4(r, g, b, a);
+	float4 decrypt = float4(r, g, b, a);
 
-	return half4(GammaCorrection(decrypt.rgb), decrypt.a);
+	return float4(GammaCorrection(decrypt.rgb), decrypt.a);
 }
