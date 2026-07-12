@@ -914,7 +914,6 @@ namespace Shell.Protector
             _assetDir = ResolveOutputAssetDir();
             if (!Directory.Exists(_assetDir))
             {
-                Debug.LogError($"The specified path does not exist: {_assetDir}");
                 return 0;
             }
             else
