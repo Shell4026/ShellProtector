@@ -21,7 +21,6 @@ namespace Shell.Protector
         }
         AssetManager()
         {
-            _supportedVersions.Add("Poiyomi 7.3", 73);
             _supportedVersions.Add("Poiyomi 8.0", 80);
             _supportedVersions.Add("Poiyomi 8.1", 81);
             _supportedVersions.Add("Poiyomi 8.2", 82);
