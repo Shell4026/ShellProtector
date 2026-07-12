@@ -17,7 +17,7 @@ namespace Shell.Protector
 				half4 mainTexture;
 
                 UNITY_BRANCH
-                if(IsDecrypted())
+                if(isDecrypted)
                 {
 				    mainTexture = DecryptTextureBox(_EncryptTex0, _EncryptTex1, sampler_EncryptTex0, _EncryptTex0_TexelSize, _MipTex, sampler_MipTex, mainUV);
                 }
@@ -30,7 +30,7 @@ namespace Shell.Protector
                 half4 mainTexture;
 
                 UNITY_BRANCH
-                if(IsDecrypted())
+                if(isDecrypted)
                 {
 				    mainTexture = DecryptTextureBilinear(_EncryptTex0, _EncryptTex1, sampler_EncryptTex0, _EncryptTex0_TexelSize, _MipTex, sampler_MipTex, mainUV);
                 }

@@ -59,43 +59,33 @@ namespace Shell.Protector
             float4 _EncryptTex0_TexelSize;
             int _PasswordHash;
 ";
+            const string vertexOut = @"
+			struct VertexOut
+			{
+				int isDecrypted : SHELL0;";
+            const string returnO = @"
+                o.isDecrypted = IsDecrypted();
+                return o;";
+
             int version = AssetManager.GetInstance().GetShaderType(shader);
-            if(version == 73)
+            if(version >= 80)
             {
-                string path = outputPath + "/CGI_Poicludes.cginc";
-                string poicludes = File.ReadAllText(path);
-                poicludes = Regex.Replace(poicludes, "UNITY_DECLARE_TEX2D\\(_MainTex\\);(.*?)", declare);
-                File.WriteAllText(path, poicludes);
-
-                path = outputPath + "/CGI_PoiFrag.cginc";
-                string frag = File.ReadAllText(path);
-                frag = Regex.Replace(frag, "float4 frag\\(", "#include \"Decrypt.cginc\"\nfloat4 frag(");
-
-                string shaderCode = ShaderCodeNoFilter;
-                if (Filter == 0)
-                    shaderCode = ShaderCodeNoFilter;
-                else if (Filter == 1)
-                    shaderCode = ShaderCodeBilinear;
-
-                frag = Regex.Replace(frag, "float4 mainTexture = .*?;", shaderCode);
-                frag = Regex.Replace(frag, "float4 mip_texture = _MipTex.Sample\\(sampler_MipTex, .*?\\);", "float4 mip_texture = _MipTex.Sample(sampler_MipTex, poiMesh.uv[0]);");
-                File.WriteAllText(path, frag);
-            }
-            else if(version >= 80)
-            {
+                string includeStr = string.Format("#include \"{0}\"", decodeDir);
                 shaderData = Regex.Replace(shaderData, "UNITY_DECLARE_TEX2D\\(_MainTex\\);", declare);
 
                 shaderData = Regex.Replace(shaderData, "POI2D_SAMPLER_PAN\\((.*?), _MainTex", "POI2D_SAMPLER_PAN($1, _MipTex");
                 shaderData = Regex.Replace(shaderData, "UNITY_SAMPLE_TEX2D_SAMPLER_LOD\\((.*?), _MainTex", "UNITY_SAMPLE_TEX2D_SAMPLER_LOD($1, _MipTex");
                 shaderData = Regex.Replace(shaderData, "UNITY_SAMPLE_TEX2D_SAMPLER\\((.*?), _MainTex", "UNITY_SAMPLE_TEX2D_SAMPLER($1, _MipTex");
                 shaderData = Regex.Replace(shaderData, "float4 frag\\(", "#include \"" + decodeDir + "\"\n\t\t\tfloat4 frag(");
+                shaderData = Regex.Replace(shaderData, "struct VertexOut[\r\n]+[ \t]*\\{", string.Format("{0}\r\n{1}", includeStr, vertexOut));
+                shaderData = Regex.Replace(shaderData, "\t+return o;", returnO);
                 string shaderCode = ShaderCodeNoFilter;
                 if (Filter == 0)
                     shaderCode = ShaderCodeNoFilter;
                 else if (Filter == 1)
                     shaderCode = ShaderCodeBilinear;
 
-                shaderData = Regex.Replace(shaderData, "float4 mainTexture = .*?;", shaderCode);
+                shaderData = Regex.Replace(shaderData, "float4 mainTexture = .*?;", string.Format("bool isDecrypted = i.isDecrypted == 1;\r\n{0}", shaderCode));
                 if (hasLimTexture)
                 {
                     if(version == 80)

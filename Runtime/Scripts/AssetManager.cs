@@ -29,6 +29,7 @@ namespace Shell.Protector
             _supportedVersions.Add("Poiyomi 9.1", 91);
             _supportedVersions.Add("Poiyomi 9.2", 92);
             _supportedVersions.Add("Poiyomi 9.3", 93);
+           _supportedVersions.Add("Poiyomi 10.0", 100);
             _supportedVersions.Add("lilToon", 0);
         }
         public bool IsPoiyomi(Shader shader)
@@ -60,19 +61,21 @@ namespace Shell.Protector
             if (poiyomiLabel != -1)
             {
                 var str = shader.GetPropertyDescription(poiyomiLabel);
+                if (str.Contains("Poiyomi 10.0"))
+                    return _supportedVersions["Poiyomi 10.0"];
                 if (str.Contains("Poiyomi 9.3"))
                     return _supportedVersions["Poiyomi 9.3"];
-                else if (str.Contains("Poiyomi 9.2"))
+                if (str.Contains("Poiyomi 9.2"))
                     return _supportedVersions["Poiyomi 9.2"];
-                else if (str.Contains("Poiyomi 9.1"))
+                if (str.Contains("Poiyomi 9.1"))
                     return _supportedVersions["Poiyomi 9.1"];
-                else if (str.Contains("Poiyomi 9.0"))
+                if (str.Contains("Poiyomi 9.0"))
                     return _supportedVersions["Poiyomi 9.0"];
-                else if(str.Contains("Poiymoi 8.0"))
+                if(str.Contains("Poiymoi 8.0"))
                     return _supportedVersions["Poiyomi 8.0"];
-                else if(str.Contains("Poiyomi 8.1"))
+                if(str.Contains("Poiyomi 8.1"))
                     return _supportedVersions["Poiyomi 8.1"];
-                else if (str.Contains("Poiyomi 8.2"))
+                if (str.Contains("Poiyomi 8.2"))
                     return _supportedVersions["Poiyomi 8.2"];
             }
             return -1;
