@@ -1,13 +1,10 @@
 #if UNITY_EDITOR
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using UnityEditorInternal;
-using System.Text;
 using System;
 using System.IO;
-using System.Text.RegularExpressions;
 using VRC.SDK3.Avatars.Components;
 
 namespace Shell.Protector
@@ -19,83 +16,73 @@ namespace Shell.Protector
         ShellProtector root = null;
         readonly LanguageManager lang = LanguageManager.GetInstance();
 
-        ReorderableList game_object_list;
-        ReorderableList material_list;
-        ReorderableList texture_list;
+        ReorderableList gameobjectList;
+        ReorderableList materialList;
+        ReorderableList textureList;
         ReorderableList obfuscationList;
 
         SerializedProperty rounds;
         SerializedProperty filter;
         SerializedProperty fallback;
         SerializedProperty algorithm;
-        SerializedProperty key_size;
-        SerializedProperty key_size_idx;
-        SerializedProperty animation_speed;
-        SerializedProperty delete_folders;
-        SerializedProperty parameter_multiplexing;
+        SerializedProperty keySize;
+        SerializedProperty keySizeIdx;
+        SerializedProperty syncSize;
+        SerializedProperty deleteFolders;
         SerializedProperty bUseSmallMipTexture;
         SerializedProperty bPreserveMMD;
-        SerializedProperty fallbackTime;
         SerializedProperty turnOnAllSafetyFallback;
+        ShellProtectorEditorViewModel viewModel;
         bool debug = false;
         bool option = true;
-        bool ObfuscatorOption = true;
+        bool obfuscatorOption = true;
         bool forceProgress = false;
         bool fallbackOption = true;
 
         readonly string[] languages = new string[3];
-        readonly string[] enc_funcs = new string[2];
-        readonly string[] key_lengths = new string[5];
+        readonly string[] encryptFunctions = new string[2];
+        readonly string[] keyLengthLabels = new string[5];
 
         List<string> shaders = new List<string>();
+        readonly List<Texture2D> debugTextures = new List<Texture2D>();
 
-        bool show_pwd = false;
-
-        Texture2D tex;
-
-        string github_version;
+        bool showPassword = false;
 
         private string Lang(string word)
         {
             if (root == null)
                 return "";
-            return lang.GetLang(root.lang, word);
+            return lang.GetLang(root.Language, word);
         }
 
         void OnEnable()
         {
             root = target as ShellProtector;
 
-            MonoScript monoScript = MonoScript.FromMonoBehaviour(root);
-            string script_path = AssetDatabase.GetAssetPath(monoScript);
-
-            root.asset_dir = Path.GetDirectoryName(Path.GetDirectoryName(script_path));
-
-            game_object_list = new ReorderableList(serializedObject, serializedObject.FindProperty("gameobject_list"), true, true, true, true);
-            game_object_list.drawHeaderCallback = rect => EditorGUI.LabelField(rect, Lang("Object list"));
-            game_object_list.drawElementCallback = (rect, index, is_active, is_focused) =>
+            gameobjectList = new ReorderableList(serializedObject, serializedObject.FindProperty("_gameObjectList"), true, true, true, true);
+            gameobjectList.drawHeaderCallback = rect => EditorGUI.LabelField(rect, Lang("Object list"));
+            gameobjectList.drawElementCallback = (rect, index, is_active, is_focused) =>
             {
-                SerializedProperty element = game_object_list.serializedProperty.GetArrayElementAtIndex(index);
+                SerializedProperty element = gameobjectList.serializedProperty.GetArrayElementAtIndex(index);
                 EditorGUI.PropertyField(new Rect(rect.x, rect.y, rect.width, EditorGUIUtility.singleLineHeight), element, GUIContent.none);
             };
 
-            material_list = new ReorderableList(serializedObject, serializedObject.FindProperty("material_list"), true, true, true, true);
-            material_list.drawHeaderCallback = rect => EditorGUI.LabelField(rect, Lang("Material List"));
-            material_list.drawElementCallback = (rect, index, is_active, is_focused) =>
+            materialList = new ReorderableList(serializedObject, serializedObject.FindProperty("_materialList"), true, true, true, true);
+            materialList.drawHeaderCallback = rect => EditorGUI.LabelField(rect, Lang("Material List"));
+            materialList.drawElementCallback = (rect, index, is_active, is_focused) =>
             {
-                SerializedProperty element = material_list.serializedProperty.GetArrayElementAtIndex(index);
+                SerializedProperty element = materialList.serializedProperty.GetArrayElementAtIndex(index);
                 EditorGUI.PropertyField(new Rect(rect.x, rect.y, rect.width, EditorGUIUtility.singleLineHeight), element, GUIContent.none);
             };
 
-            texture_list = new ReorderableList(serializedObject, serializedObject.FindProperty("texture_list"), true, true, true, true);
-            texture_list.drawHeaderCallback = rect => EditorGUI.LabelField(rect, Lang("Texture List"));
-            texture_list.drawElementCallback = (rect, index, is_active, is_focused) =>
+            textureList = new ReorderableList(debugTextures, typeof(Texture2D), true, true, true, true);
+            textureList.drawHeaderCallback = rect => EditorGUI.LabelField(rect, Lang("Texture List"));
+            textureList.drawElementCallback = (rect, index, is_active, is_focused) =>
             {
-                SerializedProperty element = texture_list.serializedProperty.GetArrayElementAtIndex(index);
-                EditorGUI.PropertyField(new Rect(rect.x, rect.y, rect.width, EditorGUIUtility.singleLineHeight), element, GUIContent.none);
+                debugTextures[index] = EditorGUI.ObjectField(new Rect(rect.x, rect.y, rect.width, EditorGUIUtility.singleLineHeight), debugTextures[index], typeof(Texture2D), false) as Texture2D;
             };
 
-            obfuscationList = new ReorderableList(serializedObject, serializedObject.FindProperty("obfuscationRenderers"), true, true, true, true);
+            obfuscationList = new ReorderableList(serializedObject, serializedObject.FindProperty("_obfuscationRenderers"), true, true, true, true);
             obfuscationList.drawHeaderCallback = rect => EditorGUI.LabelField(rect, Lang("BlendShape obfuscation"));
             obfuscationList.drawElementCallback = (rect, index, is_active, is_focused) =>
             {
@@ -104,33 +91,32 @@ namespace Shell.Protector
             };
 
             #region SerializedObject
-            rounds = serializedObject.FindProperty("rounds");
-            filter = serializedObject.FindProperty("filter");
-            fallback = serializedObject.FindProperty("fallback");
-            algorithm = serializedObject.FindProperty("algorithm");
-            key_size = serializedObject.FindProperty("key_size");
-            key_size_idx = serializedObject.FindProperty("key_size_idx");
-            animation_speed = serializedObject.FindProperty("animation_speed");
-            delete_folders = serializedObject.FindProperty("delete_folders"); 
-            parameter_multiplexing = serializedObject.FindProperty("parameter_multiplexing");
-            bUseSmallMipTexture = serializedObject.FindProperty("bUseSmallMipTexture");
-            bPreserveMMD = serializedObject.FindProperty("bPreserveMMD");
-            fallbackTime = serializedObject.FindProperty("fallbackTime");
-            turnOnAllSafetyFallback = serializedObject.FindProperty("turnOnAllSafetyFallback");
+            rounds = serializedObject.FindProperty("_rounds");
+            filter = serializedObject.FindProperty("_filter");
+            fallback = serializedObject.FindProperty("_fallback");
+            algorithm = serializedObject.FindProperty("_algorithm");
+            keySize = serializedObject.FindProperty("_keySize");
+            keySizeIdx = serializedObject.FindProperty("_keySizeIndex");
+            syncSize = serializedObject.FindProperty("_syncSize");
+            deleteFolders = serializedObject.FindProperty("_deleteFolders");
+            bUseSmallMipTexture = serializedObject.FindProperty("_useSmallMipTexture");
+            bPreserveMMD = serializedObject.FindProperty("_preserveMmd");
+            turnOnAllSafetyFallback = serializedObject.FindProperty("_turnOnAllSafetyFallback");
             #endregion
+            viewModel = new ShellProtectorEditorViewModel(root, keySize, syncSize, gameobjectList, materialList);
 
-            enc_funcs[0] = "XXTEA";
-            enc_funcs[1] = "Chacha8";
+            encryptFunctions[0] = "XXTEA";
+            encryptFunctions[1] = "Chacha8";
 
             languages[0] = "English";
             languages[1] = "한국어";
             languages[2] = "日本語";
 
-            key_lengths[0] = Lang("0 (Minimal security)");
-            key_lengths[1] = Lang("4 (Low security)");
-            key_lengths[2] = Lang("8 (Middle security)");
-            key_lengths[3] = Lang("12 (Hight security)");
-            key_lengths[4] = Lang("16 (Unbreakable security)");
+            keyLengthLabels[0] = Lang("0 (Minimal security)");
+            keyLengthLabels[1] = Lang("4 (Low security)");
+            keyLengthLabels[2] = Lang("8 (Middle security)");
+            keyLengthLabels[3] = Lang("12 (Hight security)");
+            keyLengthLabels[4] = Lang("16 (Unbreakable security)");
 
             VersionManager.GetInstance().Refresh();
 
@@ -142,7 +128,7 @@ namespace Shell.Protector
         {
             root = target as ShellProtector;
 
-            root.descriptor = EditorGUILayout.ObjectField(root.descriptor, typeof(VRCAvatarDescriptor)) as VRCAvatarDescriptor;
+            root.Descriptor = EditorGUILayout.ObjectField(root.Descriptor, typeof(VRCAvatarDescriptor), true) as VRCAvatarDescriptor;
             GUILayout.BeginHorizontal();
             GUILayout.Label(Lang("Current version: ") + VersionManager.GetInstance().GetVersion());
             GUILayout.FlexibleSpace();
@@ -154,27 +140,27 @@ namespace Shell.Protector
             GUILayout.Label(Lang("Languages: "));
             GUILayout.FlexibleSpace();
 
-            root.lang_idx = EditorGUILayout.Popup(root.lang_idx, languages, GUILayout.Width(100));
+            root.LanguageIndex = EditorGUILayout.Popup(root.LanguageIndex, languages, GUILayout.Width(100));
 
-            key_lengths[0] = Lang("0 (Minimal security)");
-            key_lengths[1] = Lang("4 (Low security)");
-            key_lengths[2] = Lang("8 (Middle security)");
-            key_lengths[3] = Lang("12 (Hight security)");
-            key_lengths[4] = Lang("16 (Unbreakable security)");
+            keyLengthLabels[0] = Lang("0 (Minimal security)");
+            keyLengthLabels[1] = Lang("4 (Low security)");
+            keyLengthLabels[2] = Lang("8 (Middle security)");
+            keyLengthLabels[3] = Lang("12 (Hight security)");
+            keyLengthLabels[4] = Lang("16 (Unbreakable security)");
 
-            switch (root.lang_idx)
+            switch (root.LanguageIndex)
             {
                 case 0:
-                    root.lang = "eng";
+                    root.Language = "eng";
                     break;
                 case 1:
-                    root.lang = "kor";
+                    root.Language = "kor";
                     break;
                 case 2:
-                    root.lang = "jp";
+                    root.Language = "jp";
                     break;
                 default:
-                    root.lang = "eng";
+                    root.Language = "eng";
                     break;
             }
 
@@ -190,69 +176,47 @@ namespace Shell.Protector
 
             GUILayout.Label(Lang("Password"), EditorStyles.boldLabel);
 
-            if (key_size.intValue < 16)
+            if (keySize.intValue < 16)
             {
-                int length = 16 - key_size.intValue;
+                int length = 16 - keySize.intValue;
                 GUILayout.BeginHorizontal();
-                root.pwd = GUILayout.TextField(root.pwd, length, GUILayout.Width(100));
+                root.FixedPassword = GUILayout.TextField(root.FixedPassword, length, GUILayout.Width(100));
                 if (GUILayout.Button(Lang("Generate")))
-                    root.pwd = KeyGenerator.GenerateRandomString(length);
+                    root.FixedPassword = KeyGenerator.GenerateRandomString(length);
                 GUILayout.FlexibleSpace();
                 GUILayout.Label(Lang("A password that you don't need to memorize. (max:") + length + ")", EditorStyles.wordWrappedLabel);
                 GUILayout.EndHorizontal();
             }
-            if (key_size.intValue > 0)
+            if (keySize.intValue > 0)
             {
                 GUILayout.BeginHorizontal();
-                if(!show_pwd)
-                    root.pwd2 = GUILayout.PasswordField(root.pwd2, '*', key_size.intValue, GUILayout.Width(100));
+                if(!showPassword)
+                    root.UserPassword = GUILayout.PasswordField(root.UserPassword, '*', keySize.intValue, GUILayout.Width(100));
                 else
-                    root.pwd2 = GUILayout.TextField(root.pwd2, key_size.intValue, GUILayout.Width(100));
+                    root.UserPassword = GUILayout.TextField(root.UserPassword, keySize.intValue, GUILayout.Width(100));
                 if (GUILayout.Button(Lang("Show")))
-                    show_pwd = !show_pwd;
+                    showPassword = !showPassword;
                 GUILayout.FlexibleSpace();
-                GUILayout.Label(Lang("This password should be memorized. (max:") + key_size.intValue + ")", EditorStyles.wordWrappedLabel);
+                GUILayout.Label(Lang("This password should be memorized. (max:") + keySize.intValue + ")", EditorStyles.wordWrappedLabel);
                 GUILayout.EndHorizontal();
             }
-            int free_parameter = -1;
+            serializedObject.Update();
+            viewModel.Refresh();
 
-            GUIStyle red_style = new GUIStyle(GUI.skin.label);
-            red_style.normal.textColor = Color.red;
-            red_style.wordWrap = true;
+            GUIStyle redStyle = new GUIStyle(GUI.skin.label);
+            redStyle.normal.textColor = Color.red;
+            redStyle.wordWrap = true;
 
-            var parameters = root.GetParameter();
-            if (parameters == null)
-                GUILayout.Label(Lang("Cannot find VRCExpressionParameters in your avatar!"), red_style);
+            if (!viewModel.HasParameterAsset)
+                GUILayout.Label(Lang("Cannot find VRCExpressionParameters in your avatar!"), redStyle);
             else
             {
-                free_parameter = 256 - parameters.CalcTotalCost();
-                GUILayout.Label(Lang("Free parameter:") + free_parameter, EditorStyles.wordWrappedLabel);
+                GUILayout.Label(Lang("Free parameter:") + viewModel.FreeParameter, EditorStyles.wordWrappedLabel);
             }
-            int using_parameter = (key_size.intValue * 8);
-            if(parameter_multiplexing.boolValue == true)
-            {
-                int keys = key_size.intValue;
-                switch(keys)
-                {
-                    case 4:
-                        using_parameter = 8 + 3;
-                        break;
-                    case 8:
-                        using_parameter = 8 + 4;
-                        break;
-                    case 12:
-                        using_parameter = 8 + 5;
-                        break;
-                    case 16:
-                        using_parameter = 8 + 5;
-                        break;
-                }
-            }
-            GUILayout.Label(Lang("Parameters to be used:") + using_parameter, EditorStyles.wordWrappedLabel);
+            GUILayout.Label(Lang("Parameters to be used:") + viewModel.UsedParameter, EditorStyles.wordWrappedLabel);
 
-            serializedObject.Update();
-            game_object_list.DoLayoutList();
-            material_list.DoLayoutList();
+            gameobjectList.DoLayoutList();
+            materialList.DoLayoutList();
             GUILayout.Label(Lang("Encrypting too many objects can cause lag when loading avatars in-game."));
             if(GUILayout.Button(Lang("Material advanced settings")))
             {
@@ -264,29 +228,50 @@ namespace Shell.Protector
             if(option)
             {
                 GUILayout.Label(Lang("Max password length"), EditorStyles.boldLabel);
-                key_size_idx.intValue = EditorGUILayout.Popup(key_size_idx.intValue, key_lengths, GUILayout.Width(150));
+                keySizeIdx.intValue = EditorGUILayout.Popup(keySizeIdx.intValue, keyLengthLabels, GUILayout.Width(150));
+                GUILayout.Space(10);
 
-                switch (key_size_idx.intValue)
+                switch (keySizeIdx.intValue)
                 {
                     case 0:
-                        key_size.intValue = 0;
+                        keySize.intValue = 0;
                         break;
                     case 1:
-                        key_size.intValue = 4;
+                        keySize.intValue = 4;
                         break;
                     case 2:
-                        key_size.intValue = 8;
+                        keySize.intValue = 8;
                         break;
                     case 3:
-                        key_size.intValue = 12;
+                        keySize.intValue = 12;
                         break;
                     case 4:
-                        key_size.intValue = 16;
+                        keySize.intValue = 16;
                         break;
                 }
 
+                var syncSize_value = syncSize.intValue;
+                int syncSize_index = 0;
+                //int[] syncSizeCandidates = { 1, 2, 4};
+                //string[] selectableValues = { "1", "2", "4" };
+                int[] syncSizeCandidates = { 1 };
+                string[] selectableValues = { "1" };
+                for (int i = 0; i < syncSizeCandidates.Length; i++)
+                    if (syncSizeCandidates[i] == syncSize_value)
+                        syncSize_index = i;
+
+                if(keySize.intValue > 0)
+                {
+                    GUILayout.Label(Lang("Sync speed"), EditorStyles.boldLabel);
+                    syncSize_index = EditorGUILayout.Popup(syncSize_index, selectableValues, GUILayout.Width(100));
+                    syncSize.intValue = syncSizeCandidates[syncSize_index];
+                    GUILayout.Label(Lang("Under development."), EditorStyles.boldLabel);
+                    //GUILayout.Label(Lang("When the Sync speed is 2 or higher, OSC1.7 or higher must be used."), EditorStyles.boldLabel);
+                    GUILayout.Space(10);
+                }
+
                 GUILayout.Label(Lang("Encrytion algorithm"), EditorStyles.boldLabel);
-                algorithm.intValue = EditorGUILayout.Popup(algorithm.intValue, enc_funcs, GUILayout.Width(120));
+                algorithm.intValue = EditorGUILayout.Popup(algorithm.intValue, encryptFunctions, GUILayout.Width(120));
 
                 if (algorithm.intValue == 0)
                 {
@@ -308,34 +293,25 @@ namespace Shell.Protector
                 GUILayout.Space(10);
 
                 GUILayout.Label(Lang("Default texture filter"), EditorStyles.boldLabel);
-                filter.intValue = EditorGUILayout.Popup(filter.intValue, ShellProtector.filterStrings, GUILayout.Width(100));
+                filter.intValue = EditorGUILayout.Popup(filter.intValue, ShellProtector.FilterStrings, GUILayout.Width(100));
                 GUILayout.Label(Lang("Setting it to 'Point' may result in aliasing, but performance is better."), EditorStyles.wordWrappedLabel);
 
-                GUILayout.Label(Lang("Initial animation speed"), EditorStyles.boldLabel);
-                GUILayout.BeginHorizontal();
-                animation_speed.floatValue = GUILayout.HorizontalSlider(animation_speed.floatValue, 2.0f, 5.0f, GUILayout.Width(100));
-                animation_speed.floatValue = EditorGUILayout.FloatField("", animation_speed.floatValue, GUILayout.Width(50));
-                animation_speed.floatValue = Math.Clamp(animation_speed.floatValue, 2.0f, 5.0f);
-                GUILayout.FlexibleSpace();
-                GUILayout.Label(Lang("Avatar first load animation speed"), EditorStyles.wordWrappedLabel);
-                GUILayout.EndHorizontal();
+                //GUILayout.Label(Lang("Initial animation speed"), EditorStyles.boldLabel);
+                //GUILayout.BeginHorizontal();
+                //animation_speed.floatValue = GUILayout.HorizontalSlider(animation_speed.floatValue, 2.0f, 5.0f, GUILayout.Width(100));
+                //animation_speed.floatValue = EditorGUILayout.FloatField("", animation_speed.floatValue, GUILayout.Width(50));
+                //animation_speed.floatValue = Math.Clamp(animation_speed.floatValue, 2.0f, 5.0f);
+                //GUILayout.FlexibleSpace();
+                //GUILayout.Label(Lang("Avatar first load animation speed"), EditorStyles.wordWrappedLabel);
+                //GUILayout.EndHorizontal();
 
                 GUILayout.Space(10);
 
                 GUILayout.BeginHorizontal();
                 GUILayout.Label(Lang("Delete folders that already exists when at creation time"), EditorStyles.boldLabel);
-                delete_folders.boolValue = EditorGUILayout.Toggle(delete_folders.boolValue);
+                deleteFolders.boolValue = EditorGUILayout.Toggle(deleteFolders.boolValue);
                 GUILayout.FlexibleSpace();
                 GUILayout.EndHorizontal();
-
-                GUILayout.Space(10);
-
-                GUILayout.BeginHorizontal();
-                GUILayout.Label(Lang("parameter-multiplexing"), EditorStyles.boldLabel);
-                parameter_multiplexing.boolValue = EditorGUILayout.Toggle(parameter_multiplexing.boolValue);
-                GUILayout.FlexibleSpace();
-                GUILayout.EndHorizontal();
-                GUILayout.Label(Lang("The OSC program must always be on, but it consumes fewer parameters."), EditorStyles.wordWrappedLabel);
 
                 GUILayout.Space(10);
 
@@ -349,8 +325,8 @@ namespace Shell.Protector
                 GUILayout.Space(10);
             }
 
-            ObfuscatorOption = EditorGUILayout.Foldout(ObfuscatorOption, Lang("Obfustactor Options"));
-            if(ObfuscatorOption)
+            obfuscatorOption = EditorGUILayout.Foldout(obfuscatorOption, Lang("Obfustactor Options"));
+            if(obfuscatorOption)
             {
                 obfuscationList.DoLayoutList();
 
@@ -368,20 +344,6 @@ namespace Shell.Protector
             {
                 GUILayout.Label(Lang("Opponents with Safety option turned on will see degraded textures instead of noise."));
 
-                GUILayout.Label(Lang("Fallback wait time"), EditorStyles.boldLabel);
-                GUILayout.BeginHorizontal();
-                fallbackTime.floatValue = GUILayout.HorizontalSlider(fallbackTime.floatValue, 0.0f, 10.0f, GUILayout.Width(100));
-                fallbackTime.floatValue = EditorGUILayout.FloatField("", fallbackTime.floatValue, GUILayout.Width(50));
-                fallbackTime.floatValue = Mathf.Clamp(fallbackTime.floatValue, 0.0f, 10.0f);
-#if UNITY_2022
-                fallbackTime.floatValue = MathF.Round(fallbackTime.floatValue, 1);
-#endif
-                GUILayout.FlexibleSpace();
-                GUILayout.Label(Lang("After this time, the fallback is turned off. (Only who is Safety OFF)"), EditorStyles.wordWrappedLabel);
-                GUILayout.EndHorizontal();
-
-                GUILayout.Space(10);
-
                 GUILayout.BeginHorizontal();
                 GUILayout.Label(Lang("Change all Safety Fallback settings of shader to Unlit."), EditorStyles.boldLabel);
                 turnOnAllSafetyFallback.boolValue = EditorGUILayout.Toggle(turnOnAllSafetyFallback.boolValue);
@@ -389,13 +351,14 @@ namespace Shell.Protector
                 GUILayout.EndHorizontal();
 
                 GUILayout.Label(Lang("Default fallback texture"), EditorStyles.boldLabel);
-                fallback.intValue = EditorGUILayout.Popup(fallback.intValue, ShellProtector.fallbackStrings, GUILayout.Width(100));
+                fallback.intValue = EditorGUILayout.Popup(fallback.intValue, ShellProtector.FallbackStrings, GUILayout.Width(100));
             }
 #endregion
 
-            if (free_parameter - using_parameter < 0)
+            viewModel.Refresh();
+            if (!viewModel.HasEnoughParameterSpace)
             {
-                GUILayout.Label(Lang("Not enough parameter space!"), red_style);
+                GUILayout.Label(Lang("Not enough parameter space!"), redStyle);
                 GUILayout.BeginHorizontal();
                 GUILayout.Label(Lang("Force progress"));
                 forceProgress = EditorGUILayout.Toggle(forceProgress);
@@ -403,12 +366,12 @@ namespace Shell.Protector
                 GUILayout.EndHorizontal();
                 GUI.enabled = forceProgress;
             }
-            if (game_object_list.count == 0 && material_list.count == 0)
+            if (!viewModel.HasTargets)
                 GUI.enabled = false;
 
-            
+
 #if MODULAR
-            if (GUILayout.Button(Lang("Manual Encrypt!")))
+            if (GUILayout.Button(Lang("Manual Encrypt! (for testing)")))
 #else
             if (GUILayout.Button(Lang("Encrypt!")))
 #endif
@@ -422,7 +385,7 @@ namespace Shell.Protector
             GUILayout.Label(Lang("Modular avatars exist. It is automatically encrypted on upload."), modularStyle);
 #endif
 
-            if (GUILayout.Button(Lang("Delete previously encrypted files") + String.Format("({0})", root.GetEncyryptedFoldersCount())))
+            if (GUILayout.Button(Lang("Delete previously encrypted files") + String.Format("({0})", root.GetEncryptedFoldersCount())))
             {
                 root.CleanEncrypted();
             }
@@ -432,36 +395,40 @@ namespace Shell.Protector
             {
                 GUILayout.Space(10);
                 if (GUILayout.Button(Lang("XXTEA test")))
-                    Test.XXTEATest(root.pwd, root.pwd2, root.GetKeySize());
+                    Test.XXTEATest(root.FixedPassword, root.UserPassword, root.GetKeySize());
                 if (GUILayout.Button(Lang("Chacha8 test")))
-                    Test.ChachaTest(root.pwd, root.pwd2, root.GetKeySize());
+                    Test.ChachaTest(root.FixedPassword, root.UserPassword, root.GetKeySize());
                 GUILayout.Space(10);
 
-                texture_list.DoLayoutList();
+                textureList.DoLayoutList();
                 GUILayout.BeginHorizontal();
                 if (GUILayout.Button(Lang("Encrypt")))
                 {
                     Texture2D last = null;
-                    for (int i = 0; i < texture_list.count; i++)
+                    for (int i = 0; i < debugTextures.Count; i++)
                     {
-                        SerializedProperty element = texture_list.serializedProperty.GetArrayElementAtIndex(i);
-                        Texture2D texture = element.objectReferenceValue as Texture2D;
+                        Texture2D texture = debugTextures[i];
+                        if (texture == null)
+                            continue;
 
                         TextureSettings.SetRWEnableTexture(texture);
 
-                        Texture2D[] encrypted_texture = root.GetEncryptTexture().TextureEncrypt(texture, KeyGenerator.MakeKeyBytes(root.pwd, root.pwd2, key_size.intValue), new XXTEA());
+                        var result = TextureEncryptManager.EncryptTexture(texture, KeyGenerator.MakeKeyBytes(root.FixedPassword, root.UserPassword, keySize.intValue), new XXTEA());
+                        if (result.Texture1 == null)
+                            continue;
 
-                        last = encrypted_texture[0];
+                        last = result.Texture1;
 
-                        if (!AssetDatabase.IsValidFolder(root.asset_dir + '/' + root.descriptor.gameObject.name))
-                            AssetDatabase.CreateFolder(root.asset_dir, root.descriptor.gameObject.name);
-                        if (!AssetDatabase.IsValidFolder(root.asset_dir + '/' + root.descriptor.gameObject.name + "/mat"))
-                            AssetDatabase.CreateFolder(root.asset_dir + '/' + root.descriptor.gameObject.name, "mat");
+                        var writer = new AssetWriter();
+                        var outputPaths = new OutputPaths(root.AssetDir, root.Descriptor.gameObject);
+                        outputPaths.PrepareFolders(writer, false);
 
-                        AssetDatabase.CreateAsset(encrypted_texture[0], root.asset_dir + '/' + root.descriptor.gameObject.name + '/' + texture.name + "_encrypt.asset");
-                        File.WriteAllBytes(root.asset_dir + '/' + root.descriptor.gameObject.name + '/' + texture.name + "_encrypt.png", encrypted_texture[1].EncodeToPNG());
-                        if (encrypted_texture[1] != null)
-                            AssetDatabase.CreateAsset(encrypted_texture[1], root.asset_dir + '/' + root.descriptor.gameObject.name + '/' + texture.name + "_encrypt2.asset");
+                        writer.CreateAssetInFolder(result.Texture1, outputPaths.Folders.TexGuid, outputPaths.EncryptedTextureName(texture, 0));
+                        if (result.Texture2 != null)
+                        {
+                            File.WriteAllBytes(writer.UniquePathInFolder(outputPaths.Folders.TexGuid, OutputPaths.Sanitize(texture.name) + "_encrypt.png"), result.Texture2.EncodeToPNG());
+                            writer.CreateAssetInFolder(result.Texture2, outputPaths.Folders.TexGuid, outputPaths.EncryptedTextureName(texture, 2));
+                        }
                         AssetDatabase.SaveAssets();
 
                         AssetDatabase.Refresh();
@@ -469,35 +436,6 @@ namespace Shell.Protector
                     if(last != null)
                         Selection.activeObject = last;
                 }
-
-                /*if (GUILayout.Button("Decrypt"))
-                {
-                    Texture2D last = null;
-                    for (int i = 0; i < texture_list.count; i++)
-                    {
-                        SerializedProperty textureProperty = texture_list.serializedProperty.GetArrayElementAtIndex(i);
-                        Texture2D texture = textureProperty.objectReferenceValue as Texture2D;
-
-                        root.SetRWEnableTexture(texture);
-
-                        Texture2D tmp = root.GetEncryptTexture().TextureDecryptXXTEA(texture, root.MakeKeyBytes(root.pwd));
-
-                        if (root.asset_dir[root.asset_dir.Length - 1] == '/')
-                            root.asset_dir = root.asset_dir.Remove(root.asset_dir.Length - 1);
-
-                        if (!AssetDatabase.IsValidFolder(root.asset_dir + '/' + root.gameObject.name))
-                            AssetDatabase.CreateFolder(root.asset_dir, root.gameObject.name);
-                        if (!AssetDatabase.IsValidFolder(root.asset_dir + '/' + root.gameObject.name + "/mat"))
-                            AssetDatabase.CreateFolder(root.asset_dir + '/' + root.gameObject.name, "mat");
-
-                        System.IO.File.WriteAllBytes(root.asset_dir + '/' + root.gameObject.name + '/' + texture.name + "_decrypt.png", tmp.EncodeToPNG());
-                        last = (Texture2D)AssetDatabase.LoadAssetAtPath(root.asset_dir + '/' + root.gameObject.name + '/' + texture.name + "_decrypt.png", typeof(Texture2D));
-
-                        AssetDatabase.Refresh();
-                    }
-                    if (last != null)
-                        Selection.activeObject = last;
-                }*/
 
                 GUILayout.EndHorizontal();
             }
@@ -522,7 +460,7 @@ namespace Shell.Protector
             obj.transform.parent = gameobject.transform;
 
             var shellProtector = obj.AddComponent<ShellProtector>();
-            shellProtector.descriptor = av3;
+            shellProtector.Descriptor = av3;
             shellProtector.Init();
 
             Selection.activeObject = obj;

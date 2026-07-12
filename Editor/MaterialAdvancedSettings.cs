@@ -38,7 +38,7 @@ namespace Shell.Protector
         {
             if (protector == null)
                 return "";
-            return lang.GetLang(protector.lang, word);
+            return lang.GetLang(protector.Language, word);
         }
 
         private void OnGUI()
@@ -48,21 +48,21 @@ namespace Shell.Protector
             redStyle.wordWrap = true;
 
             scroll = GUILayout.BeginScrollView(scroll);
-            foreach (var option in protector.matOptions)
+            foreach (var option in protector.MaterialOptions)
             {
                 Texture2D mainTex = option.Key.mainTexture as Texture2D;
 
                 GUILayout.BeginHorizontal();
-                option.Value.active = GUILayout.Toggle(option.Value.active, "");
+                option.Value.Active = GUILayout.Toggle(option.Value.Active, "");
                 EditorGUILayout.ObjectField(option.Key, typeof(Material), true);
                 EditorGUILayout.ObjectField(mainTex, typeof(Texture2D), true);
-                if (option.Value.filter == -1)
-                    option.Value.filter = protector.GetDefaultFilter();
-                option.Value.filter = EditorGUILayout.Popup(option.Value.filter, ShellProtector.filterStrings, GUILayout.Width(100));
+                if (option.Value.Filter == -1)
+                    option.Value.Filter = protector.GetDefaultFilter();
+                option.Value.Filter = EditorGUILayout.Popup(option.Value.Filter, ShellProtector.FilterStrings, GUILayout.Width(100));
 
-                if (option.Value.fallback == -1)
-                    option.Value.fallback = protector.GetDefaultFallback();
-                option.Value.fallback = EditorGUILayout.Popup(option.Value.fallback, ShellProtector.fallbackStrings, GUILayout.Width(100));
+                if (option.Value.Fallback == -1)
+                    option.Value.Fallback = protector.GetDefaultFallback();
+                option.Value.Fallback = EditorGUILayout.Popup(option.Value.Fallback, ShellProtector.FallbackStrings, GUILayout.Width(100));
 
                 if (AssetManager.GetInstance().IsPoiyomi(option.Key.shader))
                 {
@@ -71,6 +71,7 @@ namespace Shell.Protector
                     else
                         GUILayout.Label(Lang("New shader"));
                 }
+                //option.Value.emissionEnc = GUILayout.Toggle(option.Value.emissionEnc, "Encrypt emission()");
                 GUILayout.FlexibleSpace();
                 GUILayout.EndHorizontal();
 
@@ -84,17 +85,16 @@ namespace Shell.Protector
                     {
                         GUILayout.Label(Lang("The main texture is empty."), redStyle);
                     }
-                    else if ((mainTex is Texture2D) == false)
+                    else if (!TextureEncryptManager.IsSupportedTexture(mainTex))
                     {
-                        GUILayout.Label(Lang("The main texture is not Texture2D."), redStyle);
-                    }
-                    else if (
-                        mainTex.format != TextureFormat.DXT1 &&
-                        mainTex.format != TextureFormat.DXT5 &&
-                        mainTex.format != TextureFormat.RGB24 &&
-                        mainTex.format != TextureFormat.RGBA32)
-                    {
-                        GUILayout.Label(Lang("The main texture is not supported format."), redStyle);
+                        if (!(mainTex is Texture2D))
+                        {
+                            GUILayout.Label(Lang("The main texture is not Texture2D."), redStyle);
+                        }
+                        else
+                        {
+                            GUILayout.Label(Lang("The main texture is not supported format."), redStyle);
+                        }
                     }
                 }
             }
@@ -118,16 +118,16 @@ namespace Shell.Protector
             foreach (var mat in mats)
             {
                 matSets.Add(mat);
-                if (!protector.matOptions.ContainsKey(mat))
+                if (!protector.MaterialOptions.ContainsKey(mat))
                 {
                     var option = new ShellProtector.MatOption();
-                    option.active = true;
-                    protector.matOptions.Add(mat, option);
+                    option.Active = true;
+                    protector.MaterialOptions.Add(mat, option);
                 }
             }
 
             List<Material> removed = new List<Material>();
-            foreach (var pair in protector.matOptions)
+            foreach (var pair in protector.MaterialOptions)
             {
                 if (!matSets.Contains(pair.Key))
                 {
@@ -135,7 +135,7 @@ namespace Shell.Protector
                 }
             }
             foreach (var mat in removed)
-                protector.matOptions.Remove(mat);
+                protector.MaterialOptions.Remove(mat);
         }
     }
 }

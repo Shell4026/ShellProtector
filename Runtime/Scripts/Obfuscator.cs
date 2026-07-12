@@ -1,28 +1,29 @@
-﻿#if UNITY_EDITOR
+#if UNITY_EDITOR
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
+using UnityEngine.Serialization;
 using VRC.SDK3.Avatars.Components;
 
 namespace Shell.Protector
 {
     public class Obfuscator : ScriptableObject
     {
-        string animDir = "";
+        OutputPaths outputPaths;
+        AssetWriter assetWriter;
 
         List<int> obfuscatedBlendShapeIndex = new List<int>();
         Dictionary<string, string> obfuscatedBlendShapeNames = new Dictionary<string, string>(); // before, after
         Dictionary<AnimationClip, AnimationClip> obfuscatedClip = new Dictionary<AnimationClip, AnimationClip>(); // before, after
         HashSet<string> mmdShapes = new HashSet<string>();
 
-        readonly Regex re = new Regex(".*?/(.*)");
-
-        public bool clone = true;
-        public bool bPreserveMMD = true;
+        [FormerlySerializedAs("clone")]
+        public bool Clone = true;
+        [FormerlySerializedAs("bPreserveMMD")]
+        public bool PreserveMmd = true;
 
         public Obfuscator()
         {
@@ -45,13 +46,28 @@ namespace Shell.Protector
         }
         public void Clean()
         {
-            clone = true;
-            animDir = "";
+            Clone = true;
+            outputPaths = null;
+            assetWriter = null;
             obfuscatedBlendShapeNames.Clear();
             obfuscatedBlendShapeIndex.Clear();
+            obfuscatedClip.Clear();
         }
 
-        public Mesh ObfuscateBlendShapeMesh(Mesh mesh, string newPath)
+        static string GetAnimationPath(Transform transform)
+        {
+            var names = new List<string>();
+            Transform current = transform;
+            while (current != null && current.parent != null)
+            {
+                names.Add(current.name);
+                current = current.parent;
+            }
+            names.Reverse();
+            return string.Join("/", names);
+        }
+
+        public Mesh ObfuscateBlendShapeMesh(Mesh mesh, OutputPaths paths, AssetWriter writer)
         {
             Mesh obfuscatedMesh = Instantiate(mesh);
             obfuscatedMesh.ClearBlendShapes();
@@ -83,7 +99,7 @@ namespace Shell.Protector
                     float weight = mesh.GetBlendShapeFrameWeight(shapeIndex, frameIndex);
                     string blendShapeName = mesh.GetBlendShapeName(shapeIndex);
 
-                    if (bPreserveMMD)
+                    if (PreserveMmd)
                     {
                         if (mmdShapes.Contains(blendShapeName))
                         {
@@ -109,7 +125,7 @@ namespace Shell.Protector
             }
             Debug.LogFormat("Obfuscator blendshapes : {0}", string.Join(", ", obfuscatedBlendShapeNames.Select(kv => $"{kv.Key}: {kv.Value}")));
 
-            AssetDatabase.CreateAsset(obfuscatedMesh, Path.Combine(newPath, obfuscatedMesh.name + ".asset"));
+            writer.CreateAssetInFolder(obfuscatedMesh, paths.Folders.MeshGuid, paths.MeshAssetName(mesh));
             AssetDatabase.Refresh();
             return obfuscatedMesh;
         }
@@ -124,7 +140,7 @@ namespace Shell.Protector
             for (int i = 0; i < descriptor.customEyeLookSettings.eyelidsBlendshapes.Length; i++)
             {
                 int idx = descriptor.customEyeLookSettings.eyelidsBlendshapes[i];
-                descriptor.customEyeLookSettings.eyelidsBlendshapes[i] = obfuscatedBlendShapeIndex.FindIndex(0, obfuscatedBlendShapeIndex.Count - 1,
+                descriptor.customEyeLookSettings.eyelidsBlendshapes[i] = obfuscatedBlendShapeIndex.FindIndex(0, obfuscatedBlendShapeIndex.Count,
                     x =>
                     {
                         return x == idx;
@@ -134,12 +150,13 @@ namespace Shell.Protector
             
         }
 
-        public void ObfuscateBlendshapeInAnim(AnimatorController anim, GameObject obj, string newDir)
+        public void ObfuscateBlendshapeInAnim(AnimatorController anim, GameObject obj, OutputPaths paths, AssetWriter writer)
         {
             if (anim == null)
                 return;
 
-            animDir = newDir;
+            outputPaths = paths;
+            assetWriter = writer;
 
             var layers = anim.layers;
             foreach (var layer in layers)
@@ -210,8 +227,7 @@ namespace Shell.Protector
             {
                 if (binding.type == typeof(SkinnedMeshRenderer) && binding.propertyName.StartsWith("blendShape."))
                 {
-                    Match m = re.Match(obj.transform.GetHierarchyPath());
-                    string hierarchyPath = m.Groups[1].Value;
+                    string hierarchyPath = GetAnimationPath(obj.transform);
                     
                     if (binding.path != hierarchyPath)
                         continue;
@@ -230,14 +246,14 @@ namespace Shell.Protector
             }
 
             AnimationClip newClip = clip;
-            if (clone)
+            if (Clone)
             {
                 if (obfuscatedClip.ContainsKey(clip))
                     newClip = obfuscatedClip[clip];
                 else
                 {
                     newClip = Instantiate(clip);
-                    AssetDatabase.CreateAsset(newClip, Path.Combine(animDir, clip.name + "_obfuscated.anim"));
+                    assetWriter.CreateAssetInFolder(newClip, outputPaths.Folders.AnimGuid, outputPaths.AnimationClipName(clip, "_obfuscated"));
                     AssetDatabase.SaveAssets();
                     AssetDatabase.Refresh();
                     obfuscatedClip.Add(clip, newClip);
@@ -249,8 +265,7 @@ namespace Shell.Protector
             {
                 if (binding.type == typeof(SkinnedMeshRenderer) && binding.propertyName.StartsWith("blendShape."))
                 {
-                    Match m = re.Match(obj.transform.GetHierarchyPath());
-                    string hierarchyPath = m.Groups[1].Value;
+                    string hierarchyPath = GetAnimationPath(obj.transform);
 
                     string blendShapeName = binding.propertyName.Substring("blendShape.".Length);
                     

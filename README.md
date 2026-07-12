@@ -19,25 +19,27 @@ OSC 프로그램으로 간편하게 비밀번호를 입력할 수 있습니다.
 OSC 소스 코드: https://github.com/Shell4026/ShellProtectorOSC
 
 ## 지원 셰이더
-- Poiyomi 7.3(불안정), 8.0, 8.1, 8.2, 9.0, 9.1, 9.2(pro), PCSS(테스트 더 필요)
-- lilToon (1.3.8 ~ 1.7.3)(VCC)
+- Poiyomi 8.x, 9.x, 10.x(pro) PCSS(권장하지 않음)
+- lilToon (1.3.8 ~ 2.3.4)(VCC)
 
 ## 지원 텍스쳐 형식
 - RGB24, RGBA32
 - DXT1, DXT5
 - Crunch Compression 포멧은 자동으로 DXT1이나 DXT5로 변환 됩니다.
+- **BC7은 지원하지 않습니다**
+	- 투명도가 없는 텍스쳐의 경우 RGB24에 사이즈를 반으로 줄이면 비슷한 품질과 텍스쳐 사이즈를 보입니다.
 
 ## 지원하는 기능
 - 텍스쳐 암호화
 - 암호화를 풀기 위한 OSC 프로그램
 - 쉐이프키 난독화
-- 폴백: 친구가 아닌 유저에게는 암호화 노이즈 대신 16x16 텍스쳐로 보이게 하는 기능
+- 폴백: 친구가 아닌 유저에게는 암호화 노이즈 대신 작은 텍스쳐로 보이게 하는 기능
 
 ## 사용법
 1. 아바타를 우클릭해 'Shell Protector'를 눌러 컴포넌트를 추가합니다.
 2. 비밀번호를 설정해주고 암호화 할 메테리얼이나 게임오브젝트를 지정해줍니다.
 
-(모듈러 사용시 아래 과정은 필요 없습니다.)
+(모듈러 사용시 아래 과정(3,4)은 필요 없습니다.)
 
 3. Encrypt 버튼을 누르세요.
 4. 새로 생긴 아바타에 들어간 Testor컴포넌트를 통해 암호화 여부를 확인하고 완료 버튼을 누르세요.
@@ -46,10 +48,13 @@ OSC 소스 코드: https://github.com/Shell4026/ShellProtectorOSC
 ### 자신의 비밀번호가 4자리 이상인 경우 (OSC)
 1. Release에 있는 ShellProtectorOSC.zip을 다운 후 압축을 풀고 ShellProtectorOSC.exe를 실행시킵니다. (최초 한 번만 실행하면 됩니다. 리셋 아바타나 파라미터 멀티플렉싱을 사용한다면 계속 켜두세요.)
 2. 업로드 한 아바타로 바꾼 후 OSC프로그램에서 사용자 비밀번호를 입력합니다.
-3. 만약 비밀번호가 바뀌어도 아바타의 외형에 변화가 없다면 VRChat에서 액션 메뉴 - Options - OSC - Reset Config를 눌러보세요.
-4. 그래도 문제가 있다면 C:\Users\유저\AppData\LocalLow\VRChat\VRChat\OSC 폴더를 지워보세요.
+3. 2.5.0이후부터 Parameter-multiplexing를 필수로 체크해야 합니다.
+4. 만약 비밀번호가 바뀌어도 아바타의 외형에 변화가 없다면 VRChat에서 액션 메뉴 - Options - OSC - Reset Config를 눌러보세요.
+5. 그래도 문제가 있다면 C:\Users\유저\AppData\LocalLow\VRChat\VRChat\OSC 폴더를 지워보세요.
 
 ### 파라미터 멀티플렉싱
+**2.5.0부터 기본적으로 지원합니다.**
+
 세부 원리:https://github.com/seanedwards/vrc-worldobject/blob/main/docs/parameter-multiplexing.md
 
 파라미터 절약 기술입니다. 체크 후 OSC를 항상 켜둬야하며 OSC프로그램에도 **Parameter-multiplexing을 체크** 해야 합니다.
@@ -65,7 +70,8 @@ OSC 소스 코드: https://github.com/Shell4026/ShellProtectorOSC
 2.5.0beta부터 기본 적용 됩니다.
 
 ### 아바타 폴백
-암호화가 걸려있을 때 세이프티가 켜져있는 사람은 아바타를 볼 때 열화된 버전으로 보이게 하는 기능입니다.
+암호화가 걸려있을 때 세이프티가 켜져있는 사람은 아바타를 볼 때 열화된 버전으로 보이게 하는 기능입니다.</br>
+암호화가 풀리지 않았을 때도 폴백 텍스쳐로 보입니다.
 ![fallback](https://github.com/user-attachments/assets/d3ca69b0-ff08-4793-a4e4-73269bc8efd3)
 
 ## 문제해결
@@ -132,6 +138,8 @@ Point필터링: 0.2ms
 Bilinear 필터링: 0.35ms
 
 그렇게 큰 차이는 아닌 것으로 보이나, 성능을 생각하면 꼭 필요한 텍스쳐만 암호화 하는 것을 추천합니다.
+
+너무 많은 부위를 암호화 하면 복호화 과정에서 렉이 걸리는 현상이 있을 수 있습니다.
 
 ## 얼마나 안전한가요?
 기본적으로 16바이트의 키를 가지며, 셰이더 내부에 저장되는 키와 사용자가 VRC 파라미터를 이용하여 입력할 수 있는 키로 나누어져 있습니다. (사용자 키라고 부르겠습니다.)

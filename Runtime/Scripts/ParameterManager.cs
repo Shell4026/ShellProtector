@@ -1,122 +1,104 @@
 ﻿#if UNITY_EDITOR
-using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
-using VRC.SDK3.Avatars;
 using VRC.SDK3.Avatars.ScriptableObjects;
 
+namespace Shell.Protector
+{
 public static class ParameterManager
 {
-    public static VRCExpressionParameters.Parameter CloneParameter(VRCExpressionParameters.Parameter parameter)
+    private const string Prefix = "SHELL_PROTECTOR_";
+    public static string GetSyncedKeyName(int index, bool bLegacy = false)
     {
-        var tmp = new VRCExpressionParameters.Parameter();
-        tmp.saved = parameter.saved;
-        tmp.name = parameter.name;
-        tmp.networkSynced = parameter.networkSynced;
-        tmp.valueType = parameter.valueType;
-        tmp.defaultValue = parameter.defaultValue;
-        return tmp;
+        if (bLegacy)
+            return "pkey";
+        return Prefix + "synced_key" + index;
     }
-
-    public static VRCExpressionParameters AddKeyParameter(VRCExpressionParameters vrc_parameters, int key_length, bool optimize = false)
+    public static string GetKeyName(int index) => Prefix + "key" + index;
+    public static string GetSavedKeyName(int index) => Prefix + "saved_key" + index;
+    public static string GetSyncSwitchName(int index, bool bLegacy = false)
     {
-        VRCExpressionParameters result = new VRCExpressionParameters();
-        result.name = vrc_parameters.name + "_encrypted";
+        if (bLegacy)
+            return "encrypt_switch" + index;
+        return Prefix + "sync_switch" + index; 
+    }
+    public static string GetSyncLockName(bool bLegacy = false)
+    {
+        if (bLegacy)
+            return "encrypt_lock";
+        return Prefix + "sync_lock"; 
+    }
+    public static string GetIsLocalName() => "IsLocal";
 
-        var parameters = vrc_parameters.parameters;
 
-        int switch_size = 0;
-        int etc = 0;
-        if (optimize == true)
+    public static VRCExpressionParameters AddKeyParameter(VRCExpressionParameters vrcParameters, int keyLength, int syncSize)
+    {
+        bool bLegacy = syncSize == 1;
+        var parameters = new List<VRCExpressionParameters.Parameter>();
+
+        parameters.Add(new VRCExpressionParameters.Parameter
         {
-            etc = 2; //lock + pkey(sync)
-            switch(key_length)
-            {
-                case 4:
-                    switch_size = 2;
-                    break;
-                case 8:
-                    switch_size = 3;
-                    break;
-                case 12:
-                case 16:
-                    switch_size = 4;
-                    break;
-                default:
-                    Debug.LogErrorFormat("ParameterManager: key_length = {} is wrong!", key_length);
-                    return result;
-            }  
-        }
+            name = GetSyncLockName(bLegacy),
+            saved = true,
+            networkSynced = true,
+            valueType = VRCExpressionParameters.ValueType.Bool,
+            defaultValue = 0.0f
+        });
 
-        VRCExpressionParameters.Parameter[] tmp = new VRCExpressionParameters.Parameter[parameters.Length + switch_size + key_length + etc];
-        int idx;
-        for(idx = 0; idx < parameters.Length; ++idx)
-            tmp[idx] = CloneParameter(parameters[idx]);
-
-        if (optimize == false)
+        for (var i = 0; i < syncSize; i++)
         {
-            for (int i = 0; i < key_length; ++i)
+            parameters.Add(new VRCExpressionParameters.Parameter
             {
-                var para = new VRCExpressionParameters.Parameter
-                {
-                    name = "pkey" + i,
-                    saved = true,
-                    networkSynced = true,
-                    valueType = VRCExpressionParameters.ValueType.Float,
-                    defaultValue = 0.0f
-                };
-
-                tmp[idx++] = para;
-            }
-        }
-        else
-        {
-            var pkey = new VRCExpressionParameters.Parameter
-            {
-                name = "pkey",
+                name = GetSyncedKeyName(i, bLegacy),
                 saved = true,
                 networkSynced = true,
                 valueType = VRCExpressionParameters.ValueType.Float,
                 defaultValue = 0.0f
-            };
-            tmp[idx++] = pkey;
-            for (int i = 0; i < key_length; ++i)
-            {
-                var para = new VRCExpressionParameters.Parameter
-                {
-                    name = "pkey" + i,
-                    saved = false,
-                    networkSynced = false,
-                    valueType = VRCExpressionParameters.ValueType.Float,
-                    defaultValue = 0.0f
-                };
+            });
+        }
 
-                tmp[idx++] = para;
-            }
-            var plock = new VRCExpressionParameters.Parameter
+        for (var i = 0; i < ShellProtector.GetRequiredSwitchCount(keyLength, syncSize); ++i)
+        {
+            parameters.Add(new VRCExpressionParameters.Parameter
             {
-                name = "encrypt_lock",
+                name = GetSyncSwitchName(i, bLegacy),
                 saved = true,
                 networkSynced = true,
                 valueType = VRCExpressionParameters.ValueType.Bool,
                 defaultValue = 0.0f
-            };
-            tmp[idx++] = plock;
-            for (int i = 0; i < switch_size; ++i)
+            });
+        }
+
+        for (var i = 0; i < keyLength; ++i)
+        {
+            parameters.Add(new VRCExpressionParameters.Parameter
             {
-                var para = new VRCExpressionParameters.Parameter
+                name = GetKeyName(i),
+                saved = false,
+                networkSynced = false,
+                valueType = VRCExpressionParameters.ValueType.Float,
+                defaultValue = 0.0f
+            });
+
+            if (!bLegacy)
+            {
+                parameters.Add(new VRCExpressionParameters.Parameter
                 {
-                    name = "encrypt_switch" + i,
+                    name = GetSavedKeyName(i),
                     saved = true,
-                    networkSynced = true,
-                    valueType = VRCExpressionParameters.ValueType.Bool,
+                    networkSynced = false,
+                    valueType = VRCExpressionParameters.ValueType.Float,
                     defaultValue = 0.0f
-                };
-                tmp[idx++] = para;
+                });
             }
         }
-        result.parameters = tmp;
+
+        var result = ScriptableObject.CreateInstance<VRCExpressionParameters>();
+        result.name = vrcParameters.name + "_encrypted";
+        result.parameters = vrcParameters.parameters.Concat(parameters).ToArray();;
         return result;
     }
+}
 }
 #endif

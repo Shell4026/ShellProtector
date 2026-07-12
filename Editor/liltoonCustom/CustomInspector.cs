@@ -1,4 +1,6 @@
 #if UNITY_EDITOR
+using System.Linq;
+using Shell.Protector;
 using UnityEditor;
 using UnityEngine;
 
@@ -8,14 +10,15 @@ namespace lilToon
     public class ShellProtectorInspector : lilToonInspector
     {
         // Custom properties
-        MaterialProperty mip_tex;
-        MaterialProperty encrypted_tex0;
-        MaterialProperty encrypted_tex1;
-        MaterialProperty[] key = new MaterialProperty[15];
-        MaterialProperty fallback;
+        MaterialProperty mipTexture;
+        MaterialProperty encryptedTexture0;
+        MaterialProperty encryptedTexture1;
+        MaterialProperty[] key = new MaterialProperty[16];
+        MaterialProperty passwordHash;
+        MaterialProperty hashMagic;
 
         private static bool isShowCustomProperties;
-		private static bool show_pwd = false;
+		private static bool showPassword = false;
         private const string shaderName = "ShellProtector";
 
         protected override void LoadCustomProperties(MaterialProperty[] props, Material material)
@@ -30,13 +33,14 @@ namespace lilToon
             //isShowRenderMode = false;
 
             //LoadCustomLanguage("");
-            mip_tex = FindProperty("_MipTex", props);
-            encrypted_tex0 = FindProperty("_EncryptTex0", props);
-            encrypted_tex1 = FindProperty("_EncryptTex1", props);
-            fallback = FindProperty("_fallback", props);
+            mipTexture = FindProperty(ShaderProperties.MipTexture, props);
+            encryptedTexture0 = FindProperty(ShaderProperties.EncryptTexture0, props);
+            encryptedTexture1 = FindProperty(ShaderProperties.EncryptTexture1, props);
+            passwordHash = FindProperty(ShaderProperties.PasswordHash, props);
+            hashMagic = FindProperty(ShaderProperties.HashMagic, props);
 
             for (int i = 0; i < key.Length; ++i)
-				key[i] = FindProperty("_Key" + i, props);
+				key[i] = FindProperty(ShaderProperties.KeyPrefix + i, props);
         }
 
         protected override void DrawCustomProperties(Material material)
@@ -52,24 +56,25 @@ namespace lilToon
             isShowCustomProperties = Foldout("ShellProtector", "ShellProtector", isShowCustomProperties);
             if(isShowCustomProperties)
             {
-                m_MaterialEditor.ShaderProperty(fallback, "fallback");
-
                 EditorGUILayout.BeginVertical(boxOuter);
                 EditorGUILayout.LabelField(GetLoc("ShellProtector"), customToggleFont);
                 EditorGUILayout.BeginVertical(boxInnerHalf);
 
-                if (mip_tex != null)
-                    m_MaterialEditor.ShaderProperty(mip_tex, "Mip reference texture");
-                if(encrypted_tex0 != null)
-                    m_MaterialEditor.ShaderProperty(encrypted_tex0, "Encrypted texture0");
-                if (encrypted_tex1 != null)
-                    m_MaterialEditor.ShaderProperty(encrypted_tex1, "Encrypted texture1");
+                if (mipTexture != null)
+                    m_MaterialEditor.ShaderProperty(mipTexture, "Mip reference texture");
+                if(encryptedTexture0 != null)
+                    m_MaterialEditor.ShaderProperty(encryptedTexture0, "Encrypted texture0");
+                if (encryptedTexture1 != null)
+                    m_MaterialEditor.ShaderProperty(encryptedTexture1, "Encrypted texture1");
 
                 EditorGUILayout.EndVertical();
                 EditorGUILayout.EndVertical();
 				
-				show_pwd = Foldout("Keys", "Keys", show_pwd);
-				if(show_pwd)
+                m_MaterialEditor.ShaderProperty(passwordHash, "Password hash");
+                m_MaterialEditor.ShaderProperty(hashMagic, "Hash Salt");
+
+                showPassword = Foldout("Keys", "Keys", showPassword);
+				if(showPassword)
 				{
 					for(int i = 0; i < key.Length; ++i)
 					{
@@ -78,6 +83,9 @@ namespace lilToon
 						m_MaterialEditor.ShaderProperty(key[i], "Key" + i);
 					}
 				}
+
+                var hash = KeyGenerator.SimpleHash(key.Select(k => (byte)Mathf.RoundToInt(k.floatValue)).ToArray(), (uint)hashMagic.intValue);
+                EditorGUILayout.LabelField("Password hash", hash.ToString());
             }
         }
 

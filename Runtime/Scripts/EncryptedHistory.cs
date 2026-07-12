@@ -1,4 +1,4 @@
-using Shell.Protector;
+#if UNITY_EDITOR
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -6,96 +6,100 @@ using System.Security.Cryptography;
 using UnityEditor;
 using UnityEngine;
 
-#if UNITY_EDITOR
-
-[CreateAssetMenu(fileName = "EncryptedHistory", menuName = "ShellProtector/EncryptedHistory", order = 1)]
-public class EncryptedHistory : ScriptableObject
+namespace Shell.Protector
 {
-    [Serializable]
-    class ShaderInfo
+    [CreateAssetMenu(fileName = "EncryptedHistory", menuName = "ShellProtector/EncryptedHistory", order = 1)]
+    public class EncryptedHistory : ScriptableObject
     {
-        public string shader;
-        public long size;
-        public string hash;
-    }
-
-    [SerializeField]
-    List<ShaderInfo> shaderHistory = new List<ShaderInfo>();
-    Dictionary<Shader, ShaderInfo> shaderHistoryDic = new Dictionary<Shader, ShaderInfo>();
-
-    public void LoadData()
-    {
-        if (shaderHistoryDic.Count != 0)
-            return;
-
-        foreach (var info in shaderHistory)
+        [Serializable]
+        class ShaderInfo
         {
-            Shader shader = Shader.Find(info.shader);
-            if (shader)
+            public string shader;
+            public long size;
+            public string hash;
+        }
+
+        [SerializeField]
+        List<ShaderInfo> shaderHistory = new List<ShaderInfo>();
+        Dictionary<Shader, ShaderInfo> shaderHistoryDic = new Dictionary<Shader, ShaderInfo>();
+
+        public void LoadData()
+        {
+            if (shaderHistoryDic.Count != 0)
+                return;
+
+            foreach (var info in shaderHistory)
             {
-                shaderHistoryDic.TryAdd(shader, info);
+                Shader shader = Shader.Find(info.shader);
+                if (shader)
+                {
+                    shaderHistoryDic.TryAdd(shader, info);
+                }
             }
         }
-    }
-    public void Save(Shader shader)
-    {
-        if (AssetManager.GetInstance().IslilToon(shader))
-            return;
-        string dir = AssetDatabase.GetAssetPath(shader);
-        FileInfo fileInfo = new FileInfo(dir);
-        long size = fileInfo.Length; 
-        string hash = CalculateMD5(dir);
 
-        if (shaderHistoryDic.ContainsKey(shader))
+        public void Save(Shader shader)
         {
-            shaderHistoryDic[shader].size = size;
-            shaderHistoryDic[shader].hash = hash;
-        }
-        else
-        {
-            var shaderInfo = new ShaderInfo { shader = shader.name, size = size, hash = hash };
-            shaderHistoryDic.Add(shader, shaderInfo);
-            shaderHistory.Add(shaderInfo);
-        }
+            if (AssetManager.GetInstance().IsLilToon(shader))
+                return;
 
-        EditorUtility.SetDirty(this);
-        AssetDatabase.SaveAssets();
-    }
-    public Shader IsEncryptedBefore(Shader originalShader)
-    {
-        if (shaderHistoryDic.ContainsKey(originalShader))
-        {
-            string dir = AssetDatabase.GetAssetPath(originalShader);
+            string dir = AssetDatabase.GetAssetPath(shader);
             FileInfo fileInfo = new FileInfo(dir);
             long size = fileInfo.Length;
-            long oldSize = shaderHistoryDic[originalShader].size;
-            string oldHash = shaderHistoryDic[originalShader].hash;
+            string hash = CalculateMD5(dir);
 
-            if (size == oldSize)
+            if (shaderHistoryDic.ContainsKey(shader))
             {
-                if(oldHash == CalculateMD5(dir))
-                    return Shader.Find(originalShader.name + "_encrypted");
-                return null;
+                shaderHistoryDic[shader].size = size;
+                shaderHistoryDic[shader].hash = hash;
             }
             else
-                return null;
-        }
-        return null;
-    }
+            {
+                var shaderInfo = new ShaderInfo { shader = shader.name, size = size, hash = hash };
+                shaderHistoryDic.Add(shader, shaderInfo);
+                shaderHistory.Add(shaderInfo);
+            }
 
-    string CalculateMD5(string filePath)
-    {
-        if (!File.Exists(filePath))
+            EditorUtility.SetDirty(this);
+            AssetDatabase.SaveAssets();
+        }
+
+        public Shader IsEncryptedBefore(Shader originalShader)
         {
-            Debug.LogError($"File not found: {filePath}");
+            if (shaderHistoryDic.ContainsKey(originalShader))
+            {
+                string dir = AssetDatabase.GetAssetPath(originalShader);
+                FileInfo fileInfo = new FileInfo(dir);
+                long size = fileInfo.Length;
+                long oldSize = shaderHistoryDic[originalShader].size;
+                string oldHash = shaderHistoryDic[originalShader].hash;
+
+                if (size == oldSize)
+                {
+                    if (oldHash == CalculateMD5(dir))
+                        return Shader.Find(originalShader.name + "_encrypted");
+                    return null;
+                }
+                else
+                    return null;
+            }
             return null;
         }
 
-        using (FileStream stream = File.OpenRead(filePath))
+        string CalculateMD5(string filePath)
         {
-            MD5 md5 = MD5.Create();
-            byte[] hashBytes = md5.ComputeHash(stream);
-            return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+            if (!File.Exists(filePath))
+            {
+                Debug.LogError($"File not found: {filePath}");
+                return null;
+            }
+
+            using (FileStream stream = File.OpenRead(filePath))
+            {
+                MD5 md5 = MD5.Create();
+                byte[] hashBytes = md5.ComputeHash(stream);
+                return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+            }
         }
     }
 }

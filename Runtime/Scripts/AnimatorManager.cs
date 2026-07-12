@@ -1,12 +1,13 @@
-﻿#if UNITY_EDITOR
-using System.Collections;
+#if UNITY_EDITOR
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
 using VRC.SDK3.Avatars.Components;
+using VRC.SDKBase;
 
 namespace Shell.Protector
 {
@@ -14,114 +15,10 @@ namespace Shell.Protector
     {
         Dictionary<AnimationClip, AnimationClip> encryptedClip = new Dictionary<AnimationClip, AnimationClip>();
 
-        static string curve1 = @"
-  - curve:
-      serializedVersion: 2
-      m_Curve:
-      - serializedVersion: 3
-        time: 0
-        value: -128
-        inSlope: -1919.995
-        outSlope: 59.999996
-        tangentMode: 69
-        weightedMode: 0
-        inWeight: 0.33333334
-        outWeight: 0.33333334
-      - serializedVersion: 3
-        time: 2.1333334
-        value: 0
-        inSlope: 59.999996
-        outSlope: -1919.995
-        tangentMode: 69
-        weightedMode: 0
-        inWeight: 0.33333334
-        outWeight: 0.33333334
-      m_PreInfinity: 2
-      m_PostInfinity: 2
-      m_RotationOrder: 4
-    attribute: material._Key0
-    path: Body
-    classID: 137
-    script: {fileID: 0}";
-
-        static string curve2 = @"
-  - curve:
-      serializedVersion: 2
-      m_Curve:
-      - serializedVersion: 3
-        time: 0
-        value: 128
-        inSlope: 423.3333
-        outSlope: 60.000004
-        tangentMode: 69
-        weightedMode: 0
-        inWeight: 0.33333334
-        outWeight: 0.33333334
-      - serializedVersion: 3
-        time: 2.1333334
-        value: 256
-        inSlope: 59.999996
-        outSlope: 60
-        tangentMode: 69
-        weightedMode: 0
-        inWeight: 0.33333334
-        outWeight: 0.33333334
-      m_PreInfinity: 2
-      m_PostInfinity: 2
-      m_RotationOrder: 4
-    attribute: material._Key0
-    path: Body
-    classID: 137
-    script: {fileID: 0}";
-        static string fallbackOffCurve = @"
-  - serializedVersion: 2
-    curve:
-      serializedVersion: 2
-      m_Curve:
-      - serializedVersion: 3
-        time: 0
-        value: 0
-        inSlope: 0
-        outSlope: 0
-        tangentMode: 136
-        weightedMode: 0
-        inWeight: 0.33333334
-        outWeight: 0.33333334
-      m_PreInfinity: 2
-      m_PostInfinity: 2
-      m_RotationOrder: 4
-    attribute: material._fallback
-    path: Body
-    classID: 137
-    script: {fileID: 0}
-    flags: 16";
-        static string fallbackOnCurve = @"
-  - serializedVersion: 2
-    curve:
-      serializedVersion: 2
-      m_Curve:
-      - serializedVersion: 3
-        time: 0
-        value: 1
-        inSlope: 0
-        outSlope: 0
-        tangentMode: 136
-        weightedMode: 0
-        inWeight: 0.33333334
-        outWeight: 0.33333334
-      m_PreInfinity: 2
-      m_PostInfinity: 2
-      m_RotationOrder: 4
-    attribute: material._fallback
-    path: Body
-    classID: 137
-    script: {fileID: 0}
-    flags: 16";
-        public static AnimatorController DuplicateAnimator(RuntimeAnimatorController anim, string new_dir)
+        public static AnimatorController DuplicateAnimator(RuntimeAnimatorController anim, OutputPaths paths, AssetWriter writer)
         {
             string dir = AssetDatabase.GetAssetPath(anim);
-            string output = Path.Combine(new_dir, anim.name + anim.GetInstanceID().ToString() + "_encrypted.anim");
-            if (!AssetDatabase.CopyAsset(dir, output))
+            if (!writer.CopyAssetToFolder(dir, paths.Folders.AnimGuid, paths.ControllerName(anim), out string output))
             {
                 Debug.LogErrorFormat("Failed to copy a animator: {0}", anim.name);
             }
@@ -131,9 +28,9 @@ namespace Shell.Protector
             return AssetDatabase.LoadAssetAtPath(output, typeof(RuntimeAnimatorController)) as AnimatorController;
         }
 
-        public static void CreateKeyAniamtions(string animation_dir, string new_dir, GameObject[] objs)
+        public static void CreateKeyAnimations(string animationDir, OutputPaths paths, AssetWriter writer, GameObject[] objs)
         {
-            string[] files = Directory.GetFiles(animation_dir);
+            string[] files = Directory.GetFiles(animationDir);
             foreach (string file in files)
             {
                 string filename = Path.GetFileName(file);
@@ -141,12 +38,12 @@ namespace Shell.Protector
                     continue;
                 if (filename.Contains("dummy"))
                     continue;
-                if (filename.Contains("FallbackOff"))
+
+                if (!writer.CopyAssetToFolder(file, paths.Folders.AnimGuid, filename, out string path))
                     continue;
-                
-                string path = Path.Combine(new_dir, filename);
-                AssetDatabase.CopyAsset(file, path);
-                string anim = File.ReadAllText(path);
+                AnimationClip clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(path);
+                if (clip == null)
+                    continue;
 
                 Match match = Regex.Match(filename, "key(\\d+).*?\\.anim");
                 int n = 0;
@@ -155,199 +52,162 @@ namespace Shell.Protector
 
                 foreach (var obj in objs)
                 {
-                    string hr_path = obj.transform.GetHierarchyPath();
-                    hr_path = Regex.Replace(hr_path, ".*?/(.*)", "'$1'");
-
-                    string curve;
-
-                    if (!filename.Contains("_"))
-                        curve = Regex.Replace(curve1, "attribute: material._Key\\d+", "attribute: material._Key" + n);
-                    else
-                        curve = Regex.Replace(curve2, "attribute: material._Key\\d+", "attribute: material._Key" + n);
-                    curve = Regex.Replace(curve, "path: Body", "path: " + hr_path);
-                    //SkinnedMeshRender classID:137
-                    //MeshRenderer classID:23
-                    if (obj.GetComponent<SkinnedMeshRenderer>() == null)
-                        curve = Regex.Replace(curve, "classID: 137", "classID: 23");
-
-                    anim = Regex.Replace(anim, "m_FloatCurves:", "m_FloatCurves:" + curve);
-                    anim = Regex.Replace(anim, "m_EditorCurves:", "m_EditorCurves:" + curve);
+                    AddKeyCurve(clip, obj, n, filename.Contains("_"));
                 }
-                File.WriteAllText(path, anim);
             }
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
         }
 
-        public static AnimationClip CreateFallbackAniamtions(string animationDir, string newDir, GameObject[] objs, bool bOff = true)
+        static void AddKeyCurve(AnimationClip clip, GameObject obj, int keyIndex, bool secondKeyClip)
         {
-            string animName = Path.GetFileName(animationDir);
-            string newPath = Path.Combine(newDir, animName);
-
-            AssetDatabase.CopyAsset(animationDir, newPath);
-
-            string anim = File.ReadAllText(newPath);
-
-            foreach (var obj in objs)
+            var binding = new EditorCurveBinding
             {
-                if (obj.name == "Body")
-                    continue;
+                path = GetAnimationPath(obj.transform),
+                propertyName = "material." + ShaderProperties.KeyPrefix + keyIndex,
+                type = obj.GetComponent<SkinnedMeshRenderer>() == null ? typeof(MeshRenderer) : typeof(SkinnedMeshRenderer)
+            };
 
-                string hrPath = obj.transform.GetHierarchyPath();
-                hrPath = Regex.Replace(hrPath, ".*?/(.*)", "'$1'");
-
-                string curve = Regex.Replace(bOff ? fallbackOffCurve : fallbackOnCurve, "path: Body", "path: " + hrPath);
-                //SkinnedMeshRender classID:137
-                //MeshRenderer classID:23
-                if (obj.GetComponent<SkinnedMeshRenderer>() == null)
-                    curve = Regex.Replace(curve, "classID: 137", "classID: 23");
-
-                anim = Regex.Replace(anim, "m_FloatCurves:", "m_FloatCurves:" + curve);
-                anim = Regex.Replace(anim, "m_EditorCurves:", "m_EditorCurves:" + curve);
-            }
-            File.WriteAllText(newPath, anim);
-
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
-
-            return AssetDatabase.LoadAssetAtPath<AnimationClip>(newPath);
+            AnimationUtility.SetEditorCurve(clip, binding, CreateKeyCurve(secondKeyClip));
         }
 
-        private static BlendTree[] CreateKeyTree(string animation_dir, int key_length, float speed)
+        static string GetAnimationPath(Transform transform)
         {
-            BlendTree[] tree = new BlendTree[key_length];
-            int offset = 16 - key_length;
-            for (int i = 0; i < key_length; ++i)
+            var names = new List<string>();
+            Transform current = transform;
+            while (current != null && current.parent != null)
             {
-                BlendTree tree_key = new BlendTree();
-                tree_key.name = "key" + i;
-                tree_key.blendType = BlendTreeType.Direct;
-                tree_key.blendParameter = "key_weight";
-                tree_key.blendType = BlendTreeType.Simple1D;
-                tree_key.blendParameter = "pkey" + i;
-                tree_key.useAutomaticThresholds = false;
+                names.Add(current.name);
+                current = current.parent;
+            }
+            names.Reverse();
+            return string.Join("/", names);
+        }
 
-                Motion motion0 = AssetDatabase.LoadAssetAtPath(Path.Combine(animation_dir, "key" + (i + offset) + ".anim"), typeof(AnimationClip)) as AnimationClip;
-                Motion motion1 = AssetDatabase.LoadAssetAtPath(Path.Combine(animation_dir, "key" + (i + offset) + "_2.anim"), typeof(AnimationClip)) as AnimationClip;
+        static AnimationCurve CreateKeyCurve(bool secondKeyClip)
+        {
+            if (!secondKeyClip)
+            {
+                return new AnimationCurve(
+                    new Keyframe(0, -128, -1919.995f, 59.999996f),
+                    new Keyframe(2.1333334f, 0, 59.999996f, -1919.995f)
+                );
+            }
 
-                tree_key.AddChild(motion0, -1);
-                tree_key.AddChild(motion1, 1);
+            return new AnimationCurve(
+                new Keyframe(0, 128, 423.3333f, 60.000004f),
+                new Keyframe(2.1333334f, 256, 59.999996f, 60)
+            );
+        }
 
-                ChildMotion[] motions = tree_key.children;
+        private static BlendTree[] CreateKeyTree(string animationDir, int keyLength, float speed)
+        {
+            BlendTree[] tree = new BlendTree[keyLength];
+            int offset = 16 - keyLength;
+            for (int i = 0; i < keyLength; ++i)
+            {
+                BlendTree keyTree = new BlendTree();
+                keyTree.name = "key" + i;
+                keyTree.blendType = BlendTreeType.Simple1D;
+                keyTree.blendParameter = ParameterManager.GetKeyName(i);
+                keyTree.useAutomaticThresholds = false;
+
+                Motion motion0 = AssetDatabase.LoadAssetAtPath(Path.Combine(animationDir, "key" + (i + offset) + ".anim"), typeof(AnimationClip)) as AnimationClip;
+                Motion motion1 = AssetDatabase.LoadAssetAtPath(Path.Combine(animationDir, "key" + (i + offset) + "_2.anim"), typeof(AnimationClip)) as AnimationClip;
+
+                keyTree.AddChild(motion0, -1);
+                keyTree.AddChild(motion1, 1);
+
+                ChildMotion[] motions = keyTree.children;
                 for (int j = 0; j < motions.Length; ++j)
                     motions[j].timeScale = speed;
-                tree_key.children = motions;
+                keyTree.children = motions;
 
-                tree[i] = tree_key;
+                tree[i] = keyTree;
             }
             return tree;
         }
 
-        private static void AddTransition(AnimatorStateTransition transition, int key_length, int idx)
+        private static AnimatorConditionMode[] GetSwitchConditions(int switchCount, int index)
         {
-            transition.AddCondition(AnimatorConditionMode.IfNot, 0, "encrypt_lock");
-            if (key_length == 4)
+            AnimatorConditionMode[] mode = new AnimatorConditionMode[switchCount];
+            for (int i = 0; i < switchCount; ++i)
+                mode[i] = AnimatorConditionMode.IfNot;
+            for (int i = 0; i < switchCount; ++i)
             {
-                int n = 2;
-                AnimatorConditionMode[] mode = new AnimatorConditionMode[n];
-                for (int i = 0; i < n; ++i)
-                    mode[i] = AnimatorConditionMode.IfNot;
-                if ((idx & 0b0001) == 1)
-                    mode[0] = AnimatorConditionMode.If;
-                if ((idx & 0b0010) == 2)
-                    mode[1] = AnimatorConditionMode.If;
-                for (int i = 0; i < n; ++i)
-                    transition.AddCondition(mode[i], 0, "encrypt_switch" + i);
+                if ((index & (1 << i)) != 0)
+                    mode[i] = AnimatorConditionMode.If;
             }
-            else if (key_length == 8)
-            {
-                int n = 3;
-                AnimatorConditionMode[] mode = new AnimatorConditionMode[n];
-                for (int i = 0; i < n; ++i)
-                    mode[i] = AnimatorConditionMode.IfNot;
-                if ((idx & 0b0001) == 1)
-                    mode[0] = AnimatorConditionMode.If;
-                if ((idx & 0b0010) == 2)
-                    mode[1] = AnimatorConditionMode.If;
-                if ((idx & 0b0100) == 4)
-                    mode[2] = AnimatorConditionMode.If;
-                for (int i = 0; i < n; ++i)
-                    transition.AddCondition(mode[i], 0, "encrypt_switch" + i);
-            }
-            else
-            {
-                int n = 4;
-                AnimatorConditionMode[] mode = new AnimatorConditionMode[n];
-                for (int i = 0; i < n; ++i)
-                    mode[i] = AnimatorConditionMode.IfNot;
-                if ((idx & 0b0001) == 1)
-                    mode[0] = AnimatorConditionMode.If;
-                if ((idx & 0b0010) == 2)
-                    mode[1] = AnimatorConditionMode.If;
-                if ((idx & 0b0100) == 4)
-                    mode[2] = AnimatorConditionMode.If;
-                if ((idx & 0b1000) == 8)
-                    mode[3] = AnimatorConditionMode.If;
-                for (int i = 0; i < n; ++i)
-                    transition.AddCondition(mode[i], 0, "encrypt_switch" + i);
-            }
+            return mode;
         }
-        public static void AddParameter(AnimatorController anim, int key_length, bool optimize)
+
+        private static void AddTransition(AnimatorStateTransition transition, int keyLength, int syncSize, int idx)
         {
-            var paramters = anim.parameters;
-            for (int i = 0; i < paramters.Length; ++i)
-            {
-                string name = paramters[i].name;
-                if (name == "key_weight")
-                    return;
-            }
-            anim.AddParameter(new AnimatorControllerParameter() { defaultFloat = 1.0f, name = "key_weight", type = AnimatorControllerParameterType.Float });
-
-            for (int i = 0; i < key_length; ++i)
-                anim.AddParameter("pkey" + i, AnimatorControllerParameterType.Float);
-
-            if (optimize)
-            {
-                anim.AddParameter("pkey", AnimatorControllerParameterType.Float);
-                anim.AddParameter("encrypt_lock", AnimatorControllerParameterType.Bool);
-                int switch_count = 1;
-                switch (key_length)
-                {
-                    case 4:
-                        switch_count = 2;
-                        break;
-                    case 8:
-                        switch_count = 3;
-                        break;
-                    case 12:
-                    case 16:
-                        switch_count = 4;
-                        break;
-                    default:
-                        Debug.LogErrorFormat("AnimatorManager-AddParameter: key_length = {} is wrong!", key_length);
-                        return;
-                }
-
-                for (int i = 0; i < switch_count; ++i)
-                    anim.AddParameter("encrypt_switch" + i, AnimatorControllerParameterType.Bool);
-            }
+            bool bLegacy = syncSize == 1;
+            transition.AddCondition(AnimatorConditionMode.IfNot, 0, ParameterManager.GetSyncLockName(bLegacy));
+            AnimatorConditionMode[] switchConditions = GetSwitchConditions(ShellProtector.GetRequiredSwitchCount(keyLength, syncSize), idx);
+            for (int i = 0; i < switchConditions.Length; ++i)
+                transition.AddCondition(switchConditions[i], 0, ParameterManager.GetSyncSwitchName(i, bLegacy));
         }
-        public static void AddKeyLayer(AnimatorController anim, string animation_dir, int key_length, float speed = 10.0f, bool optimize = false)
-        {
-            AddParameter(anim, key_length, optimize);
 
-            if (optimize)
+        private static void AddParameters(AnimatorController anim, int keyLength, int syncSize)
+        {
+            bool bLegacy = syncSize == 1;
+            AddParameterIfMissing(anim, new AnimatorControllerParameter
             {
-                AddKeyLayerMultiplexing(anim, animation_dir, key_length, speed);
+                defaultFloat = 1.0f,
+                name = "key_weight",
+                type = AnimatorControllerParameterType.Float
+            });
+
+            AddParameterIfMissing(anim, new AnimatorControllerParameter
+            {
+                defaultBool = false,
+                name = ParameterManager.GetIsLocalName(),
+                type = AnimatorControllerParameterType.Bool
+            });
+
+            for (var i = 0; i < keyLength; ++i)
+                AddParameterIfMissing(anim, ParameterManager.GetKeyName(i), AnimatorControllerParameterType.Float);
+
+            AddParameterIfMissing(anim, ParameterManager.GetSyncLockName(bLegacy), AnimatorControllerParameterType.Bool);
+            var switchCount = ShellProtector.GetRequiredSwitchCount(keyLength, syncSize);
+
+            if (!bLegacy)
+            {
+                for (var i = 0; i < keyLength; ++i)
+                    AddParameterIfMissing(anim, ParameterManager.GetSavedKeyName(i), AnimatorControllerParameterType.Float);
+            }
+            for (var i = 0; i < syncSize; ++i)
+                AddParameterIfMissing(anim, ParameterManager.GetSyncedKeyName(i, bLegacy), AnimatorControllerParameterType.Float);
+            for (var i = 0; i < switchCount; ++i)
+                AddParameterIfMissing(anim, ParameterManager.GetSyncSwitchName(i, bLegacy), AnimatorControllerParameterType.Bool);
+        }
+
+        private static void AddParameterIfMissing(AnimatorController anim, string name, AnimatorControllerParameterType type)
+        {
+            if (anim.parameters.Any(p => p.name == name))
                 return;
-            }
 
-            var layers = anim.layers;
-            foreach (var _layer in layers)
-            {
-                if (_layer.name == "ShellProtector")
-                    return;
-            }
+            anim.AddParameter(name, type);
+        }
+
+        private static void AddParameterIfMissing(AnimatorController anim, AnimatorControllerParameter parameter)
+        {
+            if (anim.parameters.Any(p => p.name == parameter.name))
+                return;
+
+            anim.AddParameter(parameter);
+        }
+
+        public static void AddKeyLayer(AnimatorController anim, string animationDir, int keyLength, int syncSize, float speed)
+        {
+            if (anim.layers.Any(l => l.name == "ShellProtector")) return;
+
+            AddParameters(anim, keyLength, syncSize);
+
+            AddMuxLayer(anim, keyLength, syncSize, 0.15f, 0.1f, 1f); // 10hz
+            AddDemuxLayer(anim, keyLength, syncSize);
 
             AnimatorStateMachine stateMachine = new AnimatorStateMachine
             {
@@ -360,40 +220,153 @@ namespace Shell.Protector
             var layer = anim.layers[anim.layers.Length - 1];
             var state = layer.stateMachine.AddState("keys");
 
-            BlendTree tree_root = new BlendTree
+            BlendTree rootTree = new BlendTree
             {
                 name = "key_root",
                 blendType = BlendTreeType.Direct,
                 blendParameter = "key_weight"
             };
-            AssetDatabase.AddObjectToAsset(tree_root, anim);
-            state.motion = tree_root;
+            AssetDatabase.AddObjectToAsset(rootTree, anim);
+            state.motion = rootTree;
 
-            var key_tree = CreateKeyTree(animation_dir, key_length, speed);
-            for (int i = 0; i < key_length; ++i)
+            var keyTrees = CreateKeyTree(animationDir, keyLength, speed);
+            for (int i = 0; i < keyLength; ++i)
             {
-                tree_root.AddChild(key_tree[i]);
-                AssetDatabase.AddObjectToAsset(key_tree[i], anim);
+                rootTree.AddChild(keyTrees[i]);
+                AssetDatabase.AddObjectToAsset(keyTrees[i], anim);
             }
 
-            ChildMotion[] children = tree_root.children;
+            ChildMotion[] children = rootTree.children;
             for (int i = 0; i < children.Length; ++i)
                 children[i].directBlendParameter = "key_weight";
 
-            tree_root.children = children;
+            rootTree.children = children;
         }
-        public static void AddKeyLayerMultiplexing(AnimatorController anim, string animation_dir, int key_length, float speed = 10.0f)
-        {
-            var layers = anim.layers;
-            foreach (var _layer in layers)
-            {
-                if (_layer.name == "ShellProtectorDriver")
-                    return;
-            }
 
-            AnimatorStateMachine stateMachine = new AnimatorStateMachine
+        private static void AddSyncEnabledCondition(AnimatorStateTransition transition)
+        {
+            transition.AddCondition(AnimatorConditionMode.If, 0, ParameterManager.GetIsLocalName());
+        }
+
+        private static void AddMuxLayer(AnimatorController anim, int keyLength, int syncSize, float unlockDelay, float interval, float delay)
+        {
+            if (anim.layers.Any(l => l.name == "ShellProtectorMux")) 
+                return;
+
+            bool bLegacy = syncSize == 1;
+
+            if (bLegacy)
+                return;
+
+            var stateMachine = new AnimatorStateMachine
             {
-                name = anim.MakeUniqueLayerName("ShellProtectorDriver"),
+                name = anim.MakeUniqueLayerName("ShellProtectorMux"),
+                hideFlags = HideFlags.HideInHierarchy
+            };
+            AssetDatabase.AddObjectToAsset(stateMachine, anim);
+            anim.AddLayer(new AnimatorControllerLayer { name = stateMachine.name, defaultWeight = 1.0f, stateMachine = stateMachine });
+            var layer = anim.layers[anim.layers.Length - 1];
+            var idle = layer.stateMachine.AddState("Idle", new Vector3(0, 0));
+
+            var steps = keyLength / syncSize;
+            var syncStates = new AnimatorState[steps];
+            var lockStates = new AnimatorState[steps];
+            var unlockStates = new AnimatorState[steps];
+            const int x = 250;
+            const int y = 80;
+            layer.stateMachine.entryPosition = new Vector3(-x, 0);
+            layer.stateMachine.exitPosition = new Vector3(x * 4, y * (steps - 1));
+            for (var step = 0; step < steps; step++)
+            {
+                var lockState = layer.stateMachine.AddState("mux" + step + "_lock", new Vector3(x * 1, y * step));
+                var syncState = layer.stateMachine.AddState("mux" + step + "_sync", new Vector3(x * 2, y * step));
+                var unlockState = layer.stateMachine.AddState("mux" + step + "_unlock", new Vector3(x * 3, y * step));
+
+                var lockToSync = lockState.AddTransition(syncState);
+                lockToSync.hasExitTime = false;
+                lockToSync.duration = 0;
+                AddSyncEnabledCondition(lockToSync);
+
+                var syncToUnlock = syncState.AddTransition(unlockState);
+                syncToUnlock.hasExitTime = false;
+                syncToUnlock.duration = unlockDelay;
+                AddSyncEnabledCondition(syncToUnlock);
+
+                if (step == 0) // first step
+                {
+                    var transition = idle.AddTransition(lockState);
+                    transition.hasExitTime = false;
+                    transition.duration = delay;
+                    AddSyncEnabledCondition(transition);
+                }
+                else
+                {
+                    if (step == steps - 1)
+                    {
+                        var exit = unlockState.AddExitTransition(); // last step exit
+                        exit.hasExitTime = false;
+                        exit.duration = 0;
+                        AddSyncEnabledCondition(exit);
+                    }
+                    var previousUnlock = unlockStates[step - 1];
+                    var transition = previousUnlock.AddTransition(lockState);
+                    transition.hasExitTime = false;
+                    transition.duration = interval;
+                    AddSyncEnabledCondition(transition);
+                }
+
+                var lockDriver = lockState.AddStateMachineBehaviour<VRCAvatarParameterDriver>();
+                var syncDriver = syncState.AddStateMachineBehaviour<VRCAvatarParameterDriver>();
+                var unlockDriver = unlockState.AddStateMachineBehaviour<VRCAvatarParameterDriver>();
+
+                lockDriver.parameters.Add(new VRC_AvatarParameterDriver.Parameter
+                {
+                    type = VRC_AvatarParameterDriver.ChangeType.Set,
+                    name = ParameterManager.GetSyncLockName(bLegacy),
+                    value = 1
+                });
+
+                for (var i = 0; i < syncSize; i++)
+                {
+                    syncDriver.parameters.Add(new VRC_AvatarParameterDriver.Parameter
+                    {
+                        type = VRC_AvatarParameterDriver.ChangeType.Copy,
+                        name = ParameterManager.GetKeyName(step * syncSize + i),
+                        source = ParameterManager.GetSavedKeyName(step * syncSize + i)
+                    });
+                }
+
+                for (var i = 0; i < ShellProtector.GetRequiredSwitchCount(keyLength, syncSize); i++)
+                {
+                    syncDriver.parameters.Add(new VRC_AvatarParameterDriver.Parameter
+                    {
+                        type = VRC_AvatarParameterDriver.ChangeType.Set,
+                        name = ParameterManager.GetSyncSwitchName(i, bLegacy),
+                        value = (step & (1 << i)) != 0 ? 1 : 0
+                    });
+                }
+
+                unlockDriver.parameters.Add(new VRC_AvatarParameterDriver.Parameter
+                {
+                    type = VRC_AvatarParameterDriver.ChangeType.Set,
+                    name = ParameterManager.GetSyncLockName(bLegacy),
+                    value = 0
+                });
+
+                syncStates[step] = syncState;
+                lockStates[step] = lockState;
+                unlockStates[step] = unlockState;
+            }
+        }
+
+        private static void AddDemuxLayer(AnimatorController anim, int keyLength, int syncSize)
+        {
+            bool bLegacy = syncSize == 1;
+            if (anim.layers.Any(l => l.name == "ShellProtectorDemux")) return;
+
+            var stateMachine = new AnimatorStateMachine
+            {
+                name = anim.MakeUniqueLayerName("ShellProtectorDemux"),
                 hideFlags = HideFlags.HideInHierarchy
             };
             AssetDatabase.AddObjectToAsset(stateMachine, anim);
@@ -407,63 +380,30 @@ namespace Shell.Protector
             transition.exitTime = 0;
             transition.duration = 0;
             transition.hasExitTime = false;
-            transition.AddCondition(AnimatorConditionMode.If, 0, "encrypt_lock");
+            transition.AddCondition(AnimatorConditionMode.If, 0, ParameterManager.GetSyncLockName(bLegacy));
 
-            for (int i = 0; i < key_length; ++i)
+            for (var i = 0; i < keyLength / syncSize; ++i)
             {
-                var key_state = layer.stateMachine.AddState("key" + i);
+                var keyState = layer.stateMachine.AddState("key" + i);
 
-                var behaviour = key_state.AddStateMachineBehaviour<VRCAvatarParameterDriver>();
-                var behaviour_param = new VRCAvatarParameterDriver.Parameter
+                for (var j = 0; j < syncSize; j++)
                 {
-                    type = VRC.SDKBase.VRC_AvatarParameterDriver.ChangeType.Copy,
-                    name = "pkey" + i,
-                    source = "pkey",
-                };
-                behaviour.parameters.Add(behaviour_param);
+                    var behaviour = keyState.AddStateMachineBehaviour<VRCAvatarParameterDriver>();
+                    behaviour.parameters.Add(new VRCAvatarParameterDriver.Parameter
+                    {
+                        type = VRC_AvatarParameterDriver.ChangeType.Copy,
+                        source = ParameterManager.GetSyncedKeyName(j, bLegacy),
+                        name = ParameterManager.GetKeyName(i * syncSize + j)
+                    });
+                }
 
-                transition = layer.stateMachine.AddAnyStateTransition(key_state);
+                transition = layer.stateMachine.AddAnyStateTransition(keyState);
                 transition.canTransitionToSelf = false;
                 transition.exitTime = 0;
                 transition.duration = 0;
                 transition.hasExitTime = false;
-                AddTransition(transition, key_length, i);
+                AddTransition(transition, keyLength, syncSize, i);
             }
-
-            AddKeyLayer(anim, animation_dir, key_length, speed, false);
-        }
-
-        public static void AddFallbackLayer(AnimatorController anim, AnimationClip fallbackOnAnimation, AnimationClip fallbackOffAnimation, float time = 3)
-        {
-            var layers = anim.layers;
-            foreach (var _layer in layers)
-            {
-                if (_layer.name == "ShellProtectorFallback")
-                    return;
-            }
-
-            AnimatorStateMachine stateMachine = new AnimatorStateMachine
-            {
-                name = anim.MakeUniqueLayerName("ShellProtectorFallback"),
-                hideFlags = HideFlags.HideInHierarchy
-            };
-            AssetDatabase.AddObjectToAsset(stateMachine, anim);
-            anim.AddLayer(new AnimatorControllerLayer { name = stateMachine.name, defaultWeight = 1.0f, stateMachine = stateMachine });
-
-            var layer = anim.layers[anim.layers.Length - 1];
-            var defaultState = layer.stateMachine.AddState("default");
-            defaultState.writeDefaultValues = true;
-            defaultState.motion = fallbackOnAnimation;
-
-            var fallbackState = layer.stateMachine.AddState("fallbackState");
-
-            var transition = defaultState.AddTransition(fallbackState);
-            transition.canTransitionToSelf = false;
-            transition.exitTime = time;
-            transition.duration = 0;
-            transition.hasExitTime = true;
-
-            fallbackState.motion = fallbackOffAnimation;
         }
 
         public static bool IsMaterialInClip(AnimationClip clip, Material originalMaterial)
@@ -518,12 +458,12 @@ namespace Shell.Protector
             }
         }
 
-        void SearchStateMachine(AnimatorStateMachine stateMachine, Material targetMaterial, Material encrypted, bool clone, string clonePath)
+        void SearchStateMachine(AnimatorStateMachine stateMachine, Material targetMaterial, Material encrypted, bool clone, OutputPaths paths, AssetWriter writer)
         {
             for (int i = 0; i < stateMachine.states.Length; i++)
             {
                 ChildAnimatorState state = stateMachine.states[i];
-                AnimationClip clip = SearchMotion(state.state.motion, targetMaterial, encrypted, clone, clonePath);
+                AnimationClip clip = SearchMotion(state.state.motion, targetMaterial, encrypted, clone, paths, writer);
                 if (clip != null)
                 {
                     state.state.motion = clip;
@@ -533,11 +473,11 @@ namespace Shell.Protector
 
             foreach (ChildAnimatorStateMachine childStateMachine in stateMachine.stateMachines)
             {
-                SearchStateMachine(childStateMachine.stateMachine, targetMaterial, encrypted, clone, clonePath);
+                SearchStateMachine(childStateMachine.stateMachine, targetMaterial, encrypted, clone, paths, writer);
             }
         }
 
-        AnimationClip SearchMotion(Motion motion, Material targetMaterial, Material encrypted, bool clone, string clonePath)
+        AnimationClip SearchMotion(Motion motion, Material targetMaterial, Material encrypted, bool clone, OutputPaths paths, AssetWriter writer)
         {
             if (motion is AnimationClip clip)
             {
@@ -547,7 +487,6 @@ namespace Shell.Protector
                     if (clone)
                     {
                         string path = AssetDatabase.GetAssetPath(clip);
-                        string copyPath = Path.Combine(clonePath, clip.name + "_encrypted.anim");
 
                         if (encryptedClip.ContainsKey(clip))
                         {
@@ -555,7 +494,7 @@ namespace Shell.Protector
                         }
                         else
                         {
-                            if (!AssetDatabase.CopyAsset(path, copyPath))
+                            if (!writer.CopyAssetToFolder(path, paths.Folders.AnimGuid, paths.AnimationClipName(clip, "_encrypted"), out string copyPath))
                             {
                                 Debug.LogError("Copy error: " + copyPath);
                                 return null;
@@ -576,7 +515,7 @@ namespace Shell.Protector
                 for (int i = 0; i < blendTree.children.Length; ++i)
                 {
                     ChildMotion childMotion = blendTree.children[i];
-                    AnimationClip result = SearchMotion(childMotion.motion, targetMaterial, encrypted, clone, clonePath);
+                    AnimationClip result = SearchMotion(childMotion.motion, targetMaterial, encrypted, clone, paths, writer);
                     if (result != null)
                     {
                         childMotion.motion = result;
@@ -590,7 +529,7 @@ namespace Shell.Protector
             return null;
         }
 
-        public void ChangeAnimationMaterial(AnimatorController anim, Material original, Material encrypted, bool clone, string clonePath)
+        public void ChangeAnimationMaterial(AnimatorController anim, Material original, Material encrypted, bool clone, OutputPaths paths, AssetWriter writer)
         {
             if (anim == null || original == null)
                 return;
@@ -605,7 +544,7 @@ namespace Shell.Protector
                 var stateMachine = layer.stateMachine;
                 if (stateMachine == null)
                     continue;
-                SearchStateMachine(stateMachine, original, encrypted, clone, clonePath);
+                SearchStateMachine(stateMachine, original, encrypted, clone, paths, writer);
             }
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();

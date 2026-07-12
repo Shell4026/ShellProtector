@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Runtime.CompilerServices;
 using UnityEngine;
@@ -7,7 +7,8 @@ namespace Shell.Protector
 {
     public class Chacha20 : IEncryptor
     {
-        public byte[] nonce = new byte[12];
+        public string Keyword => ShaderProperties.ChachaKeyword;
+        public byte[] Nonce { get; } = new byte[12];
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         byte[] U32t8le(uint v)
         {
@@ -55,12 +56,12 @@ namespace Shell.Protector
             }
             return output;
         }
-        byte[] Chacha20Block(uint[] input, int num_rounds)
+        byte[] Chacha20Block(uint[] input, int numRounds)
         {
             byte[] output = new byte[64];
             uint[] x = new uint[16];
             Array.Copy(input, 0, x, 0, input.Length);
-            for (int i = num_rounds; i > 0; i -= 2)
+            for (int i = numRounds; i > 0; i -= 2)
             {
                 Chacha20QuarterRound(x, 0, 4, 8, 12);
                 Chacha20QuarterRound(x, 1, 5, 9, 13);
@@ -154,7 +155,7 @@ namespace Shell.Protector
                 dataBytes[i + 3] = (byte)(data[i / 4] >> 24 & 0xFF);
             }
 
-            byte[] resultBytes = ChaCha20XOR(keyBytes, 1, nonce, dataBytes);
+            byte[] resultBytes = ChaCha20XOR(keyBytes, 1, Nonce, dataBytes);
             uint[] result = new uint[data.Length];
             for (int i = 0; i < data.Length; ++i)
             {
@@ -173,7 +174,7 @@ namespace Shell.Protector
             byte[] nonceTmp = new byte[4];
             for (int i = 0; i < 3; i++)
             {
-                Array.Copy(nonce, i * 4, nonceTmp, 0, nonceTmp.Length);
+                Array.Copy(Nonce, i * 4, nonceTmp, 0, nonceTmp.Length);
                 result[i] = U8t32le(nonceTmp);
             }
 
