@@ -726,14 +726,26 @@ namespace Shell.Protector
         public void SetAnimations(GameObject avatar, bool clone)
         {
             var av3 = avatar.GetComponent<VRCAvatarDescriptor>();
-            AnimatorController fx;
             OutputPaths paths = EnsureOutputFolders();
+            AnimatorController fx;
             if (clone)
-                fx = AnimatorManager.DuplicateAnimator(av3.baseAnimationLayers[4].animatorController, paths, _assetWriter);
+            {
+                var sourceControllers = new RuntimeAnimatorController[av3.baseAnimationLayers.Length];
+                for (int i = 0; i < av3.baseAnimationLayers.Length; ++i)
+                    sourceControllers[i] = av3.baseAnimationLayers[i].animatorController;
+
+                AnimatorController[] duplicatedLayers = AnimatorManager.DuplicateAnimators(sourceControllers, paths, _assetWriter);
+                for (int i = 0; i < duplicatedLayers.Length; ++i)
+                {
+                    if (duplicatedLayers[i] != null)
+                        av3.baseAnimationLayers[i].animatorController = duplicatedLayers[i];
+                }
+
+                fx = duplicatedLayers[4];
+            }
             else
                 fx = av3.baseAnimationLayers[4].animatorController as AnimatorController;
 
-            av3.baseAnimationLayers[4].animatorController = fx;
             string animationDir = _assetWriter.ResolveFolderPath(paths.Folders.AnimGuid);
 
             GameObject[] meshArray = new GameObject[Meshes.Count];

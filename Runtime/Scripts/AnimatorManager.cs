@@ -17,15 +17,45 @@ namespace Shell.Protector
 
         public static AnimatorController DuplicateAnimator(RuntimeAnimatorController anim, OutputPaths paths, AssetWriter writer)
         {
-            string dir = AssetDatabase.GetAssetPath(anim);
-            if (!writer.CopyAssetToFolder(dir, paths.Folders.AnimGuid, paths.ControllerName(anim), out string output))
+            return DuplicateAnimators(new[] { anim }, paths, writer)[0];
+        }
+
+        public static AnimatorController[] DuplicateAnimators(RuntimeAnimatorController[] animators, OutputPaths paths, AssetWriter writer)
+        {
+            var sourcePaths = new string[animators.Length];
+            var targetPaths = new Dictionary<string, string>();
+
+            for (int i = 0; i < animators.Length; ++i)
             {
-                Debug.LogErrorFormat("Failed to copy a animator: {0}", anim.name);
+                RuntimeAnimatorController animator = animators[i];
+                if (animator == null)
+                    continue;
+
+                string sourcePath = AssetDatabase.GetAssetPath(animator);
+                sourcePaths[i] = sourcePath;
+                if (targetPaths.ContainsKey(sourcePath))
+                    continue;
+
+                if (!writer.CopyAssetToFolder(sourcePath, paths.Folders.AnimGuid, paths.ControllerName(animator), out string targetPath))
+                {
+                    Debug.LogErrorFormat("Failed to copy a animator: {0}", animator.name);
+                    continue;
+                }
+
+                targetPaths.Add(sourcePath, targetPath);
             }
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            return AssetDatabase.LoadAssetAtPath(output, typeof(RuntimeAnimatorController)) as AnimatorController;
+
+            var duplicatedAnimators = new AnimatorController[animators.Length];
+            for (int i = 0; i < sourcePaths.Length; ++i)
+            {
+                if (!string.IsNullOrEmpty(sourcePaths[i]) && targetPaths.TryGetValue(sourcePaths[i], out string targetPath))
+                    duplicatedAnimators[i] = AssetDatabase.LoadAssetAtPath<AnimatorController>(targetPath);
+            }
+
+            return duplicatedAnimators;
         }
 
         public static void CreateKeyAnimations(string animationDir, OutputPaths paths, AssetWriter writer, GameObject[] objs)

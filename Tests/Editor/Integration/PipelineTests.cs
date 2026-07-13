@@ -54,6 +54,38 @@ namespace Shell.Protector.Tests.Integration
         }
 
         [Test]
+        public void ManualEncrypt_DuplicatesNonFxControllerBeforeObfuscatingBlendShapes()
+        {
+            Fixture fixture = CreateFixture("ControllerIsolation");
+            VRCAvatarDescriptor originalDescriptor = fixture.Avatar.GetComponent<VRCAvatarDescriptor>();
+            AnimationClip originalClip = CreateBlendShapeClip("ControllerIsolation");
+            AnimatorController originalController = CreateBlendShapeController("ControllerIsolation", originalClip);
+            originalDescriptor.baseAnimationLayers[0] = new VRCAvatarDescriptor.CustomAnimLayer
+            {
+                type = VRCAvatarDescriptor.AnimLayerType.Base,
+                isDefault = false,
+                animatorController = originalController
+            };
+
+            GameObject encryptedAvatar = fixture.Protector.Encrypt(false);
+            sceneObjects.Add(encryptedAvatar);
+
+            AnimatorController sourceController = originalDescriptor.baseAnimationLayers[0].animatorController as AnimatorController;
+            AnimatorController encryptedController = encryptedAvatar.GetComponent<VRCAvatarDescriptor>()
+                .baseAnimationLayers[0].animatorController as AnimatorController;
+            AnimationClip sourceClip = GetFirstClip(sourceController);
+            AnimationClip encryptedClip = GetFirstClip(encryptedController);
+
+            Assert.That(sourceController, Is.SameAs(originalController));
+            Assert.That(encryptedController, Is.Not.SameAs(originalController));
+            Assert.That(sourceClip, Is.SameAs(originalClip));
+            Assert.That(encryptedClip, Is.Not.SameAs(originalClip));
+            Assert.That(AnimationUtility.GetCurveBindings(sourceClip).Single().propertyName, Is.EqualTo("blendShape.Smile"));
+            Assert.That(AnimationUtility.GetCurveBindings(encryptedClip).Single().propertyName, Does.StartWith("blendShape."));
+            Assert.That(AnimationUtility.GetCurveBindings(encryptedClip).Single().propertyName, Is.Not.EqualTo("blendShape.Smile"));
+        }
+
+        [Test]
         public void InPlaceEncrypt_RewritesOriginalAvatarWhenNdmfStyleStepsRun()
         {
             Fixture fixture = CreateFixture("InPlace");
@@ -188,6 +220,39 @@ namespace Shell.Protector.Tests.Integration
             });
             string path = TestAssetScope.CreateAsset(clip, name + "/materialSwap.anim");
             return AssetDatabase.LoadAssetAtPath<AnimationClip>(path);
+        }
+
+        private static AnimationClip CreateBlendShapeClip(string name)
+        {
+            AnimationClip clip = new AnimationClip();
+            clip.name = name + "BlendShape";
+            EditorCurveBinding binding = new EditorCurveBinding
+            {
+                path = "Body",
+                type = typeof(SkinnedMeshRenderer),
+                propertyName = "blendShape.Smile"
+            };
+            AnimationUtility.SetEditorCurve(clip, binding, AnimationCurve.Constant(0f, 1f, 100f));
+            string path = TestAssetScope.CreateAsset(clip, name + "/blendShape.anim");
+            return AssetDatabase.LoadAssetAtPath<AnimationClip>(path);
+        }
+
+        private static AnimatorController CreateBlendShapeController(string name, AnimationClip clip)
+        {
+            string path = TestAssetScope.GeneratedRoot + "/" + name + "/base.controller";
+            TestAssetScope.EnsureFolder(TestAssetScope.GeneratedRoot + "/" + name);
+            AnimatorController controller = AnimatorController.CreateAnimatorControllerAtPath(path);
+            AnimatorControllerLayer layer = controller.layers[0];
+            AnimatorState state = layer.stateMachine.AddState("BlendShape");
+            state.motion = clip;
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            return AssetDatabase.LoadAssetAtPath<AnimatorController>(path);
+        }
+
+        private static AnimationClip GetFirstClip(AnimatorController controller)
+        {
+            return controller.layers[0].stateMachine.states[0].state.motion as AnimationClip;
         }
 
         private static AnimatorController CreateFxController(string name, AnimationClip materialClip)
