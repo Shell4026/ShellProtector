@@ -1276,7 +1276,7 @@ namespace Shell.Protector
         Material GenerateEncryptedMaterial(string fileName, Material mat, Shader encryptedShader, Texture2D fallback, Texture2D mip, AuxiliaryTextures otherTex, ProcessedTexture processedTexture, byte[] keyBytes, IEncryptor encryptor)
         {
             MaterialEncryptor materialEncryptor = new MaterialEncryptor(_assetWriter, _turnOnAllSafetyFallback, _algorithm, _rounds);
-            Material newMat = materialEncryptor.CreateEncryptedMaterial(GetOutputPaths().Folders.MatGuid, fileName, mat, encryptedShader, fallback, mip, otherTex, processedTexture, keyBytes, _keySize, encryptor, _injector);
+            Material newMat = materialEncryptor.CreateEncryptedMaterial(GetOutputPaths().Folders.MatGuid, fileName, mat, encryptedShader, fallback, mip, otherTex, processedTexture, keyBytes, 16 - _keySize, encryptor, _injector);
             Debug.LogFormat("{0} : create encrypted material : {1}", mat.name, AssetDatabase.GetAssetPath(newMat));
 
             if (!EncryptedMaterials.ContainsKey(mat))
