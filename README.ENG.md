@@ -80,7 +80,7 @@ If you find the issue, please raise it in Issues.
 
 **[is not supported texture format! Error]**
 
-Select the texture and change the compression format to either DXT1 or DXT5 in the Inspector. (DXT5 for textures with transparency)
+Select the texture and change the compression format to either DXT1/RGB24 or DXT5/RGBA32 in the Inspector. (DXT5 for textures with transparency)
 
 ![texture](https://github.com/Shell4026/ShellProtector/assets/104874910/872f9d15-7b89-4381-b940-00514bd60638)
 
@@ -105,6 +105,8 @@ If they do, this is a VRChat synchronization of parameters bug, **please change 
 When using parameter multiplexing, depending on the server or network conditions, OSC values may not be delivered to other users and decryption may not work.
 
 In this case, try increasing the refresh rate slightly, which was added in OSC 1.5.0.
+
+This can also occur when there are parameter-compressed assets.
 
 **[When a Texture that was present in a Material is missing]**
 
