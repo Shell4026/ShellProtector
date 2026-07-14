@@ -81,7 +81,7 @@ OSCのソースコード： https://github.com/Shell4026/ShellProtectorOSC
 
 **<is not supported texture format!>**
 
-テクスチャを選択後、Inspectorで圧縮フォーマットをDXT1またはDXT5のいずれかに変更してください。 (透明度のあるテクスチャはDXT5)
+テクスチャを選択後、Inspectorで圧縮フォーマットをDXT1/RGB24またはDXT5/RGBA32のいずれかに変更してください。 (透明度のあるテクスチャはDXT5)
 
 ![texture](https://github.com/Shell4026/ShellProtector/assets/104874910/872f9d15-7b89-4381-b940-00514bd60638)
 
@@ -106,6 +106,8 @@ lilToonのバグなので、無視してアップロードするか、3つの方
 パラメータマルチプレックス使用時、サーバーやネットワークの状況により、他のユーザにOSC値が伝達されず、復号化ができない場合があります。
 
 この場合、OSC 1.5.0で追加されたRefresh rateを少し上げてみてください。
+
+パラメータ圧縮されたアセットがある場合にも発生する可能性があります。
 
 **<マテリアルにあったテクスチャが消える場合>**
 
