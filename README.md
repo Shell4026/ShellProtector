@@ -79,7 +79,7 @@ OSC 소스 코드: https://github.com/Shell4026/ShellProtectorOSC
 
 **<is not supported texture format! 에러>**
 
-텍스쳐를 선택 후 Inspector에서 압축 포멧을 DXT1이나 DXT5중 하나로 바꿔주세요. (투명도가 있는 텍스쳐는 DXT5)
+텍스쳐를 선택 후 Inspector에서 압축 포멧을 DXT1/RGB24나 DXT5/RGBA32중 하나로 바꿔주세요. (투명도가 있는 텍스쳐는 DXT5)
 
 ![texture](https://github.com/Shell4026/ShellProtector/assets/104874910/872f9d15-7b89-4381-b940-00514bd60638)
 
@@ -104,6 +104,8 @@ OSC 소스 코드: https://github.com/Shell4026/ShellProtectorOSC
 파라미터 멀티플렉싱 사용시 서버나 네트워크 상황에 따라 다른 유저에게 OSC값이 전달이 안 돼어 복호화가 안 될 수 있습니다.
 
 이 경우 OSC 1.5.0에 추가된 Refresh rate를 조금 올려보시길 바랍니다.
+
+파라미터 압축 에셋이 있는 경우에도 발생할 수 있습니다.
 
 **<메테리얼에서 있던 텍스쳐가 빠지는 경우>**
 
