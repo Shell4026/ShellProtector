@@ -311,6 +311,7 @@ namespace Shell.Protector
             _buildResult.AvatarDir = avatarDir;
 
             Debug.Log("AssetDir: " + _assetDir);
+            CleanOutdatedEncrypted();
 
             if (_fallbackWhite == null)
                 _fallbackWhite = AssetDatabase.LoadAssetAtPath(OutputPaths.Combine(resourceDir, "white.png"), typeof(Texture2D)) as Texture2D;
@@ -378,7 +379,7 @@ namespace Shell.Protector
                 _history = AssetDatabase.LoadAssetAtPath(_outputPaths.History(), typeof(EncryptedHistory)) as EncryptedHistory;
                 if (_history == null)
                 {
-                    _history = ScriptableObject.CreateInstance<EncryptedHistory>();
+                    _history = EncryptedHistory.CreateCurrent();
                     _assetWriter.CreateAssetInFolder(_history, _outputPaths.Folders.RootGuid, _outputPaths.HistoryName());
                 }
             }
@@ -947,6 +948,19 @@ namespace Shell.Protector
                 return deletedCount;
             }
         }
+        // Textures encrypted with an older format version decrypt to noise with the current shader,
+        // so drop every previous output (and the history) before this build writes anything.
+        void CleanOutdatedEncrypted()
+        {
+            var history = AssetDatabase.LoadAssetAtPath<EncryptedHistory>(OutputPaths.Combine(_assetDir, "EncryptedHistory.asset"));
+            if (history == null || !history.IsOutdatedFormat)
+                return;
+
+            Debug.LogWarning("[ShellProtector] Previously encrypted files use an older format and are being deleted.");
+            CleanEncrypted();
+            _history = null;
+        }
+
         public void CleanEncrypted()
         {
             _assetDir = ResolveOutputAssetDir();
@@ -1023,7 +1037,7 @@ namespace Shell.Protector
                 _history = AssetDatabase.LoadAssetAtPath(GetOutputPaths().History(), typeof(EncryptedHistory)) as EncryptedHistory;
                 if (_history == null)
                 {
-                    _history = ScriptableObject.CreateInstance<EncryptedHistory>();
+                    _history = EncryptedHistory.CreateCurrent();
                     OutputPaths paths = GetOutputPaths();
                     if (paths.Folders == null)
                         paths.PrepareFolders(_assetWriter, false);

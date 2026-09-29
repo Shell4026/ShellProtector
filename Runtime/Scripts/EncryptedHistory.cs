@@ -19,9 +19,25 @@ namespace Shell.Protector
             public string hash;
         }
 
+        // Bump whenever the encrypted texture layout changes; outputs from an older layout decrypt to noise.
+        // 1: ChaCha 4x4 block keystream for RGB/RGBA, mip level mixed into every key.
+        public const int CurrentFormatVersion = 1;
+
+        // No initializer on purpose: histories saved before this field existed must deserialize as 0.
+        [SerializeField]
+        int formatVersion;
         [SerializeField]
         List<ShaderInfo> shaderHistory = new List<ShaderInfo>();
         Dictionary<Shader, ShaderInfo> shaderHistoryDic = new Dictionary<Shader, ShaderInfo>();
+
+        public bool IsOutdatedFormat => formatVersion < CurrentFormatVersion;
+
+        public static EncryptedHistory CreateCurrent()
+        {
+            var history = CreateInstance<EncryptedHistory>();
+            history.formatVersion = CurrentFormatVersion;
+            return history;
+        }
 
         public void LoadData()
         {

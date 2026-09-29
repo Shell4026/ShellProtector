@@ -125,6 +125,39 @@ namespace Shell.Protector.Tests.Integration
         }
 
         [Test]
+        public void Encrypt_DeletesOutputsFromOlderFormatVersion()
+        {
+            Fixture fixture = CreateFixture("OutdatedFormat");
+            // A history saved before the format version existed deserializes as version 0.
+            TestAssetScope.CreateAsset(ScriptableObject.CreateInstance<EncryptedHistory>(), "EncryptedHistory.asset");
+            string staleFolder = TestAssetScope.GeneratedRoot + "/12345";
+            TestAssetScope.EnsureFolder(staleFolder);
+
+            GameObject encryptedAvatar = fixture.Protector.Encrypt(false);
+            sceneObjects.Add(encryptedAvatar);
+
+            Assert.That(AssetDatabase.IsValidFolder(staleFolder), Is.False);
+            EncryptedHistory history = AssetDatabase.LoadAssetAtPath<EncryptedHistory>(TestAssetScope.GeneratedRoot + "/EncryptedHistory.asset");
+            Assert.That(history, Is.Not.Null);
+            Assert.That(history.IsOutdatedFormat, Is.False);
+            AssertEncryptedRenderer(encryptedAvatar, fixture.Material);
+        }
+
+        [Test]
+        public void Encrypt_KeepsOutputsFromCurrentFormatVersion()
+        {
+            Fixture fixture = CreateFixture("CurrentFormat");
+            TestAssetScope.CreateAsset(EncryptedHistory.CreateCurrent(), "EncryptedHistory.asset");
+            string previousFolder = TestAssetScope.GeneratedRoot + "/12345";
+            TestAssetScope.EnsureFolder(previousFolder);
+
+            GameObject encryptedAvatar = fixture.Protector.Encrypt(false);
+            sceneObjects.Add(encryptedAvatar);
+
+            Assert.That(AssetDatabase.IsValidFolder(previousFolder), Is.True);
+        }
+
+        [Test]
         public void AddKeyLayer_DoesNotDuplicateShellProtectorParametersOrLayers()
         {
             string controllerDir = TestAssetScope.GeneratedRoot + "/Repeat";
