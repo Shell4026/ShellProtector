@@ -102,8 +102,21 @@ namespace Shell.Protector.Tests
             Texture2D dxt = new Texture2D(width, height, uncompressedFormat, true, true);
             dxt.SetPixels32(texture.GetPixels32());
             dxt.Apply(true, false);
+            // Generated mips blend the two block colors, so the compressor falls back to interpolated indices whose
+            // hardware decode can differ from the shader's lerp by 1. Keep every block-sized mip two-color too.
+            for (int m = 1; m < dxt.mipmapCount; m++)
+            {
+                int mipWidth = width >> m;
+                int mipHeight = height >> m;
+                if (mipWidth < 4 || mipHeight < 4)
+                    break;
+                Color32[] mipPixels = new Color32[mipWidth * mipHeight];
+                FillDxtStablePattern(mipPixels, mipWidth, mipHeight, alpha);
+                dxt.SetPixels32(mipPixels, m);
+            }
+            dxt.Apply(false, false);
             dxt.Compress(format == TextureFormat.DXT5);
-            dxt.Apply(true, false);
+            dxt.Apply(false, false);
             UnityEngine.Object.DestroyImmediate(texture);
             return dxt;
         }

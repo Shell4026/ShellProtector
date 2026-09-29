@@ -21,9 +21,8 @@ namespace Shell.Protector
             return algorithm is Chacha20;
         }
 
-        protected void EncryptBlocks(Color32[] pixels, int width, int height, byte[] key, IEncryptor algorithm, bool alpha) {
+        protected void EncryptBlocks(Color32[] pixels, int width, int height, int mip, byte[] key, IEncryptor algorithm, bool alpha) {
             var key_uint = ConvertKeyToUInt(key);
-            uint key3 = (uint)(key[12] | (key[13] << 8) | (key[14] << 16) | (key[15] << 24));
             int blocksPerRow = (width + 3) / 4;
             int blockRows = (height + 3) / 4;
             uint alphaMask = alpha ? 0xFFFFFFFFu : 0x00FFFFFFu;
@@ -31,7 +30,7 @@ namespace Shell.Protector
 
             for (int by = 0; by < blockRows; ++by) {
                 for (int bx = 0; bx < blocksPerRow; ++bx) {
-                    key_uint[3] = key3 ^ (uint)(by * blocksPerRow + bx);
+                    key_uint[3] = GetUnitKey(key, (uint)(by * blocksPerRow + bx), mip);
 
                     for (int j = 0; j < 16; ++j) {
                         int x = bx * 4 + (j & 3);
@@ -78,14 +77,13 @@ namespace Shell.Protector
                 Color32[] pixels = texture.GetPixels32(m);
 
                 if (UseBlockStream(algorithm)) {
-                    EncryptBlocks(pixels, Mathf.Max(1, texture.width >> m), Mathf.Max(1, texture.height >> m), key, algorithm, false);
+                    EncryptBlocks(pixels, Mathf.Max(1, texture.width >> m), Mathf.Max(1, texture.height >> m), m, key, algorithm, false);
                     result.Texture1.SetPixels32(pixels, m);
                     continue;
                 }
 
                 for (int i = 0; i < pixels.Length; i += 4) {
-                    key_uint[3] = (uint)(key[12] | (key[13] << 8) | (key[14] << 16) | (key[15] << 24));
-                    key_uint[3] ^= (uint)i;
+                    key_uint[3] = GetUnitKey(key, (uint)i, m);
 
                     uint[] data = new uint[3];
                     data[0] = (uint)(pixels[i + 0].r + (pixels[i + 0].g << 8) + (pixels[i + 0].b << 16) + (pixels[i + 1].r << 24));
@@ -140,14 +138,13 @@ namespace Shell.Protector
                 Color32[] pixels = texture.GetPixels32(m);
 
                 if (UseBlockStream(algorithm)) {
-                    EncryptBlocks(pixels, Mathf.Max(1, texture.width >> m), Mathf.Max(1, texture.height >> m), key, algorithm, true);
+                    EncryptBlocks(pixels, Mathf.Max(1, texture.width >> m), Mathf.Max(1, texture.height >> m), m, key, algorithm, true);
                     result.Texture1.SetPixels32(pixels, m);
                     continue;
                 }
 
                 for (int i = 0; i < pixels.Length; i += 2) {
-                    key_uint[3] = (uint)(key[12] | (key[13] << 8) | (key[14] << 16) | (key[15] << 24));
-                    key_uint[3] ^= (uint)i;
+                    key_uint[3] = GetUnitKey(key, (uint)i, m);
 
                     uint[] data = new uint[2];
                     data[0] = (uint)(pixels[i + 0].r + (pixels[i + 0].g << 8) + (pixels[i + 0].b << 16) + (pixels[i + 0].a << 24));

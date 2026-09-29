@@ -64,20 +64,38 @@ namespace Shell.Protector.Tests.Gpu
         [TestCase(TextureFormat.DXT5, true, true)]
         public void ChachaEncryptedTexture_DecryptsToOriginalGpuSample(TextureFormat format, bool alpha, bool bilinear)
         {
+            Chacha20 chacha = CreateChacha();
+            AssertDecryptsToOriginalGpuSample(format, alpha, bilinear, chacha, material => ConfigureChacha(material, chacha));
+        }
+
+        // Every mip level has its own key, so mip 1 has to decrypt too. Box only: bilinear steps by mip 0 texels.
+        [TestCase(TextureFormat.RGB24, false)]
+        [TestCase(TextureFormat.RGBA32, true)]
+        [TestCase(TextureFormat.DXT1, false)]
+        [TestCase(TextureFormat.DXT5, true)]
+        public void ChachaEncryptedTexture_DecryptsMipLevel(TextureFormat format, bool alpha)
+        {
+            Chacha20 chacha = CreateChacha();
+            AssertDecryptsToOriginalGpuSample(format, alpha, false, chacha, material => ConfigureChacha(material, chacha), 1);
+        }
+
+        private static Chacha20 CreateChacha()
+        {
             Chacha20 chacha = new Chacha20();
             for (int i = 0; i < chacha.Nonce.Length; i++)
                 chacha.Nonce[i] = (byte)i;
-
-            AssertDecryptsToOriginalGpuSample(format, alpha, bilinear, chacha, material =>
-            {
-                uint[] nonce = chacha.GetNonceUint3();
-                material.SetInteger("_Nonce0", unchecked((int)nonce[0]));
-                material.SetInteger("_Nonce1", unchecked((int)nonce[1]));
-                material.SetInteger("_Nonce2", unchecked((int)nonce[2]));
-            });
+            return chacha;
         }
 
-        private void AssertDecryptsToOriginalGpuSample(TextureFormat format, bool alpha, bool bilinear, IEncryptor encryptor, Action<Material> configureCipher)
+        private static void ConfigureChacha(Material material, Chacha20 chacha)
+        {
+            uint[] nonce = chacha.GetNonceUint3();
+            material.SetInteger("_Nonce0", unchecked((int)nonce[0]));
+            material.SetInteger("_Nonce1", unchecked((int)nonce[1]));
+            material.SetInteger("_Nonce2", unchecked((int)nonce[2]));
+        }
+
+        private void AssertDecryptsToOriginalGpuSample(TextureFormat format, bool alpha, bool bilinear, IEncryptor encryptor, Action<Material> configureCipher, int mip = 0)
         {
             Texture2D original = TestAssetScope.CreatePatternTexture(Size, Size, format, alpha);
             original.filterMode = FilterMode.Point;
@@ -87,22 +105,28 @@ namespace Shell.Protector.Tests.Gpu
             FinalizeTexture(encrypted.Texture1);
             FinalizeTexture(encrypted.Texture2);
 
-            ConfigureReferenceMaterial(original);
-            ConfigureDecryptMaterial(original, encrypted, encryptor, configureCipher);
+            ConfigureReferenceMaterial(original, mip);
+            ConfigureDecryptMaterial(original, encrypted, encryptor, configureCipher, mip);
 
-            Color32[] reference = Render(referenceMaterial, original, 0, Size, Size);
-            Color32[] decrypted = Render(decryptMaterial, Texture2D.blackTexture, bilinear ? 2 : 1, Size, Size);
+            int size = Size >> mip;
+            Color32[] reference = Render(referenceMaterial, original, mip == 0 ? 0 : 3, size, size);
+            Color32[] decrypted = Render(decryptMaterial, Texture2D.blackTexture, bilinear ? 2 : 1, size, size);
 
             AssertPixelsEqual(reference, decrypted, format, encryptor.Keyword, bilinear);
         }
 
-        private void ConfigureReferenceMaterial(Texture2D original)
+        private void ConfigureReferenceMaterial(Texture2D original, int mip)
         {
             referenceMaterial.SetTexture("_MainTex", original);
+            referenceMaterial.SetFloat("_Lod", mip);
         }
 
-        private void ConfigureDecryptMaterial(Texture2D original, EncryptResult encrypted, IEncryptor encryptor, Action<Material> configureCipher)
+        private void ConfigureDecryptMaterial(Texture2D original, EncryptResult encrypted, IEncryptor encryptor, Action<Material> configureCipher, int mip)
         {
+            // The shader reads the mip level as round(r * 255 / 10).
+            mipTexture.SetPixel(0, 0, new Color32((byte)(mip * 10), 0, 0, 255));
+            mipTexture.Apply(false, false);
+
             decryptMaterial.shaderKeywords = Array.Empty<string>();
             decryptMaterial.mainTexture = original;
             decryptMaterial.SetTexture("_EncryptTex0", encrypted.Texture1);

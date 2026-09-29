@@ -25,6 +25,12 @@ namespace Shell.Protector
             return key_uint;
         }
 
+        // Last key word for one encryption unit. The mip level goes in the top 8 bits (unit indices stay below 2^24),
+        // otherwise the same index on every mip level would reuse one ChaCha keystream.
+        protected static uint GetUnitKey(byte[] key, uint idx, int mip) {
+            return (uint)(key[12] | (key[13] << 8) | (key[14] << 16) | (key[15] << 24)) ^ idx ^ ((uint)mip << 24);
+        }
+
         protected int GetCanMipmapLevel(int w, int h) {
             if (w < 1 || h <= 1) return 0;
             int w_level = (int)Mathf.Log(w, 2);

@@ -91,8 +91,7 @@ namespace Shell.Protector
                 var pixel = result.Texture2.GetPixels32(m);
 
                 for (int i = 0; i < tex_data.Length; i += 16) {
-                    key_uint[3] = (uint)(key[12] | (key[13] << 8) | (key[14] << 16) | (key[15] << 24));
-                    key_uint[3] ^= (uint)(i / 8);
+                    key_uint[3] = GetUnitKey(key, (uint)(i / 8), m);
 
                     uint[] data = new uint[2];
                     data[0] = (uint)(tex_data[i + 0] + (tex_data[i + 1] << 8) + (tex_data[i + 2] << 16) + (tex_data[i + 3] << 24));
@@ -166,8 +165,7 @@ namespace Shell.Protector
                 var pixel = result.Texture2.GetPixels32(m);
 
                 for (int i = 0; i < tex_data.Length; i += 32) {
-                    key_uint[3] = (uint)(key[12] | (key[13] << 8) | (key[14] << 16) | (key[15] << 24));
-                    key_uint[3] ^= (uint)(i / 16);
+                    key_uint[3] = GetUnitKey(key, (uint)(i / 16), m);
 
                     uint[] data = new uint[2];
                     data[0] = (uint)(tex_data[i + 8] + (tex_data[i + 9] << 8) + (tex_data[i + 10] << 16) + (tex_data[i + 11] << 24));

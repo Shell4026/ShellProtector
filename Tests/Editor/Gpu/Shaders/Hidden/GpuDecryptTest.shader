@@ -30,6 +30,7 @@ Shader "Hidden/GpuDecryptTest"
         _Nonce1 ("Nonce1", Integer) = 0
         _Nonce2 ("Nonce2", Integer) = 0
         _Rounds ("Rounds", Integer) = 0
+        _Lod ("Lod", Float) = 0
     }
 
     SubShader
@@ -113,6 +114,31 @@ Shader "Hidden/GpuDecryptTest"
             half4 frag(v2f_img i) : SV_Target
             {
                 return DecryptTextureBilinear(_EncryptTex0, _EncryptTex1, point_repeat_sampler, _EncryptTex0_TexelSize, _MipTex, point_repeat_sampler, i.uv);
+            }
+            ENDCG
+        }
+
+        Pass
+        {
+            Name "ReferenceLod"
+            CGPROGRAM
+            #pragma target 3.0
+            #pragma vertex vert_img
+            #pragma fragment frag
+            #include "UnityCG.cginc"
+
+            sampler2D _MainTex;
+            float _Lod;
+
+            half3 ShellProtectorGammaCorrection(half3 rgb)
+            {
+                return rgb * rgb * (rgb * (half)0.2 + (half)0.8);
+            }
+
+            half4 frag(v2f_img i) : SV_Target
+            {
+                half4 color = tex2Dlod(_MainTex, float4(i.uv, 0, _Lod));
+                return half4(ShellProtectorGammaCorrection(color.rgb), color.a);
             }
             ENDCG
         }
