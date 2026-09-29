@@ -74,11 +74,28 @@ namespace Shell.Protector.Tests.Integration
             AssertTamperedKeyRendersCorruptedOutput(encryptedMaterial, reference, "lilToon");
         }
 
-        [Test]
-        public void PoiyomiEncryptedMaterial_RendersLikeOriginal()
+        [TestCase(".poiyomi/Poiyomi Toon", -1)]
+        [TestCase(".poiyomi/Poiyomi Toon", 1)]
+        [TestCase(".poiyomi/Poiyomi Toon", 2)]
+        [TestCase(".poiyomi/Old Versions/9.3/Poiyomi Toon", 2)]
+        public void PoiyomiEncryptedMaterial_RendersLikeOriginal(string shaderName, int lightingMode)
         {
-            Shader shader = FindSupportedShader(".poiyomi/Poiyomi Toon");
+            Shader shader = FindSupportedShader(shaderName);
             Fixture fixture = CreateFixture("PoiyomiSmoke", shader);
+            if (lightingMode >= 0)
+            {
+                fixture.Material.SetFloat("_LightingMode", lightingMode);
+                foreach (string keyword in fixture.Material.shaderKeywords)
+                {
+                    if (keyword.StartsWith("_LIGHTINGMODE_"))
+                        fixture.Material.DisableKeyword(keyword);
+                }
+                fixture.Material.EnableKeyword(lightingMode == 2 ? "_LIGHTINGMODE_WRAPPED" : "_LIGHTINGMODE_MULTILAYER_MATH");
+                fixture.Material.SetFloat("_ShadingEnabled", 1f);
+                fixture.Material.EnableKeyword("VIGNETTE_MASKED");
+                EditorUtility.SetDirty(fixture.Material);
+                AssetDatabase.SaveAssets();
+            }
             Color32[] reference = RenderMaterial(fixture.Material);
 
             GameObject encryptedAvatar = fixture.Protector.Encrypt(false);

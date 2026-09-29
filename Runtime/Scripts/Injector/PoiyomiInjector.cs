@@ -63,9 +63,6 @@ namespace Shell.Protector
 			struct VertexOut
 			{
 				int isDecrypted : SHELL0;";
-            const string returnO = @"
-                o.isDecrypted = IsDecrypted();
-                return o;";
 
             int version = AssetManager.GetInstance().GetShaderType(shader);
             if(version >= 80)
@@ -78,7 +75,7 @@ namespace Shell.Protector
                 shaderData = Regex.Replace(shaderData, "UNITY_SAMPLE_TEX2D_SAMPLER\\((.*?), _MainTex", "UNITY_SAMPLE_TEX2D_SAMPLER($1, _MipTex");
                 shaderData = Regex.Replace(shaderData, "float4 frag\\(", "#include \"" + decodeDir + "\"\n\t\t\tfloat4 frag(");
                 shaderData = Regex.Replace(shaderData, "struct VertexOut[\r\n]+[ \t]*\\{", string.Format("{0}\r\n{1}", includeStr, vertexOut));
-                shaderData = Regex.Replace(shaderData, "\t+return o;", returnO);
+                shaderData = InjectVertexDecryptionState(shaderData);
                 string shaderCode = ShaderCodeNoFilter;
                 if (Filter == 0)
                     shaderCode = ShaderCodeNoFilter;
@@ -115,6 +112,21 @@ namespace Shell.Protector
 
             Shader returnShader = AssetDatabase.LoadAssetAtPath(Path.Combine(outputPath, shaderName), typeof(Shader)) as Shader;
             return returnShader;
+        }
+
+        private static string InjectVertexDecryptionState(string shaderData)
+        {
+            // Match a complete vertex function, including nested blocks. Other functions
+            // (notably Wrapped lighting's RTWrapFunc) also return a variable named o.
+            const string vertexFunction = @"\bVertexOut\s+vert\s*\([^)]*\)\s*\{
+                (?: //[^\r\n]* | /\*[\s\S]*?\*/ | [^{}\/]+ | /(?![/*])
+                  | \{ (?<depth>) | \} (?<-depth>) )*
+                (?(depth)(?!)) \}";
+
+            return Regex.Replace(shaderData, vertexFunction, match =>
+                Regex.Replace(match.Value, @"\breturn\s+o\s*;",
+                    "o.isDecrypted = IsDecrypted();\n                return o;"),
+                RegexOptions.IgnorePatternWhitespace);
         }
 
         private void InsertProperties(ref string data)
