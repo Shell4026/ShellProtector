@@ -1,5 +1,6 @@
 using UnityEngine;
 using System;
+using System.Threading.Tasks;
 
 #if UNITY_EDITOR
 
@@ -83,14 +84,16 @@ namespace Shell.Protector
 
             var raw_data = dxt1.GetRawTextureData();
             int lenidx = 0;
-            var key_uint = ConvertKeyToUInt(key);
 
             for (int m = 0; m <= mip_lv; ++m) {
                 if (m != 0 && m == mip_lv) break;
                 var tex_data = GetArrayDXT(raw_data, dxt1.width, dxt1.height, false, m);
                 var pixel = result.Texture2.GetPixels32(m);
 
-                for (int i = 0; i < tex_data.Length; i += 16) {
+                // Units are independent and write disjoint texels, so they run in parallel with their own key array.
+                Parallel.For(0, tex_data.Length / 16, unit => {
+                    int i = unit * 16;
+                    var key_uint = ConvertKeyToUInt(key);
                     key_uint[3] = GetUnitKey(key, (uint)(i / 8), m);
 
                     uint[] data = new uint[2];
@@ -105,7 +108,7 @@ namespace Shell.Protector
                         pixel[i / 8 + j].b = (byte)((data_enc[j] & 0x00FF0000) >> 16);
                         pixel[i / 8 + j].a = (byte)((data_enc[j] & 0xFF000000) >> 24);
                     }
-                }
+                });
                 for (int i = 0; i < tex_data.Length; i += 8) {
                     tex_data[i + 0] = 255;
                     tex_data[i + 1] = 255;
@@ -157,14 +160,16 @@ namespace Shell.Protector
 
             var raw_data = dxt5.GetRawTextureData();
             int lenidx = 0;
-            var key_uint = ConvertKeyToUInt(key);
 
             for (int m = 0; m <= mip_lv; ++m) {
                 if (m != 0 && m == mip_lv) break;
                 var tex_data = GetArrayDXT(raw_data, texture.width, texture.height, true, m);
                 var pixel = result.Texture2.GetPixels32(m);
 
-                for (int i = 0; i < tex_data.Length; i += 32) {
+                // Units are independent and write disjoint texels, so they run in parallel with their own key array.
+                Parallel.For(0, tex_data.Length / 32, unit => {
+                    int i = unit * 32;
+                    var key_uint = ConvertKeyToUInt(key);
                     key_uint[3] = GetUnitKey(key, (uint)(i / 16), m);
 
                     uint[] data = new uint[2];
@@ -179,7 +184,7 @@ namespace Shell.Protector
                         pixel[i / 16 + j].b = (byte)((data_enc[j] & 0x00FF0000) >> 16);
                         pixel[i / 16 + j].a = (byte)((data_enc[j] & 0xFF000000) >> 24);
                     }
-                }
+                });
                 for (int i = 0; i < tex_data.Length; i += 16) {
                     tex_data[i + 8] = 255;
                     tex_data[i + 9] = 255;

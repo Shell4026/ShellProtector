@@ -1,166 +1,78 @@
 using System;
-using System.Collections;
 using System.Runtime.CompilerServices;
-using UnityEngine;
 
 namespace Shell.Protector
 {
     public class Chacha20 : IEncryptor
     {
+        const int Rounds = 8;
+
         public string Keyword => ShaderProperties.ChachaKeyword;
         public byte[] Nonce { get; } = new byte[12];
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        byte[] U32t8le(uint v)
-        {
-            byte[] p = new byte[4];
-            p[0] = (byte)(v & 0xff);
-            p[1] = (byte)((v >> 8) & 0xff);
-            p[2] = (byte)((v >> 16) & 0xff);
-            p[3] = (byte)((v >> 24) & 0xff);
 
-            return p;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static uint Rotl32(uint x, int n)
+        {
+            return x << n | (x >> (32 - n));
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        uint U8t32le(byte[] p)
+        static void QuarterRound(ref uint a, ref uint b, ref uint c, ref uint d)
         {
-            uint value = p[3];
+            a += b; d = Rotl32(d ^ a, 16);
+            c += d; b = Rotl32(b ^ c, 12);
+            a += b; d = Rotl32(d ^ a, 8);
+            c += d; b = Rotl32(b ^ c, 7);
+        }
 
-            value = (value << 8) | p[2];
-            value = (value << 8) | p[1];
-            value = (value << 8) | p[0];
+        uint NonceWord(int i)
+        {
+            return (uint)(Nonce[i * 4] | (Nonce[i * 4 + 1] << 8) | (Nonce[i * 4 + 2] << 16) | (Nonce[i * 4 + 3] << 24));
+        }
 
-            return value;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        uint Rotl32(uint x, int n)
+        // XORs the keystream into data in place without allocating; the block counter starts at 1.
+        // The 16-byte key fills both key rows of the state, the same as Chacha.cginc.
+        // Only reads the key and Nonce, so it is safe to call from several threads.
+        public void XorKeyStream(Span<uint> data, uint[] key)
         {
-            // http://blog.regehr.org/archives/1063
-            return x << n | (x >> (-n & 31));
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        void Chacha20QuarterRound(uint[] x, int a, int b, int c, int d)
-        {
-            x[a] += x[b]; x[d] = Rotl32(x[d] ^ x[a], 16);
-            x[c] += x[d]; x[b] = Rotl32(x[b] ^ x[c], 12);
-            x[a] += x[b]; x[d] = Rotl32(x[d] ^ x[a], 8);
-            x[c] += x[d]; x[b] = Rotl32(x[b] ^ x[c], 7);
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        byte[] Chacha20Serialize(uint[] input)
-        {
-            byte[] output = new byte[64];
-            for (int i = 0; i < 16; i++)
+            uint k0 = key[0], k1 = key[1], k2 = key[2], k3 = key[3];
+            uint n0 = NonceWord(0), n1 = NonceWord(1), n2 = NonceWord(2);
+            Span<uint> stream = stackalloc uint[16];
+
+            uint counter = 1;
+            for (int offset = 0; offset < data.Length; offset += 16, ++counter)
             {
-                byte[] tempBytes = U32t8le(input[i]);
-                Array.Copy(tempBytes, 0, output, i << 2, tempBytes.Length);
-            }
-            return output;
-        }
-        byte[] Chacha20Block(uint[] input, int numRounds)
-        {
-            byte[] output = new byte[64];
-            uint[] x = new uint[16];
-            Array.Copy(input, 0, x, 0, input.Length);
-            for (int i = numRounds; i > 0; i -= 2)
-            {
-                Chacha20QuarterRound(x, 0, 4, 8, 12);
-                Chacha20QuarterRound(x, 1, 5, 9, 13);
-                Chacha20QuarterRound(x, 2, 6, 10, 14);
-                Chacha20QuarterRound(x, 3, 7, 11, 15);
-                Chacha20QuarterRound(x, 0, 5, 10, 15);
-                Chacha20QuarterRound(x, 1, 6, 11, 12);
-                Chacha20QuarterRound(x, 2, 7, 8, 13);
-                Chacha20QuarterRound(x, 3, 4, 9, 14);
-            }
+                uint x0 = 0x61707865, x1 = 0x3320646e, x2 = 0x79622d32, x3 = 0x6b206574;
+                uint x4 = k0, x5 = k1, x6 = k2, x7 = k3;
+                uint x8 = k0, x9 = k1, x10 = k2, x11 = k3;
+                uint x12 = counter, x13 = n0, x14 = n1, x15 = n2;
 
-            for (int i = 0; i < 16; i++)
-            {
-                x[i] += input[i];
-            }
-
-            output = Chacha20Serialize(x);
-
-            return output;
-        }
-        //key 16byte, nonce 12byte
-        void Chacha20Init(uint[] s, byte[] key, uint counter, byte[] nonce)
-        {
-            // refer: https://dxr.mozilla.org/mozilla-beta/source/security/nss/lib/freebl/chacha20.c
-            // convert magic number to string: "expand 32-byte k"
-            s[0] = 0x61707865;
-            s[1] = 0x3320646e;
-            s[2] = 0x79622d32;
-            s[3] = 0x6b206574;
-
-            for (int i = 0; i < 4; i++)
-            {
-                byte[] key_tmp = new byte[4];
-                Array.Copy(key, i * 4, key_tmp, 0, key_tmp.Length);
-                s[4 + i] = U8t32le(key_tmp);
-                s[8 + i] = s[4 + i];
-            }
-
-            s[12] = counter;
-
-            uint[] n3 = GetNonceUint3();
-            s[13] = n3[0];
-            s[14] = n3[1];
-            s[15] = n3[2];
-        }
-
-        //key 16byte nonce 12byte
-        public byte[] ChaCha20XOR(byte[] key, uint counter, byte[] nonce, byte[] input)
-        {
-            uint[] s = new uint[16];
-            byte[] block = new byte[64];
-            byte[] output = new byte[input.Length];
-
-            Chacha20Init(s, key, counter, nonce);
-
-            for (int i = 0; i < input.Length; i += 64)
-            {
-                block = Chacha20Block(s, 8);
-                s[12]++;
-
-                for (int j = i; j < i + 64; j++)
+                for (int i = 0; i < Rounds; i += 2)
                 {
-                    if (j >= input.Length)
-                    {
-                        break;
-                    }
-                    output[j] = (byte)(input[j] ^ block[j - i]);
+                    QuarterRound(ref x0, ref x4, ref x8, ref x12);
+                    QuarterRound(ref x1, ref x5, ref x9, ref x13);
+                    QuarterRound(ref x2, ref x6, ref x10, ref x14);
+                    QuarterRound(ref x3, ref x7, ref x11, ref x15);
+                    QuarterRound(ref x0, ref x5, ref x10, ref x15);
+                    QuarterRound(ref x1, ref x6, ref x11, ref x12);
+                    QuarterRound(ref x2, ref x7, ref x8, ref x13);
+                    QuarterRound(ref x3, ref x4, ref x9, ref x14);
                 }
+
+                stream[0] = x0 + 0x61707865; stream[1] = x1 + 0x3320646e; stream[2] = x2 + 0x79622d32; stream[3] = x3 + 0x6b206574;
+                stream[4] = x4 + k0; stream[5] = x5 + k1; stream[6] = x6 + k2; stream[7] = x7 + k3;
+                stream[8] = x8 + k0; stream[9] = x9 + k1; stream[10] = x10 + k2; stream[11] = x11 + k3;
+                stream[12] = x12 + counter; stream[13] = x13 + n0; stream[14] = x14 + n1; stream[15] = x15 + n2;
+
+                int count = Math.Min(16, data.Length - offset);
+                for (int i = 0; i < count; ++i)
+                    data[offset + i] ^= stream[i];
             }
-            return output;
         }
 
-        //data 8byte
         public uint[] Encrypt(uint[] data, uint[] key)
         {
-            byte[] keyBytes = new byte[16];
-            byte[] dataBytes = new byte[data.Length * 4];
-
-            for (int i = 0; i < keyBytes.Length; i += 4)
-            {
-                keyBytes[i + 0] = (byte)(key[i / 4] >> 0 & 0xFF);
-                keyBytes[i + 1] = (byte)(key[i / 4] >> 8 & 0xFF);
-                keyBytes[i + 2] = (byte)(key[i / 4] >> 16 & 0xFF);
-                keyBytes[i + 3] = (byte)(key[i / 4] >> 24 & 0xFF);
-            }
-            for (int i = 0; i < dataBytes.Length; i += 4)
-            {
-                dataBytes[i + 0] = (byte)(data[i / 4] >> 0 & 0xFF);
-                dataBytes[i + 1] = (byte)(data[i / 4] >> 8 & 0xFF);
-                dataBytes[i + 2] = (byte)(data[i / 4] >> 16 & 0xFF);
-                dataBytes[i + 3] = (byte)(data[i / 4] >> 24 & 0xFF);
-            }
-
-            byte[] resultBytes = ChaCha20XOR(keyBytes, 1, Nonce, dataBytes);
-            uint[] result = new uint[data.Length];
-            for (int i = 0; i < data.Length; ++i)
-            {
-                result[i] = (uint)((resultBytes[i * 4 + 0]) | (resultBytes[i * 4 + 1] << 8) | (resultBytes[i * 4 + 2] << 16) | (resultBytes[i * 4 + 3] << 24));
-            }
+            uint[] result = (uint[])data.Clone();
+            XorKeyStream(result, key);
             return result;
         }
         public uint[] Decrypt(uint[] data, uint[] key)
@@ -170,15 +82,7 @@ namespace Shell.Protector
 
         public uint[] GetNonceUint3()
         {
-            uint[] result = new uint[3];
-            byte[] nonceTmp = new byte[4];
-            for (int i = 0; i < 3; i++)
-            {
-                Array.Copy(Nonce, i * 4, nonceTmp, 0, nonceTmp.Length);
-                result[i] = U8t32le(nonceTmp);
-            }
-
-            return result;
+            return new[] { NonceWord(0), NonceWord(1), NonceWord(2) };
         }
     }
 }

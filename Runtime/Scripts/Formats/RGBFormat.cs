@@ -1,3 +1,5 @@
+using System;
+using System.Threading.Tasks;
 using UnityEngine;
 
 #if UNITY_EDITOR
@@ -17,18 +19,16 @@ namespace Shell.Protector
         // (one keystream word per pixel). The shader then derives a single keystream for every bilinear tap
         // inside the block instead of one per pixel. XXTEA keeps the per-pixel layout: sharing a key there
         // saves nothing because each chunk still needs its own decryption.
-        protected static bool UseBlockStream(IEncryptor algorithm) {
-            return algorithm is Chacha20;
-        }
-
-        protected void EncryptBlocks(Color32[] pixels, int width, int height, int mip, byte[] key, IEncryptor algorithm, bool alpha) {
-            var key_uint = ConvertKeyToUInt(key);
+        protected void EncryptBlocks(Color32[] pixels, int width, int height, int mip, byte[] key, Chacha20 chacha, bool alpha) {
             int blocksPerRow = (width + 3) / 4;
             int blockRows = (height + 3) / 4;
             uint alphaMask = alpha ? 0xFFFFFFFFu : 0x00FFFFFFu;
-            uint[] data = new uint[16];
 
-            for (int by = 0; by < blockRows; ++by) {
+            // Blocks are independent and write disjoint pixels, so rows of blocks run in parallel.
+            Parallel.For(0, blockRows, by => {
+                var key_uint = ConvertKeyToUInt(key);
+                Span<uint> data = stackalloc uint[16];
+
                 for (int bx = 0; bx < blocksPerRow; ++bx) {
                     key_uint[3] = GetUnitKey(key, (uint)(by * blocksPerRow + bx), mip);
 
@@ -43,7 +43,7 @@ namespace Shell.Protector
                         data[j] = (uint)(p.r | (p.g << 8) | (p.b << 16) | (p.a << 24)) & alphaMask;
                     }
 
-                    uint[] data_enc = algorithm.Encrypt(data, key_uint);
+                    chacha.XorKeyStream(data, key_uint);
 
                     for (int j = 0; j < 16; ++j) {
                         int x = bx * 4 + (j & 3);
@@ -51,14 +51,14 @@ namespace Shell.Protector
                         if (x >= width || y >= height)
                             continue;
                         int i = y * width + x;
-                        pixels[i].r = (byte)((data_enc[j] & 0x000000FF) >> 0);
-                        pixels[i].g = (byte)((data_enc[j] & 0x0000FF00) >> 8);
-                        pixels[i].b = (byte)((data_enc[j] & 0x00FF0000) >> 16);
+                        pixels[i].r = (byte)((data[j] & 0x000000FF) >> 0);
+                        pixels[i].g = (byte)((data[j] & 0x0000FF00) >> 8);
+                        pixels[i].b = (byte)((data[j] & 0x00FF0000) >> 16);
                         if (alpha)
-                            pixels[i].a = (byte)((data_enc[j] & 0xFF000000) >> 24);
+                            pixels[i].a = (byte)((data[j] & 0xFF000000) >> 24);
                     }
                 }
-            }
+            });
         }
     }
 
@@ -76,8 +76,8 @@ namespace Shell.Protector
             for (int m = 0; m < result.Texture1.mipmapCount; ++m) {
                 Color32[] pixels = texture.GetPixels32(m);
 
-                if (UseBlockStream(algorithm)) {
-                    EncryptBlocks(pixels, Mathf.Max(1, texture.width >> m), Mathf.Max(1, texture.height >> m), m, key, algorithm, false);
+                if (algorithm is Chacha20 chacha) {
+                    EncryptBlocks(pixels, Mathf.Max(1, texture.width >> m), Mathf.Max(1, texture.height >> m), m, key, chacha, false);
                     result.Texture1.SetPixels32(pixels, m);
                     continue;
                 }
@@ -137,8 +137,8 @@ namespace Shell.Protector
             for (int m = 0; m < result.Texture1.mipmapCount; ++m) {
                 Color32[] pixels = texture.GetPixels32(m);
 
-                if (UseBlockStream(algorithm)) {
-                    EncryptBlocks(pixels, Mathf.Max(1, texture.width >> m), Mathf.Max(1, texture.height >> m), m, key, algorithm, true);
+                if (algorithm is Chacha20 chacha) {
+                    EncryptBlocks(pixels, Mathf.Max(1, texture.width >> m), Mathf.Max(1, texture.height >> m), m, key, chacha, true);
                     result.Texture1.SetPixels32(pixels, m);
                     continue;
                 }
