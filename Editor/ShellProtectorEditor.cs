@@ -40,7 +40,6 @@ namespace Shell.Protector
         bool fallbackOption = true;
 
         readonly string[] languages = new string[3];
-        readonly string[] encryptFunctions = new string[2];
         readonly string[] keyLengthLabels = new string[5];
 
         List<string> shaders = new List<string>();
@@ -104,9 +103,6 @@ namespace Shell.Protector
             turnOnAllSafetyFallback = serializedObject.FindProperty("_turnOnAllSafetyFallback");
             #endregion
             viewModel = new ShellProtectorEditorViewModel(root, keySize, syncSize, gameobjectList, materialList);
-
-            encryptFunctions[0] = "XXTEA";
-            encryptFunctions[1] = "Chacha8";
 
             languages[0] = "English";
             languages[1] = "한국어";
@@ -271,10 +267,15 @@ namespace Shell.Protector
                 }
 
                 GUILayout.Label(Lang("Encrytion algorithm"), EditorStyles.boldLabel);
-                algorithm.intValue = EditorGUILayout.Popup(algorithm.intValue, encryptFunctions, GUILayout.Width(120));
+                GUILayout.Label(algorithm.intValue == 0 ? "XXTEA" : "Chacha8");
 
+                // XXTEA is deprecated: it can't be selected anymore, but existing setups keep building with it until switched.
                 if (algorithm.intValue == 0)
                 {
+                    EditorGUILayout.HelpBox(Lang("XXTEA is deprecated. Switch to Chacha8."), MessageType.Warning);
+                    if (GUILayout.Button(Lang("Switch to Chacha8"), GUILayout.Width(160)))
+                        algorithm.intValue = 1;
+
                     GUILayout.Label(Lang("Rounds"), EditorStyles.boldLabel);
                     GUILayout.BeginHorizontal();
 #if UNITY_2022
