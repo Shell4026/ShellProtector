@@ -27,16 +27,18 @@ void GetData(Texture2D tex1, SamplerState tex0Sampler, inout uint data[2], float
 	data[1] = ((uint)round(pixels[1].r * 255.0) | ((uint)round(pixels[1].g * 255.0) << 8) | ((uint)round(pixels[1].b * 255.0) << 16) | ((uint)round(pixels[1].a * 255.0) << 24));
 }
 
-float4 GetPixel(Texture2D tex0, SamplerState tex0Sampler, in uint data[2], float2 uv, int m) 
+int GetBlockLocalIndex(float2 uv, int m)
 {
-	int idx = GetBlockIndex(uv, m);
-	int offset = (idx & 1) == 0 ? 0 : -1;
+	return GetBlockIndex(uv, m) & 1;
+}
 
+float4 GetBlockPixel(Texture2D tex0, SamplerState tex0Sampler, uint data, float2 uv, int m) 
+{
     float4 col = tex0.SampleLevel(tex0Sampler, uv, m);
-	uint r = (data[idx & 1] & 0x000000FF) >> 0;
-	uint g = (data[idx & 1] & 0x0000FF00) >> 8;
-	uint b = (data[idx & 1] & 0x00FF0000) >> 16;
-	uint a = (data[idx & 1] & 0xFF000000) >> 24;
+	uint r = (data & 0x000000FF) >> 0;
+	uint g = (data & 0x0000FF00) >> 8;
+	uint b = (data & 0x00FF0000) >> 16;
+	uint a = (data & 0xFF000000) >> 24;
 	
 	uint color1 = (r | g << 8);
 	uint color2 = (b | a << 8);
@@ -62,4 +64,9 @@ float4 GetPixel(Texture2D tex0, SamplerState tex0Sampler, in uint data[2], float
 	result = lerp(col2, col1, color1 > color2 ? col.rgb : 0.5);
 
 	return half4(GammaCorrection(result), col.a);
+}
+
+float4 GetPixel(Texture2D tex0, SamplerState tex0Sampler, in uint data[2], float2 uv, int m) 
+{
+	return GetBlockPixel(tex0, tex0Sampler, data[GetBlockLocalIndex(uv, m)], uv, m);
 }

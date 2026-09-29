@@ -109,75 +109,54 @@ float4 DecryptTextureBilinear(Texture2D tex0, Texture2D tex1, SamplerState texSa
 	const float2 uv01 = uvBilinear + float2(uvUnit.x * 0, uvUnit.y * 1);
 	const float2 uv11 = uvBilinear + float2(uvUnit.x * 1, uvUnit.y * 1);
 
-#ifdef _SHELL_PROTECTOR_DXT
-	const int idx00 = GetBlockIndex(uv00, m[mip]);
-	const int idx10 = GetBlockIndex(uv10, m[mip]);
-	const int idx01 = GetBlockIndex(uv01, m[mip]);
-	const int idx11 = GetBlockIndex(uv11, m[mip]);
-	if ((idx00 == idx10) && (idx10 == idx01) && (idx01 == idx11))
+#if defined(_SHELL_PROTECTOR_DXT) || defined(_SHELL_PROTECTOR_BLOCK_STREAM)
 	{
-		uint data[_SHELL_PROTECTOR_DATA_LENGTH];
-		DecryptData(data, tex0, tex1, texSampler, uv00, m[mip]);
-
-		const float4 c00 = GetPixel(tex0, texSampler, data, uv00, m[mip]);
-		const float4 c10 = GetPixel(tex0, texSampler, data, uv10, m[mip]);
-		const float4 c01 = GetPixel(tex0, texSampler, data, uv01, m[mip]);
-		const float4 c11 = GetPixel(tex0, texSampler, data, uv11, m[mip]);
-		const float2 f = frac(uvBilinear * originalTexSize.zw);
-		const float4 c0 = lerp(c00, c10, f.x);
-		const float4 c1 = lerp(c01, c11, f.x);
-		const float4 bilinear = lerp(c0, c1, f.y);
-		return bilinear;
-	}
-#endif
-
-#ifdef _SHELL_PROTECTOR_BLOCK_STREAM
-	{
-		// One keystream per 4x4 block. Derive a new one only for the taps that cross into another block,
-		// so a warp only pays for the crossings its lanes actually hit (at most 4, never more than per-pixel).
-		const int idx00 = GetBlockIndex(uv00, m[mip]);
-		const int idx10 = GetBlockIndex(uv10, m[mip]);
-		const int idx01 = GetBlockIndex(uv01, m[mip]);
-		const int idx11 = GetBlockIndex(uv11, m[mip]);
+		// One decryption covers a whole unit (DXT: 2 blocks = 8x4 texels, ChaCha RGB/RGBA: 4x4 pixels).
+		// Decrypt again only for the taps that land in another unit, so a warp only pays for the crossings
+		// its lanes actually hit (at most 4, same as decrypting every tap).
+		const int unit00 = GetBlockIndex(uv00, m[mip]) >> _SHELL_PROTECTOR_INDEX_ALIGNMENT;
+		const int unit10 = GetBlockIndex(uv10, m[mip]) >> _SHELL_PROTECTOR_INDEX_ALIGNMENT;
+		const int unit01 = GetBlockIndex(uv01, m[mip]) >> _SHELL_PROTECTOR_INDEX_ALIGNMENT;
+		const int unit11 = GetBlockIndex(uv11, m[mip]) >> _SHELL_PROTECTOR_INDEX_ALIGNMENT;
 		const int k00 = GetBlockLocalIndex(uv00, m[mip]);
 		const int k10 = GetBlockLocalIndex(uv10, m[mip]);
 		const int k01 = GetBlockLocalIndex(uv01, m[mip]);
 		const int k11 = GetBlockLocalIndex(uv11, m[mip]);
 
-		uint stream[_SHELL_PROTECTOR_DATA_LENGTH];
-		DecryptData(stream, tex0, tex1, texSampler, uv00, m[mip]);
-		const uint ks00 = stream[k00];
-		uint ks10 = stream[k10];
-		uint ks01 = stream[k01];
-		uint ks11 = stream[k11];
+		uint data[_SHELL_PROTECTOR_DATA_LENGTH];
+		DecryptData(data, tex0, tex1, texSampler, uv00, m[mip]);
+		const uint word00 = data[k00];
+		uint word10 = data[k10];
+		uint word01 = data[k01];
+		uint word11 = data[k11];
 
 		[branch]
-		if (idx10 != idx00)
+		if (unit10 != unit00)
 		{
-			DecryptData(stream, tex0, tex1, texSampler, uv10, m[mip]);
-			ks10 = stream[k10];
-			if (idx11 == idx10)
-				ks11 = stream[k11];
+			DecryptData(data, tex0, tex1, texSampler, uv10, m[mip]);
+			word10 = data[k10];
+			if (unit11 == unit10)
+				word11 = data[k11];
 		}
 		[branch]
-		if (idx01 != idx00)
+		if (unit01 != unit00)
 		{
-			DecryptData(stream, tex0, tex1, texSampler, uv01, m[mip]);
-			ks01 = stream[k01];
-			if (idx11 == idx01)
-				ks11 = stream[k11];
+			DecryptData(data, tex0, tex1, texSampler, uv01, m[mip]);
+			word01 = data[k01];
+			if (unit11 == unit01)
+				word11 = data[k11];
 		}
 		[branch]
-		if (idx11 != idx00 && idx11 != idx10 && idx11 != idx01)
+		if (unit11 != unit00 && unit11 != unit10 && unit11 != unit01)
 		{
-			DecryptData(stream, tex0, tex1, texSampler, uv11, m[mip]);
-			ks11 = stream[k11];
+			DecryptData(data, tex0, tex1, texSampler, uv11, m[mip]);
+			word11 = data[k11];
 		}
 
-		const float4 c00 = GetStreamPixel(tex0, texSampler, ks00, uv00, m[mip]);
-		const float4 c10 = GetStreamPixel(tex0, texSampler, ks10, uv10, m[mip]);
-		const float4 c01 = GetStreamPixel(tex0, texSampler, ks01, uv01, m[mip]);
-		const float4 c11 = GetStreamPixel(tex0, texSampler, ks11, uv11, m[mip]);
+		const float4 c00 = GetBlockPixel(tex0, texSampler, word00, uv00, m[mip]);
+		const float4 c10 = GetBlockPixel(tex0, texSampler, word10, uv10, m[mip]);
+		const float4 c01 = GetBlockPixel(tex0, texSampler, word01, uv01, m[mip]);
+		const float4 c11 = GetBlockPixel(tex0, texSampler, word11, uv11, m[mip]);
 		const float2 f = frac(uvBilinear * originalTexSize.zw);
 		const float4 c0 = lerp(c00, c10, f.x);
 		const float4 c1 = lerp(c01, c11, f.x);
