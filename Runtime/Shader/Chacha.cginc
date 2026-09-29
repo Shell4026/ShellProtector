@@ -25,7 +25,7 @@ void Chacha20QuarterRound(inout uint state[16], int a, int b, int c, int d)
 	state[c] += state[d]; state[b] = Rotl32(state[b] ^ state[c], 7);
 }
 
-uint3 ChaCha8KeyStream3(const uint key[4])
+void ChaCha8KeyStream16(const uint key[4], out uint stream[16])
 {
     uint x0  = 0x61707865u;
     uint x1  = 0x3320646eu;
@@ -63,11 +63,29 @@ uint3 ChaCha8KeyStream3(const uint key[4])
         ChaChaQuarterRound(x3, x4, x9,  x14);
     }
 
-    return uint3(
-        x0 + 0x61707865u,
-        x1 + 0x3320646eu,
-        x2 + 0x79622d32u
-    );
+    stream[0]  = x0  + 0x61707865u;
+    stream[1]  = x1  + 0x3320646eu;
+    stream[2]  = x2  + 0x79622d32u;
+    stream[3]  = x3  + 0x6b206574u;
+    stream[4]  = x4  + key[0];
+    stream[5]  = x5  + key[1];
+    stream[6]  = x6  + key[2];
+    stream[7]  = x7  + key[3];
+    stream[8]  = x8  + key[0];
+    stream[9]  = x9  + key[1];
+    stream[10] = x10 + key[2];
+    stream[11] = x11 + key[3];
+    stream[12] = x12 + 1u;
+    stream[13] = x13 + _Nonce0;
+    stream[14] = x14 + _Nonce1;
+    stream[15] = x15 + _Nonce2;
+}
+
+uint3 ChaCha8KeyStream3(const uint key[4])
+{
+    uint stream[16];
+    ChaCha8KeyStream16(key, stream);
+    return uint3(stream[0], stream[1], stream[2]);
 }
 
 void Decrypt(inout uint data[2], const uint key[4])
@@ -84,4 +102,15 @@ void Decrypt(inout uint data[3], const uint key[4])
     data[0] ^= stream.x;
     data[1] ^= stream.y;
     data[2] ^= stream.z;
+}
+
+// Whole 64-byte block: one keystream word per pixel of a 4x4 RGB/RGBA block.
+void Decrypt(inout uint data[16], const uint key[4])
+{
+    uint stream[16];
+    ChaCha8KeyStream16(key, stream);
+
+    [unroll]
+    for (int i = 0; i < 16; ++i)
+        data[i] ^= stream[i];
 }

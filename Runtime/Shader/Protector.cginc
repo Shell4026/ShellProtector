@@ -56,7 +56,7 @@ uint _HashMagic;
 
 void DecryptData(inout uint data[_SHELL_PROTECTOR_DATA_LENGTH], Texture2D tex0, Texture2D tex1, SamplerState tex0Sampler, float2 uv, int m)
 {
-	#ifdef _SHELL_PROTECTOR_DXT
+#if defined(_SHELL_PROTECTOR_DXT) || defined(_SHELL_PROTECTOR_BLOCK_STREAM)
 	const int idx = GetBlockIndex(uv, m);
 #else
 	const int idx = GetIndex(uv, m);
@@ -131,6 +131,59 @@ float4 DecryptTextureBilinear(Texture2D tex0, Texture2D tex1, SamplerState texSa
 	}
 #endif
 
+#ifdef _SHELL_PROTECTOR_BLOCK_STREAM
+	{
+		// One keystream per 4x4 block. Derive a new one only for the taps that cross into another block,
+		// so a warp only pays for the crossings its lanes actually hit (at most 4, never more than per-pixel).
+		const int idx00 = GetBlockIndex(uv00, m[mip]);
+		const int idx10 = GetBlockIndex(uv10, m[mip]);
+		const int idx01 = GetBlockIndex(uv01, m[mip]);
+		const int idx11 = GetBlockIndex(uv11, m[mip]);
+		const int k00 = GetBlockLocalIndex(uv00, m[mip]);
+		const int k10 = GetBlockLocalIndex(uv10, m[mip]);
+		const int k01 = GetBlockLocalIndex(uv01, m[mip]);
+		const int k11 = GetBlockLocalIndex(uv11, m[mip]);
+
+		uint stream[_SHELL_PROTECTOR_DATA_LENGTH];
+		DecryptData(stream, tex0, tex1, texSampler, uv00, m[mip]);
+		const uint ks00 = stream[k00];
+		uint ks10 = stream[k10];
+		uint ks01 = stream[k01];
+		uint ks11 = stream[k11];
+
+		[branch]
+		if (idx10 != idx00)
+		{
+			DecryptData(stream, tex0, tex1, texSampler, uv10, m[mip]);
+			ks10 = stream[k10];
+			if (idx11 == idx10)
+				ks11 = stream[k11];
+		}
+		[branch]
+		if (idx01 != idx00)
+		{
+			DecryptData(stream, tex0, tex1, texSampler, uv01, m[mip]);
+			ks01 = stream[k01];
+			if (idx11 == idx01)
+				ks11 = stream[k11];
+		}
+		[branch]
+		if (idx11 != idx00 && idx11 != idx10 && idx11 != idx01)
+		{
+			DecryptData(stream, tex0, tex1, texSampler, uv11, m[mip]);
+			ks11 = stream[k11];
+		}
+
+		const float4 c00 = GetStreamPixel(tex0, texSampler, ks00, uv00, m[mip]);
+		const float4 c10 = GetStreamPixel(tex0, texSampler, ks10, uv10, m[mip]);
+		const float4 c01 = GetStreamPixel(tex0, texSampler, ks01, uv01, m[mip]);
+		const float4 c11 = GetStreamPixel(tex0, texSampler, ks11, uv11, m[mip]);
+		const float2 f = frac(uvBilinear * originalTexSize.zw);
+		const float4 c0 = lerp(c00, c10, f.x);
+		const float4 c1 = lerp(c01, c11, f.x);
+		return lerp(c0, c1, f.y);
+	}
+#else
 	float4 c00 = DecryptTexture(tex0, tex1, texSampler, uv00, m[mip]);
 	float4 c10 = DecryptTexture(tex0, tex1, texSampler, uv10, m[mip]);
 	float4 c01 = DecryptTexture(tex0, tex1, texSampler, uv01, m[mip]);
@@ -144,6 +197,7 @@ float4 DecryptTextureBilinear(Texture2D tex0, Texture2D tex1, SamplerState texSa
 	float4 bilinear = lerp(c0, c1, f.y);
 
 	return bilinear;
+#endif
 }
 
 inline uint SimpleHash(int data[16])

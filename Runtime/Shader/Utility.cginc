@@ -19,3 +19,8 @@ float2 GetUV(int idx, int m, int woffset = 0, int hoffset = 0)
 	int h = idx / mw[m + woffset];
 	return float2((float)w/mw[m + woffset], (float)h/mh[m + hoffset]);
 }
+
+uint2 GetPixelCoord(float2 uv, int m)
+{
+	return (uint2)floor(frac(uv) * float2(mw[m + _Woffset], mh[m + _Hoffset]));
+}
