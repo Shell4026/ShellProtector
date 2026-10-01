@@ -415,11 +415,10 @@ namespace Shell.Protector
                 Texture2D mainTexture = (Texture2D)mat.mainTexture;
                 _injector.Init(_descriptor.gameObject, mainTexture, keyBytes, _keySize, materialFilter, resourceDir);
 
-                int mipRefSize = Math.Max(mat.mainTexture.width, mat.mainTexture.height);
                 var mipRefKey = TextureEncryptManager.MipReference(mainTexture);
                 if (!mips.ContainsKey(mipRefKey))
                 {
-                    Texture2D mipRef = GenerateMipRefTexture(_outputPaths.MipTextureName(mipRefSize), mipRefKey.width, mipRefKey.height, useSmallMip, mipRefKey.fullChain);
+                    Texture2D mipRef = GenerateMipRefTexture(_outputPaths.MipTextureName(mipRefKey.width, mipRefKey.height, mipRefKey.fullChain), mipRefKey.width, mipRefKey.height, useSmallMip, mipRefKey.fullChain);
                     if (mipRef != null)
                         mips.Add(mipRefKey, mipRef);
                 }
@@ -478,10 +477,8 @@ namespace Shell.Protector
                 if (fallback == null)
                     Debug.LogErrorFormat("Failed to generate fallback texture: {0}", mainTexture.name);
 
-                int maxSize = Math.Max(mainTexture.width, mainTexture.height);
-                Texture2D mipTex = mips[mipRefKey];
-                if (mipTex == null)
-                    Debug.LogWarningFormat("mip_{0} is not exsist", maxSize);
+                if (!mips.TryGetValue(mipRefKey, out Texture2D mipTex))
+                    Debug.LogWarningFormat("{0} : The mip reference texture does not exist.", mat.name);
 
                 GenerateEncryptedMaterial(_outputPaths.EncryptedMaterialName(mat), mat, encryptedShader, fallback, mipTex, otherTex, processedTexture, keyBytes);
             } // Material loop

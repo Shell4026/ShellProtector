@@ -7,7 +7,8 @@ namespace Shell.Protector
     {
         public static Material CreateEncryptedMaterial(Material source, Shader shader, Texture2D fallback, Texture2D mip, AuxiliaryTextures auxiliary, EncryptResult encrypted, byte[] keyBytes, int fixedKeySize, bool turnOnAllSafetyFallback, Injector injector)
         {
-            Material result = new Material(source);
+            Material result = new Material(source.shader);
+            result.CopyPropertiesFromMaterial(source);
             result.shader = shader;
             var originalTex = (Texture2D)result.mainTexture;
             injector.SetKeywords(result, auxiliary.LimTexture != null);
@@ -24,7 +25,8 @@ namespace Shell.Protector
         public static void ConfigureDecryption(Material result, Texture2D original, EncryptResult encrypted, byte[] keyBytes, int fixedKeySize, uint hashMagic)
         {
             result.SetTexture(ShaderProperties.EncryptTexture0, encrypted.Texture1);
-            result.SetTexture(ShaderProperties.EncryptTexture1, encrypted.Texture2 ?? Texture2D.blackTexture);
+            if (encrypted.Texture2 != null)
+                result.SetTexture(ShaderProperties.EncryptTexture1, encrypted.Texture2);
             for (int i = 0; i < fixedKeySize; ++i)
                 result.SetFloat(ShaderProperties.KeyPrefix + i, keyBytes[i]);
 

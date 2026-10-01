@@ -427,7 +427,18 @@ namespace Shell.Protector
 
                         TextureSettings.SetRWEnableTexture(texture);
 
-                        var result = TextureEncryptManager.EncryptTexture(texture, KeyGenerator.MakeKeyBytes(root.FixedPassword, root.UserPassword, keySize.intValue), new XXTEA());
+                        EncryptResult result;
+                        try
+                        {
+                            byte[] key = KeyGenerator.MakeKeyBytes(root.FixedPassword, root.UserPassword, keySize.intValue);
+                            var cipher = TextureEncryptManager.CreateCipher(texture, (ShellProtectorAlgorithm)algorithm.intValue, (uint)rounds.longValue);
+                            result = TextureEncryptManager.EncryptTexture(texture, key, cipher);
+                        }
+                        catch (ArgumentException e)
+                        {
+                            Debug.LogErrorFormat("{0} : {1}", texture.name, e.Message);
+                            continue;
+                        }
                         if (result.Texture1 == null)
                             continue;
 

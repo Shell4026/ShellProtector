@@ -38,8 +38,10 @@ namespace Shell.Protector
         public string Mesh { get; }
         public OutputFolders Folders { get; private set; }
 
-        public string MipTexture(int size) => Combine(Tex, "mip_" + size + ".asset");
-        public string MipTextureName(int size) => "mip_" + size + ".asset";
+        public string MipTexture(int width, int height, bool fullChain) => Combine(Tex, MipTextureName(width, height, fullChain));
+        // Legacy references are square and keep their old name; full-chain references can be rectangles.
+        public string MipTextureName(int width, int height, bool fullChain) =>
+            fullChain ? "mip_" + width + "x" + height + "_full.asset" : "mip_" + width + ".asset";
         public string EncryptedTexture(Texture2D texture, int index) => Combine(Tex, BaseName(texture) + "_encrypt" + (index == 0 ? "" : index.ToString()) + ".asset");
         public string EncryptedTextureName(Texture2D texture, int index) => BaseName(texture) + "_encrypt" + (index == 0 ? "" : index.ToString()) + ".asset";
         public string FallbackTexture(Texture2D texture) => Combine(Tex, BaseName(texture) + "_fallback.asset");
