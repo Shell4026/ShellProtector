@@ -39,9 +39,8 @@ namespace Shell.Protector.Tests.Unit
         {
             var source = Constant(16, 16, true); var cipher = new Chacha20();
             var first = TextureEncryptManager.EncryptTexture(source, Bc7TestData.Key, cipher); Own(first.Texture1);
-            byte[] nonce = (byte[])cipher.Nonce.Clone();
             var second = TextureEncryptManager.EncryptTexture(source, Bc7TestData.Key, cipher); Own(second.Texture1);
-            Assert.That(cipher.Nonce, Is.Not.EqualTo(nonce));
+            Assert.That(second.Cipher, Is.Not.EqualTo(first.Cipher));
             Assert.That(second.Texture1.GetRawTextureData(), Is.Not.EqualTo(first.Texture1.GetRawTextureData()));
         }
 

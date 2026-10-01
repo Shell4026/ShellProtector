@@ -77,20 +77,14 @@ namespace Shell.Protector.Tests
             return result;
         }
 
-        internal static Material Material(Texture2D source, EncryptResult encrypted, Chacha20 cipher)
+        internal static Material Material(Texture2D source, EncryptResult encrypted)
         {
             Shader shader = Shader.Find("Hidden/ShellProtector/BC7Test");
             if (shader == null) throw new InvalidOperationException("BC7 test shader was not imported.");
             var material = new Material(shader);
-            material.SetTexture("_EncryptTex0", encrypted.Texture1);
-            material.SetTexture("_EncryptTex1", encrypted.Texture2 ?? Texture2D.blackTexture);
+            MaterialEncryptor.ConfigureDecryption(material, source, encrypted, Key, Key.Length, 2700);
             material.SetVector("_ReferenceSize", new Vector4(1f / source.width, 1f / source.height, source.width, source.height));
             material.SetInteger("_ReferenceSrgb", UnityEngine.Experimental.Rendering.GraphicsFormatUtility.IsSRGBFormat(source.graphicsFormat) ? 1 : 0);
-            for (int i = 0; i < Key.Length; ++i) material.SetFloat("_Key" + i, Key[i]);
-            uint[] nonce = cipher.GetNonceUint3();
-            for (int i = 0; i < 3; ++i) material.SetInteger("_Nonce" + i, unchecked((int)nonce[i]));
-            material.EnableKeyword(ShaderProperties.ChachaKeyword);
-            TextureEncryptManager.ConfigureMaterial(material, source, encrypted);
             return material;
         }
 

@@ -18,7 +18,7 @@ namespace Shell.Protector.Tests.Gpu
             var cipher = new Chacha20();
             EncryptResult result = TextureEncryptManager.EncryptTexture(source, Bc7TestData.Key, cipher);
             Own(result.Texture1);
-            var material = Own(Bc7TestData.Material(source, result, cipher));
+            var material = Own(Bc7TestData.Material(source, result));
             mip = Own(new Texture2D(1, 1, TextureFormat.RGBA32, false, true));
             mip.SetPixel(0, 0, Color.black); mip.Apply(false, false);
             material.SetTexture("_MipTex", mip);
@@ -126,6 +126,29 @@ namespace Shell.Protector.Tests.Gpu
             var reference = Bc7TestData.Render(source, material, 0, 8, 8);
             var actual = Bc7TestData.Render(Texture2D.blackTexture, material, 1, 8, 8);
             Assert.That(Bc7TestData.MaxError(reference, actual), Is.Zero);
+        }
+
+        [Test]
+        public void EncryptionResultStillRendersAfterTheCipherIsReused()
+        {
+            var source = Own(Bc7TestData.Pattern(64, 32, true, false));
+            var cipher = new Chacha20();
+            var first = TextureEncryptManager.EncryptTexture(source, Bc7TestData.Key, cipher);
+            Own(first.Texture1);
+            Own(TextureEncryptManager.EncryptTexture(source, Bc7TestData.Key, cipher).Texture1);
+            Array.Clear(cipher.Nonce, 0, cipher.Nonce.Length);
+
+            var mip = Own(new Texture2D(1, 1, TextureFormat.RGBA32, false, true));
+            mip.SetPixel(0, 0, Color.black); mip.Apply(false, false);
+            var original = Own(new Material(Shader.Find("Hidden/ShellProtector/BC7Test")));
+            original.mainTexture = source;
+            var injector = new LilToonInjector();
+            injector.Init(null, source, Bc7TestData.Key, 12, 0, "Assets/ShellProtector/Runtime", cipher);
+            var material = Own(MaterialEncryptor.CreateEncryptedMaterial(original, original.shader,
+                Texture2D.blackTexture, mip, new AuxiliaryTextures(), first, Bc7TestData.Key, 16, false, injector));
+            var expected = Bc7TestData.Render(source, material, 0, source.width, source.height);
+            var actual = Bc7TestData.Render(Texture2D.blackTexture, material, 1, source.width, source.height);
+            Assert.That(Bc7TestData.MaxError(expected, actual), Is.Zero);
         }
 
         [Test]

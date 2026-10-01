@@ -222,16 +222,8 @@ namespace Shell.Protector.Benchmark
                 injector.Init(null, source, Bc7TestData.Key, 12, (int)ShellProtectorTextureFilter.Bilinear, runtimeRoot, cipher);
                 injector.SetKeywords(material);
             }
-            else material.EnableKeyword(ShaderProperties.ChachaKeyword);
-            TextureEncryptManager.ConfigureMaterial(material, source, encrypted);
-            material.SetTexture(ShaderProperties.EncryptTexture0, encrypted.Texture1);
-            material.SetTexture(ShaderProperties.EncryptTexture1, encrypted.Texture2 ?? Texture2D.blackTexture);
+            MaterialEncryptor.ConfigureDecryption(material, source, encrypted, Bc7TestData.Key, 16, 2700);
             material.SetTexture(ShaderProperties.MipTexture, mip);
-            for (int i = 0; i < 16; ++i) material.SetFloat("_Key" + i, Bc7TestData.Key[i]);
-            uint[] nonce = cipher.GetNonceUint3();
-            for (int i = 0; i < 3; ++i) material.SetInteger("_Nonce" + i, unchecked((int)nonce[i]));
-            material.SetInteger(ShaderProperties.HashMagic, 2700);
-            material.SetInteger(ShaderProperties.PasswordHash, unchecked((int)KeyGenerator.SimpleHash(Bc7TestData.Key, 2700)));
             material.mainTexture = Texture2D.blackTexture;
             return material;
         }

@@ -97,148 +97,113 @@ float4 DecryptTexture(Texture2D tex0, Texture2D tex1, SamplerState tex0Sampler, 
     return GetPixel(tex0, tex0Sampler, data, uv, m);
 }
 
-float4 DecryptTextureBox(Texture2D tex0, Texture2D tex1, SamplerState texSampler, float4 texSize, Texture2D mipTex, SamplerState mipSamp, float2 uv)
+int GetTextureMip(Texture2D mipTex, SamplerState mipSamp, float2 uv)
 {
-	float4 mipPixel = mipTex.Sample(mipSamp, uv);
-
-	int mip = round(mipPixel.r * 255 / 10); //fucking precision problems
+    const int mip = (int)round(mipTex.Sample(mipSamp, uv).r * 255 / 10);
 #ifdef _SHELL_PROTECTOR_BC7
-    mip = clamp(mip, 0, (int)_ShellSourceSampling.x - 1);
-    return DecryptTexture(tex0, tex1, texSampler, uv, mip);
+    return clamp(mip, 0, (int)_ShellSourceSampling.x - 1);
 #else
-	const int m[13] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10 }; // max size 4k
-
-    float4 c00 = DecryptTexture(tex0, tex1, texSampler, uv, m[mip]);
-
-	return c00;
+    const int levels[13] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10 };
+    return levels[mip];
 #endif
 }
+
+float4 DecryptTextureBox(Texture2D tex0, Texture2D tex1, SamplerState texSampler, float4 texSize, Texture2D mipTex, SamplerState mipSamp, float2 uv)
+{
+    return DecryptTexture(tex0, tex1, texSampler, uv, GetTextureMip(mipTex, mipSamp, uv));
+}
+
+#if defined(_SHELL_PROTECTOR_DXT) || defined(_SHELL_PROTECTOR_BLOCK_STREAM) || defined(_SHELL_PROTECTOR_BC7)
+// Legacy formats retain only the selected word; BC7 resolves a pixel while its full record is available.
+#ifdef _SHELL_PROTECTOR_BC7
+    #define SHELL_BILINEAR_TAP float4
+#else
+    #define SHELL_BILINEAR_TAP uint
+#endif
+
+SHELL_BILINEAR_TAP ReadBilinearTap(in uint data[_SHELL_PROTECTOR_DATA_LENGTH], Texture2D tex, SamplerState samp, float2 uv, int mip, bool sameUnit)
+{
+#ifdef _SHELL_PROTECTOR_BC7
+    if (sameUnit) return GetPixel(tex, samp, data, uv, mip);
+    return 0;
+#else
+    return data[GetBlockLocalIndex(uv, mip)];
+#endif
+}
+
+float4 ResolveBilinearTap(SHELL_BILINEAR_TAP tap, Texture2D tex, SamplerState samp, float2 uv, int mip)
+{
+#ifdef _SHELL_PROTECTOR_BC7
+    return tap;
+#else
+    return GetBlockPixel(tex, samp, tap, uv, mip);
+#endif
+}
+#endif
 
 float4 DecryptTextureBilinear(Texture2D tex0, Texture2D tex1, SamplerState texSampler, float4 originalTexSize, Texture2D mipTex, SamplerState mipSamp, float2 uv)
 {
-	const float4 mipPixel = mipTex.Sample(mipSamp, uv);
+    const int mip = GetTextureMip(mipTex, mipSamp, uv);
 #ifdef _SHELL_PROTECTOR_BC7
-    const int mip = clamp((int)round(mipPixel.r * 255 / 10), 0, (int)_ShellSourceSampling.x - 1);
     const float2 size = BC7MipSize(mip);
     const float2 position = uv * size - 0.5;
     const float2 baseUV = (floor(position) + 0.5) / size;
+    const float2 uvUnit = 1.0 / size;
+    const float2 f = frac(position);
+#else
+    // Preserve legacy sampling: its tap spacing is expressed in mip-zero texels.
+    const float2 uvUnit = originalTexSize.xy;
+    const float2 baseUV = uv - 0.5 * uvUnit;
+    const float2 f = frac(baseUV * originalTexSize.zw);
+#endif
     const float2 uv00 = baseUV;
-    const float2 uv10 = baseUV + float2(1.0 / size.x, 0);
-    const float2 uv01 = baseUV + float2(0, 1.0 / size.y);
-    const float2 uv11 = baseUV + 1.0 / size;
-    const int u00 = GetBlockIndex(uv00, mip), u10 = GetBlockIndex(uv10, mip);
-    const int u01 = GetBlockIndex(uv01, mip), u11 = GetBlockIndex(uv11, mip);
-    uint data[8];
+    const float2 uv10 = baseUV + float2(uvUnit.x, 0);
+    const float2 uv01 = baseUV + float2(0, uvUnit.y);
+    const float2 uv11 = baseUV + uvUnit;
+
+#if defined(_SHELL_PROTECTOR_DXT) || defined(_SHELL_PROTECTOR_BLOCK_STREAM) || defined(_SHELL_PROTECTOR_BC7)
+    const int unit00 = GetBlockIndex(uv00, mip) >> _SHELL_PROTECTOR_INDEX_ALIGNMENT;
+    const int unit10 = GetBlockIndex(uv10, mip) >> _SHELL_PROTECTOR_INDEX_ALIGNMENT;
+    const int unit01 = GetBlockIndex(uv01, mip) >> _SHELL_PROTECTOR_INDEX_ALIGNMENT;
+    const int unit11 = GetBlockIndex(uv11, mip) >> _SHELL_PROTECTOR_INDEX_ALIGNMENT;
+    uint data[_SHELL_PROTECTOR_DATA_LENGTH];
     DecryptData(data, tex0, tex1, texSampler, uv00, mip);
-    float4 c00 = GetPixel(tex0, texSampler, data, uv00, mip), c10 = 0, c01 = 0, c11 = 0;
-    if (u10 == u00) c10 = GetPixel(tex0, texSampler, data, uv10, mip);
-    if (u01 == u00) c01 = GetPixel(tex0, texSampler, data, uv01, mip);
-    if (u11 == u00) c11 = GetPixel(tex0, texSampler, data, uv11, mip);
+    SHELL_BILINEAR_TAP tap00 = ReadBilinearTap(data, tex0, texSampler, uv00, mip, true);
+    SHELL_BILINEAR_TAP tap10 = ReadBilinearTap(data, tex0, texSampler, uv10, mip, unit10 == unit00);
+    SHELL_BILINEAR_TAP tap01 = ReadBilinearTap(data, tex0, texSampler, uv01, mip, unit01 == unit00);
+    SHELL_BILINEAR_TAP tap11 = ReadBilinearTap(data, tex0, texSampler, uv11, mip, unit11 == unit00);
     [branch]
-    if (u10 != u00)
+    if (unit10 != unit00)
     {
         DecryptData(data, tex0, tex1, texSampler, uv10, mip);
-        c10 = GetPixel(tex0, texSampler, data, uv10, mip);
-        if (u11 == u10) c11 = GetPixel(tex0, texSampler, data, uv11, mip);
+        tap10 = ReadBilinearTap(data, tex0, texSampler, uv10, mip, true);
+        if (unit11 == unit10) tap11 = ReadBilinearTap(data, tex0, texSampler, uv11, mip, true);
     }
     [branch]
-    if (u01 != u00)
+    if (unit01 != unit00)
     {
         DecryptData(data, tex0, tex1, texSampler, uv01, mip);
-        c01 = GetPixel(tex0, texSampler, data, uv01, mip);
-        if (u11 == u01) c11 = GetPixel(tex0, texSampler, data, uv11, mip);
+        tap01 = ReadBilinearTap(data, tex0, texSampler, uv01, mip, true);
+        if (unit11 == unit01) tap11 = ReadBilinearTap(data, tex0, texSampler, uv11, mip, true);
     }
     [branch]
-    if (u11 != u00 && u11 != u10 && u11 != u01)
+    if (unit11 != unit00 && unit11 != unit10 && unit11 != unit01)
     {
         DecryptData(data, tex0, tex1, texSampler, uv11, mip);
-        c11 = GetPixel(tex0, texSampler, data, uv11, mip);
+        tap11 = ReadBilinearTap(data, tex0, texSampler, uv11, mip, true);
     }
-    const float2 f = frac(position);
-    return lerp(lerp(c00, c10, f.x), lerp(c01, c11, f.x), f.y);
+    const float4 c00 = ResolveBilinearTap(tap00, tex0, texSampler, uv00, mip);
+    const float4 c10 = ResolveBilinearTap(tap10, tex0, texSampler, uv10, mip);
+    const float4 c01 = ResolveBilinearTap(tap01, tex0, texSampler, uv01, mip);
+    const float4 c11 = ResolveBilinearTap(tap11, tex0, texSampler, uv11, mip);
 #else
-	const float2 uvUnit = originalTexSize.xy;
-	//bilinear interpolation
-	const float2 uvBilinear = uv - 0.5 * uvUnit;
-	const int mip = round(mipPixel.r * 255 / 10); //fucking precision problems
-	const int m[13] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10 }; // max size 4k
-
-	const float2 uv00 = uvBilinear + float2(uvUnit.x * 0, uvUnit.y * 0);
-	const float2 uv10 = uvBilinear + float2(uvUnit.x * 1, uvUnit.y * 0);
-	const float2 uv01 = uvBilinear + float2(uvUnit.x * 0, uvUnit.y * 1);
-	const float2 uv11 = uvBilinear + float2(uvUnit.x * 1, uvUnit.y * 1);
-
-#if defined(_SHELL_PROTECTOR_DXT) || defined(_SHELL_PROTECTOR_BLOCK_STREAM)
-	{
-		// One decryption covers a whole unit (DXT: 2 blocks = 8x4 texels, ChaCha RGB/RGBA: 4x4 pixels).
-		// Decrypt again only for the taps that land in another unit, so a warp only pays for the crossings
-		// its lanes actually hit (at most 4, same as decrypting every tap).
-		const int unit00 = GetBlockIndex(uv00, m[mip]) >> _SHELL_PROTECTOR_INDEX_ALIGNMENT;
-		const int unit10 = GetBlockIndex(uv10, m[mip]) >> _SHELL_PROTECTOR_INDEX_ALIGNMENT;
-		const int unit01 = GetBlockIndex(uv01, m[mip]) >> _SHELL_PROTECTOR_INDEX_ALIGNMENT;
-		const int unit11 = GetBlockIndex(uv11, m[mip]) >> _SHELL_PROTECTOR_INDEX_ALIGNMENT;
-		const int k00 = GetBlockLocalIndex(uv00, m[mip]);
-		const int k10 = GetBlockLocalIndex(uv10, m[mip]);
-		const int k01 = GetBlockLocalIndex(uv01, m[mip]);
-		const int k11 = GetBlockLocalIndex(uv11, m[mip]);
-
-		uint data[_SHELL_PROTECTOR_DATA_LENGTH];
-		DecryptData(data, tex0, tex1, texSampler, uv00, m[mip]);
-		const uint word00 = data[k00];
-		uint word10 = data[k10];
-		uint word01 = data[k01];
-		uint word11 = data[k11];
-
-		[branch]
-		if (unit10 != unit00)
-		{
-			DecryptData(data, tex0, tex1, texSampler, uv10, m[mip]);
-			word10 = data[k10];
-			if (unit11 == unit10)
-				word11 = data[k11];
-		}
-		[branch]
-		if (unit01 != unit00)
-		{
-			DecryptData(data, tex0, tex1, texSampler, uv01, m[mip]);
-			word01 = data[k01];
-			if (unit11 == unit01)
-				word11 = data[k11];
-		}
-		[branch]
-		if (unit11 != unit00 && unit11 != unit10 && unit11 != unit01)
-		{
-			DecryptData(data, tex0, tex1, texSampler, uv11, m[mip]);
-			word11 = data[k11];
-		}
-
-		const float4 c00 = GetBlockPixel(tex0, texSampler, word00, uv00, m[mip]);
-		const float4 c10 = GetBlockPixel(tex0, texSampler, word10, uv10, m[mip]);
-		const float4 c01 = GetBlockPixel(tex0, texSampler, word01, uv01, m[mip]);
-		const float4 c11 = GetBlockPixel(tex0, texSampler, word11, uv11, m[mip]);
-		const float2 f = frac(uvBilinear * originalTexSize.zw);
-		const float4 c0 = lerp(c00, c10, f.x);
-		const float4 c1 = lerp(c01, c11, f.x);
-		return lerp(c0, c1, f.y);
-	}
-#else
-	float4 c00 = DecryptTexture(tex0, tex1, texSampler, uv00, m[mip]);
-	float4 c10 = DecryptTexture(tex0, tex1, texSampler, uv10, m[mip]);
-	float4 c01 = DecryptTexture(tex0, tex1, texSampler, uv01, m[mip]);
-	float4 c11 = DecryptTexture(tex0, tex1, texSampler, uv11, m[mip]);
-
-	float2 f = frac(uvBilinear * originalTexSize.zw);
-
-	float4 c0 = lerp(c00, c10, f.x);
-	float4 c1 = lerp(c01, c11, f.x);
-
-	float4 bilinear = lerp(c0, c1, f.y);
-
-	return bilinear;
+    const float4 c00 = DecryptTexture(tex0, tex1, texSampler, uv00, mip);
+    const float4 c10 = DecryptTexture(tex0, tex1, texSampler, uv10, mip);
+    const float4 c01 = DecryptTexture(tex0, tex1, texSampler, uv01, mip);
+    const float4 c11 = DecryptTexture(tex0, tex1, texSampler, uv11, mip);
 #endif
-#endif // BC7 / legacy formats
+    return lerp(lerp(c00, c10, f.x), lerp(c01, c11, f.x), f.y);
 }
-
 inline uint SimpleHash(int data[16])
 {
     uint hash = 0x811C9DC5u;

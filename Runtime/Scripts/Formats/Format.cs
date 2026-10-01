@@ -1,4 +1,3 @@
-using Shell.Protector;
 using UnityEngine;
 
 namespace Shell.Protector
@@ -7,6 +6,30 @@ namespace Shell.Protector
         public Texture2D Texture1;
         public Texture2D Texture2;
         public EncryptedTextureLayout Layout;
+        public readonly EncryptionParameters Cipher;
+
+        public EncryptResult(IEncryptor algorithm) {
+            Texture1 = Texture2 = null;
+            Layout = null;
+            Cipher = new EncryptionParameters(algorithm);
+        }
+    }
+
+    // Value snapshot: later encryptions cannot change how this result is decrypted.
+    public readonly struct EncryptionParameters {
+        public readonly string Keyword;
+        public readonly uint Nonce0, Nonce1, Nonce2, Rounds;
+
+        public EncryptionParameters(IEncryptor algorithm) {
+            Keyword = algorithm.Keyword;
+            Nonce0 = Nonce1 = Nonce2 = Rounds = 0;
+            if (algorithm is Chacha20 chacha) {
+                uint[] nonce = chacha.GetNonceUint3();
+                Nonce0 = nonce[0]; Nonce1 = nonce[1]; Nonce2 = nonce[2];
+            }
+            else if (algorithm is XXTEA xxtea)
+                Rounds = xxtea.Rounds;
+        }
     }
 
     public interface ITextureFormat {

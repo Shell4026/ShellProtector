@@ -524,7 +524,7 @@ namespace Shell.Protector
                 if (mipTex == null)
                     Debug.LogWarningFormat("mip_{0} is not exsist", maxSize);
 
-                GenerateEncryptedMaterial(_outputPaths.EncryptedMaterialName(mat), mat, encryptedShader, fallback, mipTex, otherTex, processedTexture, keyBytes, encryptor);
+                GenerateEncryptedMaterial(_outputPaths.EncryptedMaterialName(mat), mat, encryptedShader, fallback, mipTex, otherTex, processedTexture, keyBytes);
             } // Material loop
             EditorUtility.ClearProgressBar();
 
@@ -1194,8 +1194,7 @@ namespace Shell.Protector
                 {
                     Encrypted = new EncryptResult(),
                     Fallbacks = new List<Texture2D>(),
-                    FallbackOptions = new List<int>(),
-                    Nonce = new byte[12]
+                    FallbackOptions = new List<int>()
                 };
             }
 
@@ -1208,11 +1207,6 @@ namespace Shell.Protector
                     byte[] hashMat = KeyGenerator.GetHash(mat.GetInstanceID());
                     for (int i = 0; i < chacha.Nonce.Length; ++i)
                         chacha.Nonce[i] ^= hashMat[i];
-                }
-                else if (processed)
-                {
-                    byte[] nonce = ProcessedTextures[mainTexture].Nonce;
-                    Array.Copy(nonce, 0, chacha.Nonce, 0, chacha.Nonce.Length);
                 }
             }
 
@@ -1233,9 +1227,6 @@ namespace Shell.Protector
                     _assetWriter.CreateAssetInFolder(encryptResult.Texture2, paths.Folders.TexGuid, texName2);
 
                 processedTexture.Encrypted = encryptResult;
-                if (encryptor is Chacha20 encryptedChacha)
-                    Array.Copy(encryptedChacha.Nonce, processedTexture.Nonce, processedTexture.Nonce.Length);
-
                 ProcessedTextures.Add(mainTexture, processedTexture);
             }
 
@@ -1316,10 +1307,11 @@ namespace Shell.Protector
 
             return fallback;
         }
-        Material GenerateEncryptedMaterial(string fileName, Material mat, Shader encryptedShader, Texture2D fallback, Texture2D mip, AuxiliaryTextures otherTex, ProcessedTexture processedTexture, byte[] keyBytes, IEncryptor encryptor)
+        Material GenerateEncryptedMaterial(string fileName, Material mat, Shader encryptedShader, Texture2D fallback, Texture2D mip, AuxiliaryTextures otherTex, ProcessedTexture processedTexture, byte[] keyBytes)
         {
-            MaterialEncryptor materialEncryptor = new MaterialEncryptor(_assetWriter, _turnOnAllSafetyFallback, _algorithm, _rounds);
-            Material newMat = materialEncryptor.CreateEncryptedMaterial(GetOutputPaths().Folders.MatGuid, fileName, mat, encryptedShader, fallback, mip, otherTex, processedTexture, keyBytes, 16 - _keySize, encryptor, _injector);
+            Material newMat = MaterialEncryptor.CreateEncryptedMaterial(mat, encryptedShader, fallback, mip, otherTex, processedTexture.Encrypted, keyBytes, 16 - _keySize, _turnOnAllSafetyFallback, _injector);
+            _assetWriter.CreateAssetInFolder(newMat, GetOutputPaths().Folders.MatGuid, fileName);
+            _assetWriter.SaveAndRefresh();
             Debug.LogFormat("{0} : create encrypted material : {1}", mat.name, AssetDatabase.GetAssetPath(newMat));
 
             if (!EncryptedMaterials.ContainsKey(mat))

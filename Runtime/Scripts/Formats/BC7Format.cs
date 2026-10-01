@@ -45,7 +45,7 @@ namespace Shell.Protector
             result.wrapMode = TextureWrapMode.Clamp;
             result.LoadRawTextureData(atlas);
             result.Apply(false, false);
-            return new EncryptResult { Texture1 = result, Layout = layout };
+            return new EncryptResult(algorithm) { Texture1 = result, Layout = layout };
         }
 
         public override void SetFormatKeywords(Material material)

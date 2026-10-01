@@ -71,7 +71,7 @@ namespace Shell.Protector
             int mip_lv = GetCanMipmapLevel(texture.width / 4, texture.height / 4);
             Texture2D dxt1 = HandleCrunchedFormat(texture, mip_lv, false);
             
-            var result = new EncryptResult();
+            var result = new EncryptResult(algorithm);
             if (mip_lv != 0) {
                 result.Texture1 = new Texture2D(dxt1.width, dxt1.height, TextureFormat.DXT1, mip_lv, true);
                 result.Texture2 = new Texture2D(dxt1.width / 4, dxt1.height / 4, TextureFormat.RGBA32, mip_lv, true);
@@ -146,7 +146,7 @@ namespace Shell.Protector
             int mip_lv = GetCanMipmapLevel(texture.width / 4, texture.height / 4);
             Texture2D dxt5 = HandleCrunchedFormat(texture, mip_lv, true);
             
-            var result = new EncryptResult();
+            var result = new EncryptResult(algorithm);
             if (mip_lv != 0) {
                 result.Texture1 = new Texture2D(texture.width, texture.height, TextureFormat.DXT5, mip_lv, true);
                 result.Texture2 = new Texture2D(texture.width / 4, texture.height / 4, TextureFormat.RGBA32, mip_lv, true);

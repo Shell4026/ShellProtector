@@ -9,7 +9,6 @@ namespace Shell.Protector
         public EncryptResult Encrypted;
         public List<Texture2D> Fallbacks;
         public List<int> FallbackOptions;
-        public byte[] Nonce;
     }
 
     public struct AuxiliaryTextures

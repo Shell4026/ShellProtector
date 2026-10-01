@@ -68,7 +68,7 @@ namespace Shell.Protector
         }
 
         public override EncryptResult Encrypt(Texture2D texture, byte[] key, IEncryptor algorithm) {
-            var result = new EncryptResult();
+            var result = new EncryptResult(algorithm);
             result.Texture1 = CreateResultTexture(texture, TextureFormat.RGB24);
 
             var key_uint = ConvertKeyToUInt(key);
@@ -129,7 +129,7 @@ namespace Shell.Protector
         }
 
         public override EncryptResult Encrypt(Texture2D texture, byte[] key, IEncryptor algorithm) {
-            var result = new EncryptResult();
+            var result = new EncryptResult(algorithm);
             result.Texture1 = CreateResultTexture(texture, TextureFormat.RGBA32);
 
             var key_uint = ConvertKeyToUInt(key);

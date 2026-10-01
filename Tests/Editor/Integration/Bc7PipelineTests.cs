@@ -136,7 +136,7 @@ namespace Shell.Protector.Tests.Integration
             var source = Bc7TestData.Pattern(64, 32, true, true);
             var cipher = new Chacha20();
             var encrypted = TextureEncryptManager.EncryptTexture(source, Bc7TestData.Key, cipher);
-            var material = Bc7TestData.Material(source, encrypted, cipher);
+            var material = Bc7TestData.Material(source, encrypted);
             var mip = new Texture2D(1, 1, TextureFormat.RGBA32, false, true);
             mip.SetPixel(0, 0, Color.black); mip.Apply(false, false); material.SetTexture("_MipTex", mip);
             TestAssetScope.CreateAsset(encrypted.Texture1, "Bundle/atlas.asset");

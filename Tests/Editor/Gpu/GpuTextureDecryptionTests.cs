@@ -87,6 +87,17 @@ namespace Shell.Protector.Tests.Gpu
             return chacha;
         }
 
+        [TestCase(TextureFormat.RGB24, false)] [TestCase(TextureFormat.RGB24, true)]
+        [TestCase(TextureFormat.RGBA32, false)] [TestCase(TextureFormat.RGBA32, true)]
+        [TestCase(TextureFormat.DXT1, false)] [TestCase(TextureFormat.DXT1, true)]
+        [TestCase(TextureFormat.DXT5, false)] [TestCase(TextureFormat.DXT5, true)]
+        public void EncryptionResultRetainsCipherSettingsAfterTheCipherChanges(TextureFormat format, bool xxtea)
+        {
+            IEncryptor cipher = xxtea ? (IEncryptor)new XXTEA { Rounds = 20 } : CreateChacha();
+            AssertDecryptsToOriginalGpuSample(format, format == TextureFormat.RGBA32 || format == TextureFormat.DXT5,
+                false, cipher, null, useCapturedSettings: true);
+        }
+
         private static void ConfigureChacha(Material material, Chacha20 chacha)
         {
             uint[] nonce = chacha.GetNonceUint3();
@@ -95,7 +106,7 @@ namespace Shell.Protector.Tests.Gpu
             material.SetInteger("_Nonce2", unchecked((int)nonce[2]));
         }
 
-        private void AssertDecryptsToOriginalGpuSample(TextureFormat format, bool alpha, bool bilinear, IEncryptor encryptor, Action<Material> configureCipher, int mip = 0)
+        private void AssertDecryptsToOriginalGpuSample(TextureFormat format, bool alpha, bool bilinear, IEncryptor encryptor, Action<Material> configureCipher, int mip = 0, bool useCapturedSettings = false)
         {
             Texture2D original = TestAssetScope.CreatePatternTexture(Size, Size, format, alpha);
             original.filterMode = FilterMode.Point;
@@ -104,6 +115,16 @@ namespace Shell.Protector.Tests.Gpu
             EncryptResult encrypted = TextureEncryptManager.EncryptTexture(original, KeyBytes, encryptor);
             FinalizeTexture(encrypted.Texture1);
             FinalizeTexture(encrypted.Texture2);
+
+            if (useCapturedSettings)
+            {
+                if (encryptor is Chacha20 chacha)
+                    Array.Clear(chacha.Nonce, 0, chacha.Nonce.Length);
+                else if (encryptor is XXTEA xxtea)
+                    xxtea.Rounds = 1;
+                configureCipher = material => MaterialEncryptor.ConfigureDecryption(material, original, encrypted,
+                    KeyBytes, KeyBytes.Length, 0x12345678u);
+            }
 
             ConfigureReferenceMaterial(original, mip);
             ConfigureDecryptMaterial(original, encrypted, encryptor, configureCipher, mip);

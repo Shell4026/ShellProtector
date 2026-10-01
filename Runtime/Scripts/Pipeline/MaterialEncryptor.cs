@@ -3,68 +3,48 @@ using UnityEngine;
 
 namespace Shell.Protector
 {
-    internal sealed class MaterialEncryptor
+    public static class MaterialEncryptor
     {
-        readonly AssetWriter writer;
-        readonly bool turnOnAllSafetyFallback;
-        readonly int algorithm;
-        readonly uint rounds;
-
-        public MaterialEncryptor(AssetWriter writer, bool turnOnAllSafetyFallback, int algorithm, uint rounds)
+        public static Material CreateEncryptedMaterial(Material source, Shader shader, Texture2D fallback, Texture2D mip, AuxiliaryTextures auxiliary, EncryptResult encrypted, byte[] keyBytes, int fixedKeySize, bool turnOnAllSafetyFallback, Injector injector)
         {
-            this.writer = writer;
-            this.turnOnAllSafetyFallback = turnOnAllSafetyFallback;
-            this.algorithm = algorithm;
-            this.rounds = rounds;
-        }
-
-        public Material CreateEncryptedMaterial(string folderGuid, string fileName, Material source, Shader shader, Texture2D fallback, Texture2D mip, AuxiliaryTextures auxiliary, ProcessedTexture texture, byte[] keyBytes, int fixedKeySize, IEncryptor encryptor, Injector injector)
-        {
-            Material result = new Material(source.shader);
-            result.CopyPropertiesFromMaterial(source);
+            Material result = new Material(source);
             result.shader = shader;
             var originalTex = (Texture2D)result.mainTexture;
+            injector.SetKeywords(result, auxiliary.LimTexture != null);
+            ConfigureDecryption(result, originalTex, encrypted, keyBytes, fixedKeySize, (uint)source.GetInstanceID());
             result.mainTexture = fallback;
-
-            if (texture.Encrypted.Texture1 != null)
-                result.SetTexture(ShaderProperties.EncryptTexture0, texture.Encrypted.Texture1);
-            if (texture.Encrypted.Texture2 != null)
-                result.SetTexture(ShaderProperties.EncryptTexture1, texture.Encrypted.Texture2);
-
             result.SetTexture(ShaderProperties.MipTexture, mip);
             result.renderQueue = source.renderQueue;
             if (turnOnAllSafetyFallback)
                 result.SetOverrideTag("VRCFallback", "Unlit");
+            return result;
+        }
 
+        // Configures an in-memory material; callers own asset persistence and shader injection.
+        public static void ConfigureDecryption(Material result, Texture2D original, EncryptResult encrypted, byte[] keyBytes, int fixedKeySize, uint hashMagic)
+        {
+            result.SetTexture(ShaderProperties.EncryptTexture0, encrypted.Texture1);
+            result.SetTexture(ShaderProperties.EncryptTexture1, encrypted.Texture2 ?? Texture2D.blackTexture);
             for (int i = 0; i < fixedKeySize; ++i)
                 result.SetFloat(ShaderProperties.KeyPrefix + i, keyBytes[i]);
 
-            if (algorithm == (int)ShellProtectorAlgorithm.Chacha)
+            var cipher = encrypted.Cipher;
+            result.DisableKeyword(ShaderProperties.ChachaKeyword);
+            result.DisableKeyword(ShaderProperties.XXTEAKeyword);
+            result.EnableKeyword(cipher.Keyword);
+            if (cipher.Keyword == ShaderProperties.ChachaKeyword)
             {
-                Chacha20 chacha = encryptor as Chacha20;
-                result.SetInteger(ShaderProperties.Nonce0, (int)chacha.GetNonceUint3()[0]);
-                result.SetInteger(ShaderProperties.Nonce1, (int)chacha.GetNonceUint3()[1]);
-                result.SetInteger(ShaderProperties.Nonce2, (int)chacha.GetNonceUint3()[2]);
+                result.SetInteger(ShaderProperties.Nonce0, unchecked((int)cipher.Nonce0));
+                result.SetInteger(ShaderProperties.Nonce1, unchecked((int)cipher.Nonce1));
+                result.SetInteger(ShaderProperties.Nonce2, unchecked((int)cipher.Nonce2));
             }
-            else if (algorithm == (int)ShellProtectorAlgorithm.XXTEA)
-            {
-                result.SetInteger(ShaderProperties.Rounds, (int)rounds);
-            }
+            else if (cipher.Keyword == ShaderProperties.XXTEAKeyword)
+                result.SetInteger(ShaderProperties.Rounds, (int)cipher.Rounds);
 
-            var key = new byte[16];
-            for (int i = 0; i < 16; i++)
-                key[i] = keyBytes[i];
-
-            uint hashMagic = (uint)source.GetInstanceID();
-            var hash = KeyGenerator.SimpleHash(key, hashMagic);
+            var hash = KeyGenerator.SimpleHash(keyBytes, hashMagic);
             result.SetInteger(ShaderProperties.HashMagic, (int)hashMagic);
             result.SetInteger(ShaderProperties.PasswordHash, (int)hash);
-
-            injector.SetKeywords(result, auxiliary.LimTexture != null);
-            TextureEncryptManager.ConfigureMaterial(result, originalTex, texture.Encrypted);
-            writer.CreateAssetInFolder(result, folderGuid, fileName);
-            writer.SaveAndRefresh();
-            return result;
+            TextureEncryptManager.ConfigureMaterial(result, original, encrypted);
         }
     }
 }
