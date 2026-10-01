@@ -26,8 +26,10 @@ Source code of OSC: https://github.com/Shell4026/ShellProtectorOSC
 - RGB24, RGBA32
 - DXT1, DXT5
 - The Crunch Compression format will auto-convert to DXT1 or DXT5.
-- **BC7 is not supported**
-	- For textures without transparency, halving the size while keeping the RGB24 format will result in similar quality and texture size.
+- BC7
+	- BC7 textures are always encrypted with Chacha8, even when the encryption algorithm is set to XXTEA.
+	- They use about 2 bytes per pixel: twice the original BC7, half of RGBA32.
+- Every format supports up to 4096px per side. If a larger texture is found, encryption stops with a warning.
 
 ## Features
 - Texture Encryption
@@ -72,7 +74,8 @@ It is applied by default from version 2.5.0beta.
 
 ### Avatar fallback
 A feature that allows anyone with Safety On when encryption is in place to appear as a degraded version of themselves when viewing your avatar.</br>
-It appears as a fallback texture even when the encryption hasn't been decrypted.
+It appears as a fallback texture even when the encryption hasn't been decrypted.</br>
+The fallback texture is reduced so it is never larger than half of the source's shorter side. If that would be smaller than 4px, a black texture is used.
 ![fallback](https://github.com/user-attachments/assets/d3ca69b0-ff08-4793-a4e4-73269bc8efd3)
 
 ## Troubleshooting
@@ -80,9 +83,13 @@ If you find the issue, please raise it in Issues.
 
 **[is not supported texture format! Error]**
 
-Select the texture and change the compression format to either DXT1/RGB24 or DXT5/RGBA32 in the Inspector. (DXT5 for textures with transparency)
+Select the texture and change the compression format to DXT1/RGB24, DXT5/RGBA32 or BC7 in the Inspector. (DXT5 or BC7 for textures with transparency)
 
 ![texture](https://github.com/Shell4026/ShellProtector/assets/104874910/872f9d15-7b89-4381-b940-00514bd60638)
+
+**[Encryption stops with a warning about a texture larger than 4096px]**
+
+Select the texture named in the warning, lower its Max Size to 4096 or less in the Inspector, and encrypt again.
 
 **[liltoon)At testor component, it doesn't come back to normal]**.
 
@@ -116,6 +123,8 @@ The exceptions are the limlight and outline textures, which will not be removed 
    
 ## How it works
 Encrypt the texture using an XXTEA/Chacha8 algorithm after transforming the key with SHA-256.
+
+DXT1/DXT5 textures only have their colors encrypted to save space, so part of the original shape remains. BC7 textures are encrypted block by block in full, so no shape remains, at the cost of more memory.
 
 After encrypting the texture itself, it is uploaded to the VRChat server. The texture is then decrypted in the game via shaders.
 
@@ -155,6 +164,3 @@ A 0-byte user key is a minimal defense, and should be effective against toolkidd
 <br/><br/><br/>
 There is no such thing as perfect security, and while this method is not straightforward, there is a possibility that someone persistently analyzing a their network packets within the same world could find keys.<br/> 
 However, if you use a sufficiently large key size, it is possible to completely prevent someone from indiscriminately extracting and sharing a user's avatar.
-
-## feature
-- Support BC7
