@@ -442,7 +442,7 @@ namespace Shell.Protector
                 //////////////////////Inject shader///////////////////////
                 AuxiliaryTextures otherTex = GetLimOutlineTextures(mat);
                 Shader encryptedShader = IsEncryptedBefore(mat.shader);
-                if (!_injector.CanReuseShader(encryptedShader, processedTexture.Encrypted))
+                if (!_injector.CanReuseShader(encryptedShader))
                     encryptedShader = null;
                 if (encryptedShader == null)
                 {

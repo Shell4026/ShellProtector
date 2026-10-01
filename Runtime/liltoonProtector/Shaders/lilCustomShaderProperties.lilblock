@@ -8,6 +8,7 @@
         [HideInInspector] _ShellMipOffsets1("Mip offsets 1", Vector) = (0,0,0,0)
         [HideInInspector] _ShellMipOffsets2("Mip offsets 2", Vector) = (0,0,0,0)
         [HideInInspector] _ShellMipOffsets3("Mip offsets 3", Vector) = (0,0,0,0)
+        [HideInInspector] _ShellInjectedVersion("Injected version", Integer) = 1
         _Key0 ("key0", float) = 0
         _Key1 ("key1", float) = 0
         _Key2 ("key2", float) = 0

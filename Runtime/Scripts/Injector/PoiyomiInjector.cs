@@ -10,13 +10,6 @@ namespace Shell.Protector
 {
     public class PoiyomiInjector : Injector
     {
-        public override bool CanReuseShader(Shader shader, EncryptResult encrypted)
-        {
-            if (!base.CanReuseShader(shader, encrypted)) return false;
-            int property = shader.FindPropertyIndex(ShaderProperties.InjectedFilter);
-            return property >= 0 && shader.GetPropertyDefaultIntValue(property) == Filter;
-        }
-
         public override bool CanHandle(Shader shader)
         {
             return ShaderManager.IsPoiyomi(shader);
@@ -93,13 +86,7 @@ namespace Shell.Protector
                 shaderData = Regex.Replace(shaderData, "float4 frag\\(", "#include \"" + decodeDir + "\"\n\t\t\tfloat4 frag(");
                 shaderData = Regex.Replace(shaderData, "struct VertexOut[\r\n]+[ \t]*\\{", string.Format("{0}\r\n{1}", includeStr, vertexOut));
                 shaderData = InjectVertexDecryptionState(shaderData);
-                string shaderCode = ShaderCodeNoFilter;
-                if (Filter == 0)
-                    shaderCode = ShaderCodeNoFilter;
-                else if (Filter == 1)
-                    shaderCode = ShaderCodeBilinear;
-
-                shaderData = Regex.Replace(shaderData, "float4 mainTexture = .*?;", string.Format("bool isDecrypted = i.isDecrypted == 1;\r\n{0}", shaderCode));
+                shaderData = Regex.Replace(shaderData, "float4 mainTexture = .*?;", string.Format("bool isDecrypted = i.isDecrypted == 1;\r\n{0}", ShaderCode));
                 if (hasLimTexture)
                 {
                     if(version == 80)
@@ -169,8 +156,7 @@ namespace Shell.Protector
 
                 for (int i = 0; i < 4; ++i)
                     properties += "[HideInInspector] " + ShaderProperties.MipOffsetsPrefix + i + " (\"Mip offsets\", Vector) = (0,0,0,0)\n";
-                // Sampling is baked into this injected shader. Cache lookup must distinguish it.
-                properties += "[HideInInspector] " + ShaderProperties.InjectedFilter + " (\"Injected filter\", Integer) = " + Filter + "\n";
+                properties += "[HideInInspector] " + ShaderProperties.InjectedShaderVersion + " (\"Injected version\", Integer) = " + CurrentInjectedShaderVersion + "\n";
 
                 for (int i = 0; i < 16; ++i)
                     properties += ShaderProperties.KeyPrefix + i + " (\"key" + i + "\", float) = 0\n";

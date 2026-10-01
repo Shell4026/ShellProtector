@@ -13,26 +13,24 @@ namespace Shell.Protector
         protected string AssetDir;
         protected int UserKeyLength = 4;
 
-        protected string ShaderCodeNoFilter = @"
-				half4 mainTexture;
+        // Bump when injected shaders gain features that materials from this version rely on.
+        // Cached shaders below this version are injected again. Keep lilCustomShaderProperties.lilblock in sync.
+        public const int CurrentInjectedShaderVersion = 1;
 
-                UNITY_BRANCH
-                if(isDecrypted)
-                {
-				    mainTexture = DecryptTextureBox(_EncryptTex0, _EncryptTex1, sampler_EncryptTex0, _EncryptTex0_TexelSize, _MipTex, sampler_MipTex, mainUV);
-                }
-                else
-                {
-                    mainTexture = _MainTex.Sample(sampler_MainTex, mainUV);
-                }
-        ";
-        protected string ShaderCodeBilinear = @"
+        // The filter is a material keyword, so one injected shader serves every filter.
+        // No source line may start with '#': player builds skip this UNITY_EDITOR region, and the
+        // C# preprocessor still reads such lines as directives there, even inside a string.
+        protected string ShaderCode = @"
                 half4 mainTexture;
 
                 UNITY_BRANCH
                 if(isDecrypted)
                 {
+" + "#ifdef _SHELL_PROTECTOR_POINT" + @"
+				    mainTexture = DecryptTextureBox(_EncryptTex0, _EncryptTex1, sampler_EncryptTex0, _EncryptTex0_TexelSize, _MipTex, sampler_MipTex, mainUV);
+" + "#else" + @"
 				    mainTexture = DecryptTextureBilinear(_EncryptTex0, _EncryptTex1, sampler_EncryptTex0, _EncryptTex0_TexelSize, _MipTex, sampler_MipTex, mainUV);
+" + "#endif" + @"
                 }
                 else
                 {
@@ -76,9 +74,12 @@ namespace Shell.Protector
 
         public abstract bool CanHandle(Shader shader);
 
-        public virtual bool CanReuseShader(Shader shader, EncryptResult encrypted)
+        public bool CanReuseShader(Shader shader)
         {
-            return shader != null && (encrypted.Layout == null || shader.FindPropertyIndex(ShaderProperties.BC7LayoutVersion) >= 0);
+            if (shader == null)
+                return false;
+            int property = shader.FindPropertyIndex(ShaderProperties.InjectedShaderVersion);
+            return property >= 0 && shader.GetPropertyDefaultIntValue(property) >= CurrentInjectedShaderVersion;
         }
 
         public bool WasInjected(Shader shader)
@@ -93,7 +94,7 @@ namespace Shell.Protector
 
         // Shader-side options only. MaterialEncryptor.ConfigureDecryption sets the cipher and format
         // keywords from the encryption result.
-        public virtual void SetKeywords(Material material, bool hasLimTexture = false)
+        public void SetKeywords(Material material, bool hasLimTexture = false)
         {
             // Clear keywords prefixed with _SHELL_PROTECTOR_
             var keywords = material.shaderKeywords;
@@ -107,6 +108,9 @@ namespace Shell.Protector
             // Set rimlight keyword
             if (hasLimTexture)
                 material.EnableKeyword(ShaderProperties.RimLightKeyword);
+
+            if (Filter == (int)ShellProtectorTextureFilter.Point)
+                material.EnableKeyword(ShaderProperties.PointKeyword);
         }
 
         public Shader Inject(Material material, string decoderPath, string outputPath, Texture2D mainTexture, AuxiliaryTextures auxiliaryTextures)

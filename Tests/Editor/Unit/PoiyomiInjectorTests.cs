@@ -2,6 +2,9 @@
 using System.Reflection;
 using System.Text.RegularExpressions;
 using NUnit.Framework;
+using UnityEditor;
+using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace Shell.Protector.Tests.Unit
 {
@@ -72,6 +75,48 @@ VertexOut vert(appdata v)
                 BindingFlags.Static | BindingFlags.NonPublic);
             Assert.That(method, Is.Not.Null);
             return (string)method.Invoke(null, new object[] { source });
+        }
+    }
+
+    public class InjectorTests
+    {
+        [TestCase(null, false)]
+        [TestCase(0, false)]
+        [TestCase(Injector.CurrentInjectedShaderVersion, true)]
+        public void CanReuseShader_RequiresTheCurrentInjectedVersion(int? version, bool expected)
+        {
+            string property = version.HasValue
+                ? "[HideInInspector] " + ShaderProperties.InjectedShaderVersion + " (\"Injected version\", Integer) = " + version.Value
+                : "";
+            Shader shader = ShaderUtil.CreateShaderAsset("Shader \"Hidden/ShellInjectedVersionTest\" { Properties { " + property + " } SubShader { Pass { } } }", false);
+            try
+            {
+                Assert.That(new PoiyomiInjector().CanReuseShader(shader), Is.EqualTo(expected));
+            }
+            finally
+            {
+                Object.DestroyImmediate(shader);
+            }
+        }
+
+        [TestCase(false, ShellProtectorTextureFilter.Point, true)]
+        [TestCase(false, ShellProtectorTextureFilter.Bilinear, false)]
+        [TestCase(true, ShellProtectorTextureFilter.Point, true)]
+        [TestCase(true, ShellProtectorTextureFilter.Bilinear, false)]
+        public void SetKeywords_SelectsThePointFilterWithAKeyword(bool lilToon, ShellProtectorTextureFilter filter, bool point)
+        {
+            var material = new Material(Shader.Find("Hidden/GpuDecryptTest"));
+            try
+            {
+                Injector injector = lilToon ? new LilToonInjector() : new PoiyomiInjector();
+                injector.Init(null, null, new byte[16], 12, (int)filter, "Assets/ShellProtector/Runtime");
+                injector.SetKeywords(material);
+                Assert.That(material.IsKeywordEnabled(ShaderProperties.PointKeyword), Is.EqualTo(point));
+            }
+            finally
+            {
+                Object.DestroyImmediate(material);
+            }
         }
     }
 }

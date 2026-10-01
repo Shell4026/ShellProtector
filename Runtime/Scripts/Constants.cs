@@ -47,7 +47,7 @@ namespace Shell.Protector
         public const string HashMagic = "_HashMagic";
         public const string KeyPrefix = "_Key";
         public const string BC7LayoutVersion = "_ShellBC7LayoutVersion";
-        public const string InjectedFilter = "_ShellInjectedFilter";
+        public const string InjectedShaderVersion = "_ShellInjectedVersion";
         public const string SourceTexelSize = "_ShellSourceTexelSize";
         public const string SourceSampling = "_ShellSourceSampling";
         public const string MipOffsetsPrefix = "_ShellMipOffsets";
