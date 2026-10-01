@@ -6,6 +6,7 @@ using System.Linq;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.TestTools;
 using Object = UnityEngine.Object;
 
 namespace Shell.Protector.Tests.Integration
@@ -19,6 +20,27 @@ namespace Shell.Protector.Tests.Integration
         {
             if (encryptedAvatar != null) Object.DestroyImmediate(encryptedAvatar);
             fixtureOwner.TearDown();
+        }
+
+        [TestCase(ShellProtectorAlgorithm.XXTEA)]
+        [TestCase(ShellProtectorAlgorithm.Chacha)]
+        public void UnsupportedBc7MaterialDoesNotBlockSupportedMaterial(ShellProtectorAlgorithm algorithm)
+        {
+            var fixture = fixtureOwner.CreateFixture("BC7UnsupportedShader", Shader.Find("lilToon"));
+            SupportedShaderRenderingTests.SetSerializedField(fixture.Protector, "_algorithm", (int)algorithm);
+            // This full mip chain fails the BC7 memory requirement even with ChaCha.
+            var source = new Texture2D(4, 4, TextureFormat.BC7, true, true);
+            TestAssetScope.CreateAsset(source, "BC7UnsupportedShader/unsupported.asset");
+            var unsupported = new Material(Shader.Find("Standard")) { mainTexture = source };
+            TestAssetScope.CreateAsset(unsupported, "BC7UnsupportedShader/unsupported.mat");
+            fixture.Avatar.GetComponentInChildren<SkinnedMeshRenderer>().sharedMaterials = new[] { fixture.Material, unsupported };
+
+            LogAssert.Expect(LogType.Error, unsupported.shader + " is a unsupported shader! supported type:lilToon, poiyomi");
+            encryptedAvatar = fixture.Protector.Encrypt(false);
+
+            Material[] output = encryptedAvatar.GetComponentInChildren<SkinnedMeshRenderer>().sharedMaterials;
+            Assert.That(output[0].GetTexture(ShaderProperties.EncryptTexture0), Is.Not.Null, "The supported material must still be encrypted.");
+            Assert.That(output[1], Is.SameAs(unsupported), "A material with an unsupported shader must be skipped.");
         }
 
         [TestCase("lilToon", false, false)] [TestCase("lilToon", false, true)]

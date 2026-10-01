@@ -326,21 +326,35 @@ namespace Shell.Protector
             _descriptor.gameObject.SetActive(true);
             Debug.Log("Key bytes: " + string.Join(", ", GetKeyBytes()));
 
-            var materials = new List<Material>();
+            var materials = new List<(Material material, MatOption option, Injector injector)>();
             foreach (var mat in GetMaterials())
             {
-                if (CheckIsSupportedFormat(mat))
+                if (!CheckIsSupportedFormat(mat))
+                    continue;
+
+                MaterialOptions.TryGetValue(mat, out MatOption option);
+                if (option != null && !option.Active)
                 {
-                    materials.Add(mat);
+                    Debug.LogFormat("{0} : Skip", mat.name);
+                    continue;
                 }
+
+                Injector injector = InjectorFactory.GetInjector(mat.shader);
+                if (injector == null)
+                {
+                    Debug.LogError(mat.shader + " is a unsupported shader! supported type:lilToon, poiyomi");
+                    continue;
+                }
+                if (!ConditionCheck(mat, injector))
+                    continue;
+
+                materials.Add((mat, option, injector));
             }
 
             // Validate format requirements before creating generated assets or discarding old output.
-            foreach (var mat in materials)
+            foreach (var entry in materials)
             {
-                var texture = mat.mainTexture as Texture2D;
-                if (texture == null) continue;
-                if (MaterialOptions.TryGetValue(mat, out var textureOption) && textureOption != null && !textureOption.Active) continue;
+                var texture = (Texture2D)entry.material.mainTexture;
                 int mipCount = texture.mipmapCount;
                 if (AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(texture)) is TextureImporter)
                     mipCount = TextureMipUtility.FullCount(texture.width, texture.height);
@@ -401,37 +415,14 @@ namespace Shell.Protector
             int maxprogress = materials.Count;
 
             var mips = new Dictionary<(int width, int height, bool fullChain), Texture2D>();
-            foreach (var mat in materials)
+            foreach (var entry in materials)
             {
-                if (mat == null)
-                    continue;
-                int materialFilter = _filter;
-#if UNITY_2022
-                MatOption option = MaterialOptions.GetValueOrDefault(mat, null);
-#else
-                MatOption option = null;
-                if (MaterialOptions.ContainsKey(mat))
-                    option = MaterialOptions[mat];
-#endif
-                if (option != null)
-                {
-                    if (option.Active == false)
-                    {
-                        Debug.LogFormat("{0} : Skip", mat.name);
-                        continue;
-                    }
-                    materialFilter = option.Filter;
-                }
+                Material mat = entry.material;
+                MatOption option = entry.option;
+                int materialFilter = option != null ? option.Filter : _filter;
+                _injector = entry.injector;
 
                 EditorUtility.DisplayProgressBar("Encrypt...", "Encrypt Progress " + ++progress + " of " + maxprogress, (float)progress / (float)maxprogress);
-                _injector = InjectorFactory.GetInjector(mat.shader);
-                if (_injector == null)
-                {
-                    Debug.LogError(mat.shader + " is a unsupported shader! supported type:lilToon, poiyomi");
-                    continue;
-                }
-                if (!ConditionCheck(mat))
-                    continue;
 
                 if (_shaderManager.IsPoiyomi(mat.shader))
                 {
@@ -1068,7 +1059,7 @@ namespace Shell.Protector
             keyLength /= syncSize;
             return Mathf.CeilToInt(Mathf.Log(keyLength, 2));
         }
-        bool ConditionCheck(Material mat)
+        bool ConditionCheck(Material mat, Injector injector)
         {
             if (mat.mainTexture == null)
             {
@@ -1085,7 +1076,7 @@ namespace Shell.Protector
                 Debug.LogErrorFormat("{0} : The texture size must be a multiple of 2!", mat.mainTexture.name);
                 return false;
             }
-            if (_injector.WasInjected(mat.shader))
+            if (injector.WasInjected(mat.shader))
             {
                 Debug.LogWarning(mat.name + ": The shader is already encrypted.");
                 return false;
