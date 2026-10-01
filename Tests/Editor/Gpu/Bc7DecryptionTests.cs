@@ -144,7 +144,7 @@ namespace Shell.Protector.Tests.Gpu
             var original = Own(new Material(Shader.Find("Hidden/ShellProtector/BC7Test")));
             original.mainTexture = source;
             var injector = new LilToonInjector();
-            injector.Init(null, source, TextureDiagnostics.Key, 12, 0, "Assets/ShellProtector/Runtime", cipher);
+            injector.Init(null, source, TextureDiagnostics.Key, 12, 0, "Assets/ShellProtector/Runtime");
             var material = Own(MaterialEncryptor.CreateEncryptedMaterial(original, original.shader,
                 Texture2D.blackTexture, mip, new AuxiliaryTextures(), first, TextureDiagnostics.Key, 16, false, injector));
             var expected = TextureDiagnostics.Render(source, material, 0, source.width, source.height);

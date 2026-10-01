@@ -41,8 +41,6 @@ namespace Shell.Protector
             int words = blocks * (BC7Codec.RecordBytes / 4);
             AtlasWidth = Mathf.NextPowerOfTwo(Mathf.CeilToInt(Mathf.Sqrt(words)));
             AtlasHeight = (words + AtlasWidth - 1) / AtlasWidth;
-            if (AtlasBytes >= rgba)
-                throw new ArgumentException($"{source.name}: encrypted BC7 needs {AtlasBytes} bytes including atlas padding; RGBA32 with the same mips needs {rgba} bytes. This texture does not meet the memory-saving requirement.");
         }
 
     }

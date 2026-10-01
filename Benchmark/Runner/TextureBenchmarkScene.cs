@@ -52,9 +52,8 @@ namespace Shell.Protector.Benchmark
                 comparison.Apply(false, false);
             }
             comparison.filterMode = FilterMode.Bilinear; comparison.wrapMode = TextureWrapMode.Repeat;
-            var comparisonCipher = new Chacha20(); var bc7Cipher = new Chacha20();
-            var comparisonEncrypted = Encrypt(comparison, comparisonCipher);
-            var bc7Encrypted = Encrypt(source, bc7Cipher);
+            var comparisonEncrypted = Encrypt(comparison);
+            var bc7Encrypted = Encrypt(source);
             var mip = Own(surface == "kernel" ? new Texture2D(1, 1, TextureFormat.RGBA32, false, true)
                 : TextureEncryptManager.GenerateRefMipmap(Size, Size, false, true));
             if (surface == "kernel") { mip.SetPixel(0, 0, Color.black); mip.Apply(false, false); }
@@ -67,7 +66,7 @@ namespace Shell.Protector.Benchmark
             {
                 injector = InjectorFactory.GetInjector(nativeShader);
                 if (injector == null) throw new InvalidOperationException("Unsupported benchmark shader: " + surface);
-                injector.Init(null, source, TextureDiagnostics.Key, 12, (int)ShellProtectorTextureFilter.Bilinear, runtimeRoot, bc7Cipher);
+                injector.Init(null, source, TextureDiagnostics.Key, 12, (int)ShellProtectorTextureFilter.Bilinear, runtimeRoot);
                 if (injector is PoiyomiInjector poiyomi)
                 {
                     string sourceCode = File.ReadAllText(AssetDatabase.GetAssetPath(nativeShader));
@@ -78,8 +77,8 @@ namespace Shell.Protector.Benchmark
                 else protectedShader = injector.Inject(materials[0], runtimeRoot + "/Shader/Protector.cginc", "", source);
                 if (protectedShader == null) throw new InvalidOperationException("Benchmark shader injection failed.");
             }
-            materials[1] = ProtectedMaterial(comparison, comparisonEncrypted, comparisonCipher, protectedShader, injector, mip);
-            materials[2] = ProtectedMaterial(source, bc7Encrypted, bc7Cipher, protectedShader, injector, mip);
+            materials[1] = ProtectedMaterial(comparison, comparisonEncrypted, protectedShader, injector, mip);
+            materials[2] = ProtectedMaterial(source, bc7Encrypted, protectedShader, injector, mip);
             if (compareDxt1) { materials[3] = Own(new Material(materials[0])); materials[3].mainTexture = comparison; }
             foreach (var material in materials)
             {
@@ -143,20 +142,21 @@ namespace Shell.Protector.Benchmark
             return images;
         }
 
-        EncryptResult Encrypt(Texture2D source, Chacha20 cipher)
+        EncryptResult Encrypt(Texture2D source)
         {
+            var cipher = TextureEncryptManager.CreateCipher(source, ShellProtectorAlgorithm.Chacha, 0);
             var encrypted = TextureEncryptManager.EncryptTexture(source, TextureDiagnostics.Key, cipher);
             Own(encrypted.Texture1).Apply(false, false);
             if (encrypted.Texture2 != null) Own(encrypted.Texture2).Apply(false, false);
             return encrypted;
         }
 
-        Material ProtectedMaterial(Texture2D source, EncryptResult encrypted, Chacha20 cipher, Shader shader, Injector injector, Texture2D mip)
+        Material ProtectedMaterial(Texture2D source, EncryptResult encrypted, Shader shader, Injector injector, Texture2D mip)
         {
             var material = Own(new Material(materials[0])); material.shader = shader; material.mainTexture = source;
             if (injector != null)
             {
-                injector.Init(null, source, TextureDiagnostics.Key, 12, (int)ShellProtectorTextureFilter.Bilinear, runtimeRoot, cipher);
+                injector.Init(null, source, TextureDiagnostics.Key, 12, (int)ShellProtectorTextureFilter.Bilinear, runtimeRoot);
                 injector.SetKeywords(material);
             }
             MaterialEncryptor.ConfigureDecryption(material, source, encrypted, TextureDiagnostics.Key, 16, 2700);

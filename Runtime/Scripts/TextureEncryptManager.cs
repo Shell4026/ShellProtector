@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Linq;
+using System.Security.Cryptography;
 
 #if UNITY_EDITOR
 
@@ -125,6 +126,22 @@ namespace Shell.Protector
             return format.Encrypt(texture, key, encryptor);
         }
 
+        // Each encrypted texture gets its own cipher, so encrypting one texture never changes the
+        // nonce another result was encrypted with. BC7 can only be decoded with ChaCha8.
+        public static IEncryptor CreateCipher(Texture2D texture, ShellProtectorAlgorithm algorithm, uint rounds)
+        {
+            bool requiresChacha = GetFormat(texture)?.RequiresChacha ?? false;
+            if (algorithm != ShellProtectorAlgorithm.Chacha && !requiresChacha)
+                return new XXTEA { Rounds = rounds };
+            if (algorithm != ShellProtectorAlgorithm.Chacha)
+                Debug.LogWarningFormat("{0} : BC7 textures are always encrypted with ChaCha8, even when XXTEA is selected.", texture.name);
+
+            var chacha = new Chacha20();
+            using (var random = RandomNumberGenerator.Create())
+                random.GetBytes(chacha.Nonce);
+            return chacha;
+        }
+
         public static bool IsSupportedFormat(Material material)
         {
             return GetFormat(material) != null;
@@ -147,8 +164,6 @@ namespace Shell.Protector
         internal static (int width, int height, bool fullChain) MipReference(Texture2D texture) => GetFormat(texture).MipReference(texture);
 
         internal static int FallbackSize(Texture2D texture, int requestedSize) => GetFormat(texture).FallbackSize(texture, requestedSize);
-
-        internal static void PrepareNonce(Texture2D texture, IEncryptor algorithm, int materialId) => GetFormat(texture).PrepareNonce(algorithm, materialId);
 
         public static bool IsSupportedTexture(Texture texture)
         {

@@ -41,12 +41,6 @@ namespace Shell.Protector
         string _packageAssetDir;
         OutputPaths _outputPaths;
 
-        enum Algorithm
-        {
-            Xxtea = 0,
-            Chacha = 1
-        }
-
         [FormerlySerializedAs("assetDir")]
         [SerializeField] string _assetDir = DefaultOutputDir;
         [FormerlySerializedAs("pwd")]
@@ -383,23 +377,6 @@ namespace Shell.Protector
 
             CreateFolders();
 
-            ///////////////////Select crypto algorithm/////////////////////
-            IEncryptor encryptor = new XXTEA();
-            if (_algorithm == (int)Algorithm.Xxtea)
-            {
-                XXTEA xxtea = new XXTEA();
-                xxtea.Rounds = _rounds;
-                encryptor = xxtea;
-            }
-            else if (_algorithm == (int)Algorithm.Chacha)
-            {
-                Chacha20 chacha = new Chacha20();
-                byte[] hash1 = KeyGenerator.GetKeyHash(keyBytes, KeyGenerator.GenerateRandomString(chacha.Nonce.Length));
-                Array.Copy(hash1, 0, chacha.Nonce, 0, chacha.Nonce.Length);
-                encryptor = chacha;
-            }
-            ///////////////////////////////////////////////////////////////
-
             if (_history == null)
             {
                 _history = AssetDatabase.LoadAssetAtPath(_outputPaths.History(), typeof(EncryptedHistory)) as EncryptedHistory;
@@ -436,7 +413,7 @@ namespace Shell.Protector
                 Debug.LogFormat("{0} : Start encrypt...", mat.name);
 
                 Texture2D mainTexture = (Texture2D)mat.mainTexture;
-                _injector.Init(_descriptor.gameObject, mainTexture, keyBytes, _keySize, materialFilter, resourceDir, encryptor);
+                _injector.Init(_descriptor.gameObject, mainTexture, keyBytes, _keySize, materialFilter, resourceDir);
 
                 int mipRefSize = Math.Max(mat.mainTexture.width, mat.mainTexture.height);
                 var mipRefKey = TextureEncryptManager.MipReference(mainTexture);
@@ -454,7 +431,7 @@ namespace Shell.Protector
                 string encryptedShaderFolderGuid = _outputPaths.EnsureShaderFolder(_assetWriter, mat);
                 string encryptedShaderPath = _assetWriter.ResolveFolderPath(encryptedShaderFolderGuid);
 
-                var processedTextureResult = GenerateEncryptedTexture(_outputPaths, mat, encryptor, keyBytes);
+                var processedTextureResult = GenerateEncryptedTexture(_outputPaths, mat, keyBytes);
                 if (!processedTextureResult.HasValue)
                     continue;
                 ProcessedTexture processedTexture = processedTextureResult.Value;
@@ -1159,7 +1136,7 @@ namespace Shell.Protector
             }
             return mip;
         }
-        ProcessedTexture? GenerateEncryptedTexture(OutputPaths paths, Material mat, IEncryptor encryptor, byte[] keyBytes)
+        ProcessedTexture? GenerateEncryptedTexture(OutputPaths paths, Material mat, byte[] keyBytes)
         {
             Texture2D mainTexture = (Texture2D)mat.mainTexture;
 
@@ -1182,11 +1159,11 @@ namespace Shell.Protector
 
             if (!processed)
             {
-                TextureEncryptManager.PrepareNonce(mainTexture, encryptor, mat.GetInstanceID());
+                IEncryptor cipher = TextureEncryptManager.CreateCipher(mainTexture, (ShellProtectorAlgorithm)_algorithm, _rounds);
                 EncryptResult encryptResult;
                 try
                 {
-                    encryptResult = TextureEncryptManager.EncryptTexture(mainTexture, keyBytes, encryptor);
+                    encryptResult = TextureEncryptManager.EncryptTexture(mainTexture, keyBytes, cipher);
                 }
                 catch (ArgumentException e)
                 {

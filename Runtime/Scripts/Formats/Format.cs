@@ -57,20 +57,15 @@ namespace Shell.Protector
 
         internal virtual void Validate(Texture2D texture, int mipCount, ShellProtectorAlgorithm algorithm) { }
 
+        // Formats whose shader decoder only implements ChaCha8 ignore the XXTEA setting.
+        internal virtual bool RequiresChacha => false;
+
         internal virtual (int width, int height, bool fullChain) MipReference(Texture2D texture) {
             int size = Mathf.Max(texture.width, texture.height);
             return (size, size, false);
         }
 
         internal virtual int FallbackSize(Texture2D texture, int requestedSize) => requestedSize;
-
-        internal virtual void PrepareNonce(IEncryptor algorithm, int materialId) {
-            if (algorithm is Chacha20 chacha) {
-                byte[] hash = KeyGenerator.GetHash(materialId);
-                for (int i = 0; i < chacha.Nonce.Length; ++i)
-                    chacha.Nonce[i] ^= hash[i];
-            }
-        }
 
         internal virtual void ConfigureMaterial(Material material, Texture2D original, EncryptResult encrypted) {
             SetFormatKeywords(material);

@@ -42,7 +42,6 @@ namespace Shell.Protector
 
         protected GameObject Target;
         protected Texture2D MainTexture;
-        protected IEncryptor Encryptor;
 
         protected struct Decoder
         {
@@ -57,7 +56,7 @@ namespace Shell.Protector
             public string Chacha;
         }
 
-        public void Init(GameObject target, Texture2D mainTexture, byte[] key, int userKeyLength, int filter, string assetDir, IEncryptor encryptor)
+        public void Init(GameObject target, Texture2D mainTexture, byte[] key, int userKeyLength, int filter, string assetDir)
         {
             if (key.Length != 16)
             {
@@ -73,7 +72,6 @@ namespace Shell.Protector
             Filter = filter;
             AssetDir = assetDir;
             UserKeyLength = userKeyLength;
-            Encryptor = encryptor;
         }
 
         public abstract bool CanHandle(Shader shader);
@@ -93,6 +91,8 @@ namespace Shell.Protector
             return false;
         }
 
+        // Shader-side options only. MaterialEncryptor.ConfigureDecryption sets the cipher and format
+        // keywords from the encryption result.
         public virtual void SetKeywords(Material material, bool hasLimTexture = false)
         {
             // Clear keywords prefixed with _SHELL_PROTECTOR_
@@ -104,15 +104,9 @@ namespace Shell.Protector
                 }
             }
 
-            // Set format keywords
-            TextureEncryptManager.SetFormatKeywords(material);
-
             // Set rimlight keyword
             if (hasLimTexture)
                 material.EnableKeyword(ShaderProperties.RimLightKeyword);
-
-            // Set encryptor keyword
-            material.EnableKeyword(Encryptor.Keyword);
         }
 
         public Shader Inject(Material material, string decoderPath, string outputPath, Texture2D mainTexture, AuxiliaryTextures auxiliaryTextures)

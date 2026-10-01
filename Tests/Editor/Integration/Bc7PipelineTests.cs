@@ -3,6 +3,7 @@ using System;
 using Shell.Protector.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -28,7 +29,7 @@ namespace Shell.Protector.Tests.Integration
         {
             var fixture = fixtureOwner.CreateFixture("BC7UnsupportedShader", Shader.Find("lilToon"));
             SupportedShaderRenderingTests.SetSerializedField(fixture.Protector, "_algorithm", (int)algorithm);
-            // This full mip chain fails the BC7 memory requirement even with ChaCha.
+            // The shader check rejects this material before any BC7 encryption runs.
             var source = new Texture2D(4, 4, TextureFormat.BC7, true, true);
             TestAssetScope.CreateAsset(source, "BC7UnsupportedShader/unsupported.asset");
             var unsupported = new Material(Shader.Find("Standard")) { mainTexture = source };
@@ -41,6 +42,34 @@ namespace Shell.Protector.Tests.Integration
             Material[] output = encryptedAvatar.GetComponentInChildren<SkinnedMeshRenderer>().sharedMaterials;
             Assert.That(output[0].GetTexture(ShaderProperties.EncryptTexture0), Is.Not.Null, "The supported material must still be encrypted.");
             Assert.That(output[1], Is.SameAs(unsupported), "A material with an unsupported shader must be skipped.");
+        }
+
+        [Test]
+        public void XxteaSettingEncryptsBc7WithChachaAndKeepsXxteaForOtherFormats()
+        {
+            var source = TextureDiagnostics.Pattern(128, 128, true, true);
+            var fixture = fixtureOwner.CreateFixture("BC7Xxtea", Shader.Find("lilToon"), source);
+            SupportedShaderRenderingTests.SetSerializedField(fixture.Protector, "_algorithm", (int)ShellProtectorAlgorithm.XXTEA);
+            var rgba = TestAssetScope.CreatePatternTexture(128, 128, TextureFormat.RGBA32, true);
+            TestAssetScope.CreateAsset(rgba, "BC7Xxtea/rgba.asset");
+            var other = new Material(fixture.Material) { mainTexture = rgba };
+            TestAssetScope.CreateAsset(other, "BC7Xxtea/rgba.mat");
+            fixture.Avatar.GetComponentInChildren<SkinnedMeshRenderer>().sharedMaterials = new[] { fixture.Material, other };
+            Color32[] before = SupportedShaderRenderingTests.RenderMaterial(fixture.Material);
+            byte[] key = fixture.Protector.GetKeyBytes();
+
+            LogAssert.Expect(LogType.Warning, new Regex("always encrypted with ChaCha8"));
+            encryptedAvatar = fixture.Protector.Encrypt(false);
+
+            Material bc7 = SupportedShaderRenderingTests.GetBodyMaterial(encryptedAvatar);
+            Material xxtea = encryptedAvatar.GetComponentInChildren<SkinnedMeshRenderer>().sharedMaterials[1];
+            Assert.That(bc7.IsKeywordEnabled(ShaderProperties.ChachaKeyword), Is.True, "BC7 must be encrypted with ChaCha8.");
+            Assert.That(bc7.IsKeywordEnabled(ShaderProperties.XXTEAKeyword), Is.False);
+            Assert.That(xxtea.IsKeywordEnabled(ShaderProperties.XXTEAKeyword), Is.True, "Other formats keep the XXTEA setting.");
+            Assert.That(xxtea.IsKeywordEnabled(ShaderProperties.ChachaKeyword), Is.False);
+
+            for (int i = 0; i < key.Length; ++i) bc7.SetFloat("_Key" + i, key[i]);
+            Assert.That(RgbError(before, SupportedShaderRenderingTests.RenderMaterial(bc7)), Is.LessThanOrEqualTo(5));
         }
 
         [TestCase("lilToon", false, false)] [TestCase("lilToon", false, true)]

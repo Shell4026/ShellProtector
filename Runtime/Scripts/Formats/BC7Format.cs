@@ -1,7 +1,6 @@
 #if UNITY_EDITOR
 using System;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
 using System.Threading.Tasks;
 using UnityEngine;
 
@@ -11,17 +10,12 @@ namespace Shell.Protector
     {
         public override bool CanHandle(TextureFormat format) => format == TextureFormat.BC7;
 
-        static void RequireChacha(Texture2D texture, bool chacha)
-        {
-            if (!chacha)
-                throw new ArgumentException($"{texture.name}: BC7 requires ChaCha8. Switch the ShellProtector encryption algorithm from XXTEA to ChaCha8.");
-        }
-
         internal override void Validate(Texture2D texture, int mipCount, ShellProtectorAlgorithm algorithm)
         {
-            RequireChacha(texture, algorithm == ShellProtectorAlgorithm.Chacha);
             _ = new BC7TextureLayout(texture, mipCount);
         }
+
+        internal override bool RequiresChacha => true;
 
         internal override (int width, int height, bool fullChain) MipReference(Texture2D texture) =>
             (texture.width, texture.height, true);
@@ -29,16 +23,11 @@ namespace Shell.Protector
         internal override int FallbackSize(Texture2D texture, int requestedSize) =>
             requestedSize > 1 && (texture.width < 128 || texture.height < 128) ? 1 : requestedSize;
 
-        // BC7 generates an independent nonce inside Encrypt for every result, including direct callers.
-        internal override void PrepareNonce(IEncryptor algorithm, int materialId) { }
-
         public override EncryptResult Encrypt(Texture2D texture, byte[] key, IEncryptor algorithm)
         {
-            RequireChacha(texture, algorithm is Chacha20);
-            var chacha = (Chacha20)algorithm;
+            if (!(algorithm is Chacha20 chacha))
+                throw new ArgumentException($"{texture.name}: BC7 requires ChaCha8. TextureEncryptManager.CreateCipher selects it automatically.");
             var layout = new BC7TextureLayout(texture, texture.mipmapCount);
-            using (var random = RandomNumberGenerator.Create())
-                random.GetBytes(chacha.Nonce);
             byte[] atlas = new byte[checked((int)layout.AtlasBytes)];
             for (int m = 0; m < layout.MipCount; ++m)
             {
