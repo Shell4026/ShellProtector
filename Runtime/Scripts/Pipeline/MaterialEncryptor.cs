@@ -36,9 +36,6 @@ namespace Shell.Protector
             if (turnOnAllSafetyFallback)
                 result.SetOverrideTag("VRCFallback", "Unlit");
 
-            var (widthOffset, heightOffset) = TextureEncryptManager.CalculateOffsets(originalTex);
-            result.SetInteger(ShaderProperties.WidthOffset, widthOffset);
-            result.SetInteger(ShaderProperties.HeightOffset, heightOffset);
             for (int i = 0; i < fixedKeySize; ++i)
                 result.SetFloat(ShaderProperties.KeyPrefix + i, keyBytes[i]);
 
@@ -64,7 +61,7 @@ namespace Shell.Protector
             result.SetInteger(ShaderProperties.PasswordHash, (int)hash);
 
             injector.SetKeywords(result, auxiliary.LimTexture != null);
-            TextureEncryptManager.SetFormatKeywords(result, originalTex);
+            TextureEncryptManager.ConfigureMaterial(result, originalTex, texture.Encrypted);
             writer.CreateAssetInFolder(result, folderGuid, fileName);
             writer.SaveAndRefresh();
             return result;

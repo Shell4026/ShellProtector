@@ -3,6 +3,7 @@
   "rootNamespace": "Shell.Protector.Tests",
   "references": [
     "shell.protector",
+    "shell.protector.Benchmark.Editor",
     "VRC.SDK3A",
     "VRC.SDK3A.Editor",
     "VRC.SDKBase.Editor",

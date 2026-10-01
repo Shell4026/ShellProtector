@@ -126,12 +126,15 @@ namespace Shell.Protector.Tests.Integration
             AssertTamperedKeyRendersCorruptedOutput(encryptedMaterial, reference, "Poiyomi");
         }
 
-        private Fixture CreateFixture(string name, Shader shader)
+        internal Fixture CreateFixture(string name, Shader shader, Texture2D sourceTexture = null)
         {
-            Texture2D texture = CreateSrgbPatternTexture(TextureSize, TextureSize, true);
-            texture.name = name + "Texture";
-            string texturePath = TestAssetScope.CreateAsset(texture, name + "/texture.asset");
-            texture = AssetDatabase.LoadAssetAtPath<Texture2D>(texturePath);
+            Texture2D texture = sourceTexture != null ? sourceTexture : CreateSrgbPatternTexture(TextureSize, TextureSize, true);
+            if (string.IsNullOrEmpty(AssetDatabase.GetAssetPath(texture)))
+            {
+                texture.name = name + "Texture";
+                string texturePath = TestAssetScope.CreateAsset(texture, name + "/texture.asset");
+                texture = AssetDatabase.LoadAssetAtPath<Texture2D>(texturePath);
+            }
 
             Material material = new Material(shader);
             material.name = name + "Material";
@@ -165,6 +168,11 @@ namespace Shell.Protector.Tests.Integration
             eyeSettings.eyelidsBlendshapes = new int[0];
             descriptor.customEyeLookSettings = eyeSettings;
             descriptor.baseAnimationLayers = new VRCAvatarDescriptor.CustomAnimLayer[5];
+            var layerTypes = new[] { VRCAvatarDescriptor.AnimLayerType.Base, VRCAvatarDescriptor.AnimLayerType.Additive,
+                VRCAvatarDescriptor.AnimLayerType.Gesture, VRCAvatarDescriptor.AnimLayerType.Action };
+            for (int i = 0; i < layerTypes.Length; ++i)
+                descriptor.baseAnimationLayers[i] = new VRCAvatarDescriptor.CustomAnimLayer { type = layerTypes[i], isDefault = true };
+            descriptor.specialAnimationLayers = new VRCAvatarDescriptor.CustomAnimLayer[0];
             descriptor.baseAnimationLayers[4] = new VRCAvatarDescriptor.CustomAnimLayer
             {
                 type = VRCAvatarDescriptor.AnimLayerType.FX,
@@ -250,9 +258,11 @@ namespace Shell.Protector.Tests.Integration
             return AssetDatabase.LoadAssetAtPath<ScriptableObject>(path);
         }
 
-        private static Material GetBodyMaterial(GameObject avatar)
+        internal static Material GetBodyMaterial(GameObject avatar)
         {
             Assert.That(avatar, Is.Not.Null);
+            // Manual output deliberately omits the user key until the tester is activated.
+            avatar.GetComponentInChildren<ShellProtectorTester>(true)?.CheckEncryption();
             Transform body = avatar.transform.Find("Body");
             Assert.That(body, Is.Not.Null);
             SkinnedMeshRenderer renderer = body.GetComponent<SkinnedMeshRenderer>();
@@ -346,7 +356,7 @@ namespace Shell.Protector.Tests.Integration
             material.SetInteger(ShaderProperties.PasswordHash, unchecked((int)passwordHash));
         }
 
-        private static Color32[] RenderMaterial(Material material)
+        internal static Color32[] RenderMaterial(Material material)
         {
             GameObject subject = null;
             GameObject cameraObject = null;
@@ -489,14 +499,14 @@ namespace Shell.Protector.Tests.Integration
             return a > b ? a - b : b - a;
         }
 
-        private static void SetSerializedField<T>(ShellProtector protector, string fieldName, T value)
+        internal static void SetSerializedField<T>(ShellProtector protector, string fieldName, T value)
         {
             FieldInfo field = typeof(ShellProtector).GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic);
             Assert.That(field, Is.Not.Null, fieldName);
             field.SetValue(protector, value);
         }
 
-        private class Fixture
+        internal class Fixture
         {
             public GameObject Avatar;
             public ShellProtector Protector;

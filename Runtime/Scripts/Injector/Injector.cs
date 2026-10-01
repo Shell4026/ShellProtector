@@ -88,7 +88,7 @@ namespace Shell.Protector
             return false;
         }
 
-        public void SetKeywords(Material material, bool hasLimTexture = false)
+        public virtual void SetKeywords(Material material, bool hasLimTexture = false)
         {
             // Clear keywords prefixed with _SHELL_PROTECTOR_
             var keywords = material.shaderKeywords;

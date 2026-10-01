@@ -19,7 +19,16 @@
 #elif _SHELL_PROTECTOR_FORMAT0 && !_SHELL_PROTECTOR_FORMAT1
     #define _SHELL_PROTECTOR_RGB
 #else
-    #error "Unsupported format"
+    #define _SHELL_PROTECTOR_BC7
+#endif
+
+// BC7 is ChaCha-only. Keep Unity's otherwise-unused XXTEA/BC7 import variant compilable;
+// the build pipeline rejects that algorithm/format combination before generating assets.
+#ifdef _SHELL_PROTECTOR_BC7
+    #undef _SHELL_PROTECTOR_XXTEA
+    #ifndef _SHELL_PROTECTOR_CHACHA
+        #define _SHELL_PROTECTOR_CHACHA
+    #endif
 #endif
 
 static const uint mw[13] = { 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1 };
@@ -54,9 +63,13 @@ uint _HashMagic;
 	#include "DXT.cginc"
 #endif
 
+#ifdef _SHELL_PROTECTOR_BC7
+    #include "BC7.cginc"
+#endif
+
 void DecryptData(inout uint data[_SHELL_PROTECTOR_DATA_LENGTH], Texture2D tex0, Texture2D tex1, SamplerState tex0Sampler, float2 uv, int m)
 {
-#if defined(_SHELL_PROTECTOR_DXT) || defined(_SHELL_PROTECTOR_BLOCK_STREAM)
+#if defined(_SHELL_PROTECTOR_DXT) || defined(_SHELL_PROTECTOR_BLOCK_STREAM) || defined(_SHELL_PROTECTOR_BC7)
 	const int idx = GetBlockIndex(uv, m);
 #else
 	const int idx = GetIndex(uv, m);
@@ -89,16 +102,61 @@ float4 DecryptTextureBox(Texture2D tex0, Texture2D tex1, SamplerState texSampler
 	float4 mipPixel = mipTex.Sample(mipSamp, uv);
 
 	int mip = round(mipPixel.r * 255 / 10); //fucking precision problems
+#ifdef _SHELL_PROTECTOR_BC7
+    mip = clamp(mip, 0, (int)_ShellSourceSampling.x - 1);
+    return DecryptTexture(tex0, tex1, texSampler, uv, mip);
+#else
 	const int m[13] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10 }; // max size 4k
 
     float4 c00 = DecryptTexture(tex0, tex1, texSampler, uv, m[mip]);
 
 	return c00;
+#endif
 }
 
 float4 DecryptTextureBilinear(Texture2D tex0, Texture2D tex1, SamplerState texSampler, float4 originalTexSize, Texture2D mipTex, SamplerState mipSamp, float2 uv)
 {
 	const float4 mipPixel = mipTex.Sample(mipSamp, uv);
+#ifdef _SHELL_PROTECTOR_BC7
+    const int mip = clamp((int)round(mipPixel.r * 255 / 10), 0, (int)_ShellSourceSampling.x - 1);
+    const float2 size = BC7MipSize(mip);
+    const float2 position = uv * size - 0.5;
+    const float2 baseUV = (floor(position) + 0.5) / size;
+    const float2 uv00 = baseUV;
+    const float2 uv10 = baseUV + float2(1.0 / size.x, 0);
+    const float2 uv01 = baseUV + float2(0, 1.0 / size.y);
+    const float2 uv11 = baseUV + 1.0 / size;
+    const int u00 = GetBlockIndex(uv00, mip), u10 = GetBlockIndex(uv10, mip);
+    const int u01 = GetBlockIndex(uv01, mip), u11 = GetBlockIndex(uv11, mip);
+    uint data[8];
+    DecryptData(data, tex0, tex1, texSampler, uv00, mip);
+    float4 c00 = GetPixel(tex0, texSampler, data, uv00, mip), c10 = 0, c01 = 0, c11 = 0;
+    if (u10 == u00) c10 = GetPixel(tex0, texSampler, data, uv10, mip);
+    if (u01 == u00) c01 = GetPixel(tex0, texSampler, data, uv01, mip);
+    if (u11 == u00) c11 = GetPixel(tex0, texSampler, data, uv11, mip);
+    [branch]
+    if (u10 != u00)
+    {
+        DecryptData(data, tex0, tex1, texSampler, uv10, mip);
+        c10 = GetPixel(tex0, texSampler, data, uv10, mip);
+        if (u11 == u10) c11 = GetPixel(tex0, texSampler, data, uv11, mip);
+    }
+    [branch]
+    if (u01 != u00)
+    {
+        DecryptData(data, tex0, tex1, texSampler, uv01, mip);
+        c01 = GetPixel(tex0, texSampler, data, uv01, mip);
+        if (u11 == u01) c11 = GetPixel(tex0, texSampler, data, uv11, mip);
+    }
+    [branch]
+    if (u11 != u00 && u11 != u10 && u11 != u01)
+    {
+        DecryptData(data, tex0, tex1, texSampler, uv11, mip);
+        c11 = GetPixel(tex0, texSampler, data, uv11, mip);
+    }
+    const float2 f = frac(position);
+    return lerp(lerp(c00, c10, f.x), lerp(c01, c11, f.x), f.y);
+#else
 	const float2 uvUnit = originalTexSize.xy;
 	//bilinear interpolation
 	const float2 uvBilinear = uv - 0.5 * uvUnit;
@@ -178,6 +236,7 @@ float4 DecryptTextureBilinear(Texture2D tex0, Texture2D tex1, SamplerState texSa
 
 	return bilinear;
 #endif
+#endif // BC7 / legacy formats
 }
 
 inline uint SimpleHash(int data[16])

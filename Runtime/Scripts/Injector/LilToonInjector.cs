@@ -18,6 +18,13 @@ namespace Shell.Protector
             return ShaderManager.IsLilToon(shader);
         }
 
+        public override void SetKeywords(Material material, bool hasLimTexture = false)
+        {
+            base.SetKeywords(material, hasLimTexture);
+            if (Filter == (int)ShellProtectorTextureFilter.Point)
+                material.EnableKeyword(ShaderProperties.PointKeyword);
+        }
+
         protected override Shader CustomInject(Material mat, string decodeDir, string outputPath, Texture2D tex, bool hasLimTexture = false, bool hasLimTexture2 = false, bool outlineTex = false)
         {
             string[] files = Directory.GetFiles(Path.Combine(AssetDir, "liltoonProtector", "Shaders"));

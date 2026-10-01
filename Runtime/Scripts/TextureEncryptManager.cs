@@ -14,7 +14,8 @@ namespace Shell.Protector
             { TextureFormat.DXT5, new DXT5Format() },
             { TextureFormat.DXT5Crunched, new DXT5Format() },
             { TextureFormat.RGB24, new RGB24Format() },
-            { TextureFormat.RGBA32, new RGBA32Format() }
+            { TextureFormat.RGBA32, new RGBA32Format() },
+            { TextureFormat.BC7, new BC7Format() }
         };
 
         public static bool HasAlpha(Texture2D texture)
@@ -27,12 +28,15 @@ namespace Shell.Protector
             return false;
         }
 
-        public static Texture2D GenerateRefMipmap(int width, int height, bool small = false)
+        public static Texture2D GenerateRefMipmap(int width, int height, bool small = false, bool fullChain = false)
         {
             int mip_lv = GetCanMipmapLevel(width, height);
+            if (fullChain) mip_lv = 1 + (int)Mathf.Log(Mathf.Max(width, height), 2);
             Debug.LogFormat("mip {0}, {1} : {2}", width, height, mip_lv);
 
-            Texture2D mip = new Texture2D(width, (small == false) ? height : 1, TextureFormat.RGB24, mip_lv, true);
+            // A one-row reference still needs the longest axis to hold every mip of a tall rectangle.
+            int referenceWidth = small ? Mathf.Max(width, height) : width;
+            Texture2D mip = new Texture2D(referenceWidth, small ? 1 : height, TextureFormat.RGB24, mip_lv, true);
             mip.filterMode = FilterMode.Bilinear;
             mip.anisoLevel = (small == false) ? 1 : 0;
 
@@ -49,6 +53,9 @@ namespace Shell.Protector
             }
             if (small == false)
                 mip.Compress(false);
+            // SetPixels32/Compress update the CPU copy. New and reused GPU allocations must
+            // receive these mip labels before a generated material samples the reference.
+            mip.Apply(false, false);
             return mip;
         }
 
@@ -127,7 +134,7 @@ namespace Shell.Protector
             var format = GetFormat(texture);
             if (format == null)
             {
-                Debug.LogErrorFormat("{0} is not supported texture format! supported type:DXT1, DXT5, RGB, RGBA", texture.name);
+                Debug.LogErrorFormat("{0} is not supported texture format! supported type:DXT1, DXT5, RGB, RGBA, BC7", texture.name);
                 return new EncryptResult();
             }
 
@@ -137,6 +144,19 @@ namespace Shell.Protector
         public static bool IsSupportedFormat(Material material)
         {
             return GetFormat(material) != null;
+        }
+
+        public static void ConfigureMaterial(Material material, Texture2D original, EncryptResult encrypted)
+        {
+            SetFormatKeywords(material, original);
+            if (encrypted.Layout != null)
+                encrypted.Layout.ApplyTo(material);
+            else
+            {
+                var (widthOffset, heightOffset) = CalculateOffsets(original);
+                material.SetInteger(ShaderProperties.WidthOffset, widthOffset);
+                material.SetInteger(ShaderProperties.HeightOffset, heightOffset);
+            }
         }
 
         public static bool IsSupportedTexture(Texture texture)

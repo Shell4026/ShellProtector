@@ -29,6 +29,7 @@ namespace Shell.Protector
         public const string KeywordPrefix = "_SHELL_PROTECTOR_";
         public const string XXTEAKeyword = "_SHELL_PROTECTOR_XXTEA";
         public const string ChachaKeyword = "_SHELL_PROTECTOR_CHACHA";
+        public const string PointKeyword = "_SHELL_PROTECTOR_POINT";
         public const string Format0Keyword = "_SHELL_PROTECTOR_FORMAT0";
         public const string Format1Keyword = "_SHELL_PROTECTOR_FORMAT1";
         public const string RimLightKeyword = "_SHELL_PROTECTOR_RIMLIGHT";
@@ -45,5 +46,10 @@ namespace Shell.Protector
         public const string PasswordHash = "_PasswordHash";
         public const string HashMagic = "_HashMagic";
         public const string KeyPrefix = "_Key";
+        public const string BC7LayoutVersion = "_ShellBC7LayoutVersion";
+        public const string InjectedFilter = "_ShellInjectedFilter";
+        public const string SourceTexelSize = "_ShellSourceTexelSize";
+        public const string SourceSampling = "_ShellSourceSampling";
+        public const string MipOffsetsPrefix = "_ShellMipOffsets";
     }
 }

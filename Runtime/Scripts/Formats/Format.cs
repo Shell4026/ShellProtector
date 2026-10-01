@@ -6,6 +6,7 @@ namespace Shell.Protector
     public struct EncryptResult {
         public Texture2D Texture1;
         public Texture2D Texture2;
+        public EncryptedTextureLayout Layout;
     }
 
     public interface ITextureFormat {

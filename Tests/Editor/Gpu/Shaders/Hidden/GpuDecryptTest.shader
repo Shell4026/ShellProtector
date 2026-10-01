@@ -31,6 +31,13 @@ Shader "Hidden/GpuDecryptTest"
         _Nonce2 ("Nonce2", Integer) = 0
         _Rounds ("Rounds", Integer) = 0
         _Lod ("Lod", Float) = 0
+        [HideInInspector] _ShellBC7LayoutVersion("BC7 layout", Integer) = 0
+        [HideInInspector] _ShellSourceTexelSize("Source size", Vector) = (1,1,1,1)
+        [HideInInspector] _ShellSourceSampling("Source sampling", Vector) = (1,1,0,0)
+        [HideInInspector] _ShellMipOffsets0("Mip offsets 0", Vector) = (0,0,0,0)
+        [HideInInspector] _ShellMipOffsets1("Mip offsets 1", Vector) = (0,0,0,0)
+        [HideInInspector] _ShellMipOffsets2("Mip offsets 2", Vector) = (0,0,0,0)
+        [HideInInspector] _ShellMipOffsets3("Mip offsets 3", Vector) = (0,0,0,0)
     }
 
     SubShader

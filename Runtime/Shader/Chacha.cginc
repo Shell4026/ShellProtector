@@ -104,6 +104,16 @@ void Decrypt(inout uint data[3], const uint key[4])
     data[2] ^= stream.z;
 }
 
+// Normalized 32-byte BC7 record; reuse the first eight words of the common keystream.
+void Decrypt(inout uint data[8], const uint key[4])
+{
+    uint stream[16];
+    ChaCha8KeyStream16(key, stream);
+    [unroll]
+    for (int i = 0; i < 8; ++i)
+        data[i] ^= stream[i];
+}
+
 // Whole 64-byte block: one keystream word per pixel of a 4x4 RGB/RGBA block.
 void Decrypt(inout uint data[16], const uint key[4])
 {

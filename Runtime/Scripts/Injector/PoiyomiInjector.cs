@@ -44,6 +44,16 @@ namespace Shell.Protector
             }
 
             string shaderData = File.ReadAllText(Path.Combine(outputPath, shaderName));
+            shaderData = BuildShaderSource(shader, shaderData, decodeDir, hasLimTexture, hasLimTexture2, outlineTex);
+            if (shaderData == null) return null;
+            File.WriteAllText(Path.Combine(outputPath, shaderName), shaderData);
+            AssetDatabase.Refresh();
+            return AssetDatabase.LoadAssetAtPath<Shader>(Path.Combine(outputPath, shaderName));
+        }
+
+        // Shared by asset generation and in-memory editor previews.
+        public string BuildShaderSource(Shader shader, string shaderData, string decodeDir, bool hasLimTexture = false, bool hasLimTexture2 = false, bool outlineTex = false)
+        {
             shaderData = shaderData.Insert(0, "//ShellProtect\n");
 
             InsertProperties(ref shaderData);
@@ -103,15 +113,10 @@ namespace Shell.Protector
             }
             else
             {
-                Debug.LogErrorFormat("{0} is unsupported Poiyomi version!", mat.name);
+                Debug.LogErrorFormat("{0} is unsupported Poiyomi version!", shader.name);
                 return null;
             }
-            File.WriteAllText(Path.Combine(outputPath, shaderName), shaderData);
-
-            AssetDatabase.Refresh();
-
-            Shader returnShader = AssetDatabase.LoadAssetAtPath(Path.Combine(outputPath, shaderName), typeof(Shader)) as Shader;
-            return returnShader;
+            return shaderData;
         }
 
         private static string InjectVertexDecryptionState(string shaderData)
@@ -150,7 +155,15 @@ namespace Shell.Protector
 " + ShaderProperties.Rounds + @" (""Rounds"", integer) = 0
 " + ShaderProperties.PasswordHash + @" (""PasswordHash"", integer) = 0
 " + ShaderProperties.HashMagic + @" (""HashMagic"", integer) = 0
+[HideInInspector] " + ShaderProperties.BC7LayoutVersion + @" (""BC7 layout"", Integer) = 0
+[HideInInspector] " + ShaderProperties.SourceTexelSize + @" (""Source size"", Vector) = (1,1,1,1)
+[HideInInspector] " + ShaderProperties.SourceSampling + @" (""Source sampling"", Vector) = (1,1,0,0)
 ";
+
+                for (int i = 0; i < 4; ++i)
+                    properties += "[HideInInspector] " + ShaderProperties.MipOffsetsPrefix + i + " (\"Mip offsets\", Vector) = (0,0,0,0)\n";
+                // Sampling is baked into this injected shader. Cache lookup must distinguish it.
+                properties += "[HideInInspector] " + ShaderProperties.InjectedFilter + " (\"Injected filter\", Integer) = " + Filter + "\n";
 
                 for (int i = 0; i < 16; ++i)
                     properties += ShaderProperties.KeyPrefix + i + " (\"key" + i + "\", float) = 0\n";
