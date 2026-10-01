@@ -62,12 +62,23 @@ namespace Shell.Protector
             return mip;
         }
 
+        // A fallback is a plaintext copy, so it stays at most half of the source's shorter side,
+        // rounded down to a power of two. Returns 1 (black) when that would be below 4px.
+        public static int ClampFallbackSize(Texture2D texture, int requestedSize)
+        {
+            if (requestedSize <= 1)
+                return requestedSize;
+            int limit = Mathf.Min(requestedSize, Mathf.Min(texture.width, texture.height) / 2);
+            if (limit < 4)
+                return 1;
+            int size = 4;
+            while (size * 2 <= limit)
+                size *= 2;
+            return size;
+        }
+
         public static Texture2D GenerateFallback(Texture2D original, int size = 32)
         {
-            if (original.width < 128 || original.height < 128)
-            {
-                return null;
-            }
             TextureFormat format = TextureFormat.RGB24;
             bool hasAlpha = HasAlpha(original);
             if (hasAlpha)
@@ -178,7 +189,6 @@ namespace Shell.Protector
 
         internal static (int width, int height, bool fullChain) MipReference(Texture2D texture) => GetFormat(texture).MipReference(texture);
 
-        internal static int FallbackSize(Texture2D texture, int requestedSize) => GetFormat(texture).FallbackSize(texture, requestedSize);
 
         public static bool IsSupportedTexture(Texture texture)
         {

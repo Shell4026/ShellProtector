@@ -15,9 +15,6 @@ namespace Shell.Protector
         internal override (int width, int height, bool fullChain) MipReference(Texture2D texture) =>
             (texture.width, texture.height, true);
 
-        internal override int FallbackSize(Texture2D texture, int requestedSize) =>
-            requestedSize > 1 && (texture.width < 128 || texture.height < 128) ? 1 : requestedSize;
-
         public override EncryptResult Encrypt(Texture2D texture, byte[] key, IEncryptor algorithm)
         {
             if (!(algorithm is Chacha20 chacha))

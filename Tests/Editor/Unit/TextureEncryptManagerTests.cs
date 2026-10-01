@@ -55,6 +55,39 @@ namespace Shell.Protector.Tests.Unit
             Assert.That(fallback.filterMode, Is.EqualTo(FilterMode.Point));
         }
 
+        [TestCase(64, 64, 32, 32)]
+        [TestCase(64, 64, 128, 32)]
+        [TestCase(128, 128, 128, 64)]
+        [TestCase(256, 128, 128, 64)]
+        [TestCase(96, 96, 64, 32)]
+        [TestCase(8, 8, 32, 4)]
+        [TestCase(6, 6, 32, 1)]
+        [TestCase(64, 64, 1, 1)]
+        [TestCase(64, 64, 0, 0)]
+        public void ClampFallbackSize_KeepsFallbacksSmallerThanTheTexture(int width, int height, int requested, int expected)
+        {
+            var texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
+            try
+            {
+                Assert.That(TextureEncryptManager.ClampFallbackSize(texture, requested), Is.EqualTo(expected));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(texture);
+            }
+        }
+
+        [Test]
+        public void GeneratesFallbackForTexturesSmallerThan128()
+        {
+            Texture2D original = TestAssetScope.CreatePatternTexture(64, 64, TextureFormat.RGBA32, true);
+
+            Texture2D fallback = TextureEncryptManager.GenerateFallback(original, 32);
+
+            Assert.That(fallback, Is.Not.Null);
+            Assert.That(fallback.width, Is.EqualTo(32));
+        }
+
         [TestCase(TextureFormat.RGB24, true, TextureFormat.RGB24)]
         [TestCase(TextureFormat.RGBA32, true, TextureFormat.RGBA32)]
         [TestCase(TextureFormat.DXT1, false, TextureFormat.DXT1)]

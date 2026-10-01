@@ -63,8 +63,6 @@ namespace Shell.Protector
             return (size, size, false);
         }
 
-        internal virtual int FallbackSize(Texture2D texture, int requestedSize) => requestedSize;
-
         internal virtual void ConfigureMaterial(Material material, Texture2D original, EncryptResult encrypted) {
             SetFormatKeywords(material);
             var (width, height) = CalculateOffsets(original);

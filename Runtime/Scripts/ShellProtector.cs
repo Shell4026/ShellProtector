@@ -1235,7 +1235,10 @@ namespace Shell.Protector
                         fallbackSize = 128;
                         break;
                 }
-                fallbackSize = TextureEncryptManager.FallbackSize(mainTexture, fallbackSize);
+                int clampedSize = TextureEncryptManager.ClampFallbackSize(mainTexture, fallbackSize);
+                if (clampedSize != fallbackSize)
+                    Debug.LogWarningFormat("{0} : The fallback is reduced to {1} so it stays smaller than the texture.", mainTexture.name, clampedSize > 1 ? clampedSize + "px" : "black");
+                fallbackSize = clampedSize;
                 if (fallbackSize > 1)
                 {
                     fallback = TextureEncryptManager.GenerateFallback(mainTexture, fallbackSize);
