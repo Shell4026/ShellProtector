@@ -1,4 +1,6 @@
 #if UNITY_EDITOR
+using System;
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEditorInternal;
 using VRC.SDK3.Avatars.ScriptableObjects;
@@ -32,6 +34,13 @@ namespace Shell.Protector
         public int UsedParameter { get; private set; }
         public bool HasEnoughParameterSpace => HasParameterAsset && FreeParameter >= UsedParameter;
         public bool HasTargets => gameobjectList.count > 0 || materialList.count > 0;
+        public IReadOnlyList<string> BlockingTextureIssues { get; private set; } = Array.Empty<string>();
+
+        // The same check the build runs before it creates any output.
+        public void RefreshTextureIssues()
+        {
+            BlockingTextureIssues = protector.FindBlockingTextureIssues();
+        }
 
         public void Refresh()
         {

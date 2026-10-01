@@ -44,6 +44,21 @@ namespace Shell.Protector.Tests.Integration
             Assert.That(output[1], Is.SameAs(unsupported), "A material with an unsupported shader must be skipped.");
         }
 
+        [TestCase(TextureFormat.BC7)]
+        [TestCase(TextureFormat.RGBA32)]
+        public void OversizedTextureStopsTheBuildBeforeCreatingOutput(TextureFormat format)
+        {
+            var source = new Texture2D(8192, 4, format, false, true);
+            var fixture = fixtureOwner.CreateFixture("Oversized" + format, Shader.Find("lilToon"), source);
+            string output = TestAssetScope.GeneratedRoot + "/" + fixture.Avatar.name;
+            Assert.That(fixture.Protector.FindBlockingTextureIssues(), Has.Count.EqualTo(1), "The inspector warns before the build.");
+
+            LogAssert.Expect(LogType.Error, new Regex("larger than 4096px"));
+            var error = Assert.Throws<EncryptionBlockedException>(() => fixture.Protector.Encrypt(false));
+            Assert.That(error.Message, Does.Contain(fixture.Material.mainTexture.name));
+            Assert.That(AssetDatabase.IsValidFolder(output), Is.False, "Nothing may be written before the check.");
+        }
+
         [Test]
         public void XxteaSettingEncryptsBc7WithChachaAndKeepsXxteaForOtherFormats()
         {

@@ -345,14 +345,14 @@ namespace Shell.Protector
                 materials.Add((mat, option, injector));
             }
 
-            // Validate format requirements before creating generated assets or discarding old output.
-            foreach (var entry in materials)
+            // Stop before creating generated assets or discarding old output when a texture cannot be encrypted.
+            var blocking = materials.Select(entry => TextureEncryptManager.GetBlockingIssue((Texture2D)entry.material.mainTexture))
+                .Where(issue => issue != null).Distinct().ToList();
+            if (blocking.Count > 0)
             {
-                var texture = (Texture2D)entry.material.mainTexture;
-                int mipCount = texture.mipmapCount;
-                if (AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(texture)) is TextureImporter)
-                    mipCount = TextureMipUtility.FullCount(texture.width, texture.height);
-                TextureEncryptManager.Validate(texture, mipCount, (ShellProtectorAlgorithm)_algorithm);
+                string message = "ShellProtector stopped before encrypting:\n" + string.Join("\n", blocking);
+                Debug.LogError(message);
+                throw new EncryptionBlockedException(message);
             }
             CleanOutdatedEncrypted();
 
@@ -1105,6 +1105,23 @@ namespace Shell.Protector
             }
 
             return materials.Concat(_materialList).Distinct().ToList();
+        }
+        // Textures that would stop EncryptLegacy, so the inspector can list them before a build starts.
+        // Uses the log-free checks because the inspector calls this on every repaint.
+        public List<string> FindBlockingTextureIssues()
+        {
+            var issues = new List<string>();
+            foreach (var mat in GetMaterials())
+            {
+                if (!TextureEncryptManager.IsSupportedFormat(mat) || !_shaderManager.IsSupportShader(mat.shader))
+                    continue;
+                if (MaterialOptions.TryGetValue(mat, out MatOption option) && option != null && !option.Active)
+                    continue;
+                string issue = TextureEncryptManager.GetBlockingIssue((Texture2D)mat.mainTexture);
+                if (issue != null && !issues.Contains(issue))
+                    issues.Add(issue);
+            }
+            return issues;
         }
         bool CheckIsSupportedFormat(Material mat)
         {

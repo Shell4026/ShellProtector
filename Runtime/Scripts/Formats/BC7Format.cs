@@ -10,11 +10,6 @@ namespace Shell.Protector
     {
         public override bool CanHandle(TextureFormat format) => format == TextureFormat.BC7;
 
-        internal override void Validate(Texture2D texture, int mipCount, ShellProtectorAlgorithm algorithm)
-        {
-            _ = new BC7TextureLayout(texture, mipCount);
-        }
-
         internal override bool RequiresChacha => true;
 
         internal override (int width, int height, bool fullChain) MipReference(Texture2D texture) =>

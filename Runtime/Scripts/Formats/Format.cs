@@ -55,8 +55,6 @@ namespace Shell.Protector
             return (uint)(key[12] | (key[13] << 8) | (key[14] << 16) | (key[15] << 24)) ^ idx ^ ((uint)mip << 24);
         }
 
-        internal virtual void Validate(Texture2D texture, int mipCount, ShellProtectorAlgorithm algorithm) { }
-
         // Formats whose shader decoder only implements ChaCha8 ignore the XXTEA setting.
         internal virtual bool RequiresChacha => false;
 

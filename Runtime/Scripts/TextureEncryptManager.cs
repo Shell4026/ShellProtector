@@ -1,4 +1,5 @@
 using UnityEngine;
+using System;
 using System.Linq;
 using System.Security.Cryptography;
 
@@ -6,8 +7,17 @@ using System.Security.Cryptography;
 
 namespace Shell.Protector
 {
+    // Thrown before any output is written when a selected texture cannot be encrypted.
+    public sealed class EncryptionBlockedException : InvalidOperationException
+    {
+        public EncryptionBlockedException(string message) : base(message) { }
+    }
+
     public class TextureEncryptManager
     {
+        // The shader mip tables and the BC7 layout stop at 4096 pixels per side.
+        public const int MaxTextureSize = 4096;
+
         private static readonly BaseTextureFormat[] _formats = {
             new DXT1Format(), new DXT5Format(), new RGB24Format(), new RGBA32Format(), new BC7Format()
         };
@@ -158,8 +168,13 @@ namespace Shell.Protector
             }
         }
 
-        internal static void Validate(Texture2D texture, int mipCount, ShellProtectorAlgorithm algorithm) =>
-            GetFormat(texture)?.Validate(texture, mipCount, algorithm);
+        // Returns why the texture would stop the build, or null when it can be encrypted.
+        public static string GetBlockingIssue(Texture2D texture)
+        {
+            if (texture == null || (texture.width <= MaxTextureSize && texture.height <= MaxTextureSize))
+                return null;
+            return $"{texture.name} ({texture.width}x{texture.height}) is larger than {MaxTextureSize}px. Lower its Max Size to {MaxTextureSize} or less.";
+        }
 
         internal static (int width, int height, bool fullChain) MipReference(Texture2D texture) => GetFormat(texture).MipReference(texture);
 

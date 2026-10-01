@@ -96,6 +96,10 @@ namespace Shell.Protector
                             GUILayout.Label(Lang("The main texture is not supported format."), redStyle);
                         }
                     }
+                    else if (TextureEncryptManager.GetBlockingIssue(mainTex) != null)
+                    {
+                        GUILayout.Label(Lang("The main texture is larger than 4096px."), redStyle);
+                    }
                 }
             }
             GUILayout.EndScrollView();

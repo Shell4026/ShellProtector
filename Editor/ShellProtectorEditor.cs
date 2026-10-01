@@ -370,13 +370,26 @@ namespace Shell.Protector
             if (!viewModel.HasTargets)
                 GUI.enabled = false;
 
+            viewModel.RefreshTextureIssues();
+            if (viewModel.BlockingTextureIssues.Count > 0)
+                EditorGUILayout.HelpBox(Lang("Encryption will stop because of these textures:") + "\n" + string.Join("\n", viewModel.BlockingTextureIssues), MessageType.Error);
 
 #if MODULAR
             if (GUILayout.Button(Lang("Manual Encrypt! (for testing)")))
 #else
             if (GUILayout.Button(Lang("Encrypt!")))
 #endif
-                root.Encrypt(bUseSmallMipTexture.boolValue, false);
+            {
+                try
+                {
+                    root.Encrypt(bUseSmallMipTexture.boolValue, false);
+                }
+                catch (EncryptionBlockedException e)
+                {
+                    EditorUtility.DisplayDialog(Lang("Encryption stopped"), e.Message, "OK");
+                    GUIUtility.ExitGUI();
+                }
+            }
             GUI.enabled = true;
 
 #if MODULAR
