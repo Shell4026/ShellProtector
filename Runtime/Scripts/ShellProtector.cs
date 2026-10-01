@@ -318,7 +318,6 @@ namespace Shell.Protector
             }
 
             _descriptor.gameObject.SetActive(true);
-            Debug.Log("Key bytes: " + string.Join(", ", GetKeyBytes()));
 
             var materials = new List<(Material material, MatOption option, Injector injector)>();
             foreach (var mat in GetMaterials())
