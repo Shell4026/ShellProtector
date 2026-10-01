@@ -41,7 +41,9 @@ namespace Shell.Protector.Tests.Integration
 
             Material[] output = encryptedAvatar.GetComponentInChildren<SkinnedMeshRenderer>().sharedMaterials;
             Assert.That(output[0].GetTexture(ShaderProperties.EncryptTexture0), Is.Not.Null, "The supported material must still be encrypted.");
-            Assert.That(output[1], Is.SameAs(unsupported), "A material with an unsupported shader must be skipped.");
+            // Saving and refreshing can reload the asset behind a new managed wrapper, so compare asset identity.
+            Assert.That(output[1], Is.EqualTo(unsupported), "A material with an unsupported shader must be skipped.");
+            Assert.That(AssetDatabase.GetAssetPath(output[1]), Is.EqualTo(AssetDatabase.GetAssetPath(unsupported)));
         }
 
         [TestCase(TextureFormat.BC7)]
