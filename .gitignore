@@ -75,4 +75,6 @@ Runtime/[0-9]*.meta
 Runtime/-[0-9]*/*
 Runtime/-[0-9]*.meta
 Runtime/EncryptedHistory.asset*
-/Generated/
+# Keep the tracked Generated.meta paired with a folder; Unity ignores dotfiles.
+/Generated/*
+!/Generated/.gitkeep
