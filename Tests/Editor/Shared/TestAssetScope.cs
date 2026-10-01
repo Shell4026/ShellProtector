@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
 
@@ -11,6 +12,14 @@ namespace Shell.Protector.Tests
     {
         public const string GeneratedRoot = "Assets/ShellProtector/Tests/__Generated";
         public const string DefaultGeneratedRoot = "Assets/ShellProtector/Generated";
+        static bool ownsDefaultGeneratedRoot;
+
+        public static void ClaimDefaultGeneratedRoot()
+        {
+            if (AssetDatabase.IsValidFolder(DefaultGeneratedRoot))
+                Assert.Ignore("Default output generation requires a project without existing user outputs.");
+            ownsDefaultGeneratedRoot = true;
+        }
 
         public static void Reset()
         {
@@ -30,11 +39,13 @@ namespace Shell.Protector.Tests
 
         public static void DeleteDefaultGeneratedRoot()
         {
+            if (!ownsDefaultGeneratedRoot) return;
             if (AssetDatabase.IsValidFolder(DefaultGeneratedRoot))
             {
                 AssetDatabase.DeleteAsset(DefaultGeneratedRoot);
                 AssetDatabase.Refresh();
             }
+            ownsDefaultGeneratedRoot = false;
         }
 
         public static void EnsureFolder(string assetPath)

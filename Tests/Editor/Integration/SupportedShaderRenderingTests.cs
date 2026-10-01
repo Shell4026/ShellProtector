@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
 using Shell.Protector;
+using Shell.Protector.Diagnostics;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
@@ -405,7 +406,7 @@ namespace Shell.Protector.Tests.Integration
                 target = new RenderTexture(RenderSize, RenderSize, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
                 target.Create();
                 camera.targetTexture = target;
-                camera.Render();
+                using (new SynchronousShaderCompilation()) camera.Render();
 
                 RenderTexture.active = target;
                 readback = new Texture2D(RenderSize, RenderSize, TextureFormat.RGBA32, false, true);

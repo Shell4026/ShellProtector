@@ -1,0 +1,7 @@
+{
+  "name": "shell.protector.Diagnostics.Editor",
+  "rootNamespace": "Shell.Protector.Diagnostics",
+  "references": ["shell.protector"],
+  "includePlatforms": ["Editor"],
+  "autoReferenced": false
+}

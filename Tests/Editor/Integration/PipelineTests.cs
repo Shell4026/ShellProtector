@@ -114,6 +114,7 @@ namespace Shell.Protector.Tests.Integration
         [Test]
         public void DefaultAssetDir_UsesGeneratedRootAndFolderGuids()
         {
+            TestAssetScope.ClaimDefaultGeneratedRoot();
             Fixture fixture = CreateFixture("Default", null);
 
             GameObject encryptedAvatar = fixture.Protector.Encrypt(false);

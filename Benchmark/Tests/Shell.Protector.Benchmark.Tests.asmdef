@@ -1,0 +1,8 @@
+{
+  "name": "shell.protector.Benchmark.Editor.Tests",
+  "rootNamespace": "Shell.Protector.Tests",
+  "references": ["shell.protector", "shell.protector.Benchmark.Editor"],
+  "includePlatforms": ["Editor"],
+  "autoReferenced": false,
+  "optionalUnityReferences": ["TestAssemblies"]
+}

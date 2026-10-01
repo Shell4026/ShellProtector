@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using System;
+using Shell.Protector.Diagnostics;
 using System.IO;
 using System.Linq;
 using NUnit.Framework;
@@ -28,7 +29,7 @@ namespace Shell.Protector.Tests.Integration
         {
             Shader shader = Shader.Find(shaderName);
             Assert.That(shader, Is.Not.Null, "Required installed shader: " + shaderName);
-            var source = Bc7TestData.Pattern(128, 128, true, true);
+            var source = TextureDiagnostics.Pattern(128, 128, true, true);
             source.filterMode = bilinear ? FilterMode.Bilinear : FilterMode.Point;
             var fixture = fixtureOwner.CreateFixture("BC7Pipeline", shader, source);
             SupportedShaderRenderingTests.SetSerializedField(fixture.Protector, "_filter", bilinear ? 1 : 0);
@@ -111,12 +112,12 @@ namespace Shell.Protector.Tests.Integration
         [Test]
         public void SharedSourceRetainsOneAtlasAndNonceWhileAnotherSourceIsIndependent()
         {
-            var source = Bc7TestData.Pattern(128, 128, true, true);
+            var source = TextureDiagnostics.Pattern(128, 128, true, true);
             var fixture = fixtureOwner.CreateFixture("BC7Sharing", Shader.Find("lilToon"), source);
             var shared = new Material(fixture.Material);
             TestAssetScope.CreateAsset(shared, "BC7Sharing/shared.mat");
             var separate = new Material(fixture.Material);
-            var rectangle = Bc7TestData.Pattern(128, 64, true, true);
+            var rectangle = TextureDiagnostics.Pattern(128, 64, true, true);
             TestAssetScope.CreateAsset(rectangle, "BC7Sharing/rectangle.asset");
             separate.mainTexture = rectangle;
             TestAssetScope.CreateAsset(separate, "BC7Sharing/separate.mat");
@@ -133,9 +134,9 @@ namespace Shell.Protector.Tests.Integration
         [Test]
         public void SavedMaterialAndCiphertextSurviveAssetBundleRoundTrip()
         {
-            var source = Bc7TestData.Pattern(64, 32, true, true);
+            var source = TextureDiagnostics.Pattern(64, 32, true, true);
             var cipher = new Chacha20();
-            var encrypted = TextureEncryptManager.EncryptTexture(source, Bc7TestData.Key, cipher);
+            var encrypted = TextureEncryptManager.EncryptTexture(source, TextureDiagnostics.Key, cipher);
             var material = Bc7TestData.Material(source, encrypted);
             var mip = new Texture2D(1, 1, TextureFormat.RGBA32, false, true);
             mip.SetPixel(0, 0, Color.black); mip.Apply(false, false); material.SetTexture("_MipTex", mip);
@@ -143,7 +144,7 @@ namespace Shell.Protector.Tests.Integration
             TestAssetScope.CreateAsset(mip, "Bundle/mip.asset");
             string materialPath = TestAssetScope.CreateAsset(material, "Bundle/material.mat");
             byte[] ciphertext = encrypted.Texture1.GetRawTextureData();
-            var expected = Bc7TestData.Render(Texture2D.blackTexture, material, 1, 64, 32);
+            var expected = TextureDiagnostics.Render(Texture2D.blackTexture, material, 1, 64, 32);
             string output = Path.GetFullPath("Temp/BC7BundleValidation"); Directory.CreateDirectory(output);
             AssetBundle bundle = null;
             try
@@ -156,7 +157,7 @@ namespace Shell.Protector.Tests.Integration
                 var restored = bundle.LoadAsset<Material>(materialPath);
                 var restoredAtlas = (Texture2D)restored.GetTexture(ShaderProperties.EncryptTexture0);
                 Assert.That(restoredAtlas.GetRawTextureData(), Is.EqualTo(ciphertext), "Ciphertext bytes must not be recompressed.");
-                var actual = Bc7TestData.Render(Texture2D.blackTexture, restored, 1, 64, 32);
+                var actual = TextureDiagnostics.Render(Texture2D.blackTexture, restored, 1, 64, 32);
                 Assert.That(Bc7TestData.MaxError(expected, actual), Is.Zero, "Serialized layout and shader variant must still decode.");
             }
             finally { if (bundle != null) bundle.Unload(true); Object.DestroyImmediate(source); }

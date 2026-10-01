@@ -45,8 +45,8 @@ namespace Shell.Protector.Benchmark
                 comparison = EditorGUILayout.Popup("Compare", comparison, Comparisons);
                 surface = EditorGUILayout.Popup("Shader", surface, SurfaceNames);
             }
-            EditorGUILayout.LabelField("Texture", comparison == 0 ? "2K, alpha pattern, Bilinear" : "2K, opaque pattern, Bilinear");
-            EditorGUILayout.LabelField("Measurement", "60 warmup frames, 300 GPU samples × 3 runs");
+            EditorGUILayout.LabelField("Texture", $"{TextureBenchmarkSettings.Size / 1024}K, {(comparison == 0 ? "alpha" : "opaque")} pattern, Bilinear");
+            EditorGUILayout.LabelField("Measurement", $"{TextureBenchmarkSettings.Warmup} warmup frames, {TextureBenchmarkSettings.Samples} GPU samples × {TextureBenchmarkSettings.Repeats} runs");
             EditorGUILayout.HelpBox("Runs in this editor using temporary preview scenes. Your open scenes are preserved, and profiling settings are restored when the run ends.", MessageType.Info);
             using (new EditorGUILayout.HorizontalScope())
             {
@@ -68,7 +68,7 @@ namespace Shell.Protector.Benchmark
                     double? added = TextureBenchmarkResults.AddedGpuMilliseconds(row, rows);
                     DrawRow(row.format, row.medianMs.ToString("F3"), row.p95Ms.ToString("F3"), added?.ToString("F3") ?? "—");
                 }
-                EditorGUILayout.HelpBox("Times cover the rendered draw at 1920×1080. Added time is the difference from that format's native median. Raw samples and run statistics are saved with the results.", MessageType.None);
+                EditorGUILayout.HelpBox($"Times cover the rendered draw at {TextureBenchmarkSettings.Width}×{TextureBenchmarkSettings.Height}. Added time is the difference from that format's native median. Raw samples and run statistics are saved with the results.", MessageType.None);
             }
             EditorGUILayout.EndScrollView();
         }
@@ -105,7 +105,7 @@ namespace Shell.Protector.Benchmark
             {
                 if (job.Tick())
                 {
-                    rows = TextureBenchmarkResults.ReadAndSave(lastOutput);
+                    rows = job.Rows;
                     status = "Complete";
                     job.Dispose(); job = null;
                 }

@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using System;
+using Shell.Protector.Diagnostics;
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
@@ -27,7 +28,7 @@ namespace Shell.Protector.Tests.Unit
         public void ProducesOnlyAnEncryptedAtlasSmallerThanRgbaWithTheSameMips()
         {
             var source = Constant(64, 32, true);
-            var result = TextureEncryptManager.EncryptTexture(source, Bc7TestData.Key, new Chacha20()); Own(result.Texture1);
+            var result = TextureEncryptManager.EncryptTexture(source, TextureDiagnostics.Key, new Chacha20()); Own(result.Texture1);
             Assert.That(result.Texture1.format, Is.EqualTo(TextureFormat.RGBA32));
             Assert.That(result.Texture1.mipmapCount, Is.EqualTo(1), "The ciphertext atlas must not be mip-filtered.");
             Assert.That(result.Texture2, Is.Null, "No plaintext carrier is part of the output contract.");
@@ -38,8 +39,8 @@ namespace Shell.Protector.Tests.Unit
         public void IndependentEncryptionUsesIndependentNonces()
         {
             var source = Constant(16, 16, true); var cipher = new Chacha20();
-            var first = TextureEncryptManager.EncryptTexture(source, Bc7TestData.Key, cipher); Own(first.Texture1);
-            var second = TextureEncryptManager.EncryptTexture(source, Bc7TestData.Key, cipher); Own(second.Texture1);
+            var first = TextureEncryptManager.EncryptTexture(source, TextureDiagnostics.Key, cipher); Own(first.Texture1);
+            var second = TextureEncryptManager.EncryptTexture(source, TextureDiagnostics.Key, cipher); Own(second.Texture1);
             Assert.That(second.Cipher, Is.Not.EqualTo(first.Cipher));
             Assert.That(second.Texture1.GetRawTextureData(), Is.Not.EqualTo(first.Texture1.GetRawTextureData()));
         }
@@ -48,7 +49,7 @@ namespace Shell.Protector.Tests.Unit
         public void IdenticalRecordsAtDifferentMipsDoNotReuseCiphertext()
         {
             var source = Constant(16, 16, true);
-            var result = TextureEncryptManager.EncryptTexture(source, Bc7TestData.Key, new Chacha20()); Own(result.Texture1);
+            var result = TextureEncryptManager.EncryptTexture(source, TextureDiagnostics.Key, new Chacha20()); Own(result.Texture1);
             byte[] bytes = result.Texture1.GetRawTextureData();
             byte[] first = bytes.Take(32).ToArray();
             Assert.That(bytes.Skip(32).Take(32).ToArray(), Is.Not.EqualTo(first), "Different block addresses.");
@@ -60,11 +61,11 @@ namespace Shell.Protector.Tests.Unit
         public void AllRecordBytesRoundTripThroughTheStoredNonceAndMipBlockDomain()
         {
             var source = Constant(32, 16, true); var cipher = new Chacha20();
-            var result = TextureEncryptManager.EncryptTexture(source, Bc7TestData.Key, cipher); Own(result.Texture1);
+            var result = TextureEncryptManager.EncryptTexture(source, TextureDiagnostics.Key, cipher); Own(result.Texture1);
             byte[] bytes = result.Texture1.GetRawTextureData();
             byte[] expected = new byte[32]; BC7Codec.Normalize(source.GetPixelData<byte>(0).ToArray().AsSpan(0, 16), expected);
             uint[] words = new uint[8], key = new uint[4];
-            Buffer.BlockCopy(Bc7TestData.Key, 0, key, 0, 16); uint last = key[3];
+            Buffer.BlockCopy(TextureDiagnostics.Key, 0, key, 0, 16); uint last = key[3];
             for (int mip = 0; mip < result.Layout.MipCount; ++mip)
             {
                 int begin = result.Layout.MipBlockOffsets[mip];
@@ -101,7 +102,7 @@ namespace Shell.Protector.Tests.Unit
         public void RejectsXxteaForBc7WithAnActionableError()
         {
             var source = Constant(16, 16, false);
-            var error = Assert.Throws<ArgumentException>(() => TextureEncryptManager.EncryptTexture(source, Bc7TestData.Key, new XXTEA()));
+            var error = Assert.Throws<ArgumentException>(() => TextureEncryptManager.EncryptTexture(source, TextureDiagnostics.Key, new XXTEA()));
             Assert.That(error.Message, Does.Contain("requires ChaCha8"));
         }
 
@@ -109,7 +110,7 @@ namespace Shell.Protector.Tests.Unit
         public void RejectsTextureWhenPaddingAndMipTailLoseTheMemorySaving(int width, int height)
         {
             var source = Constant(width, height, true);
-            var error = Assert.Throws<ArgumentException>(() => TextureEncryptManager.EncryptTexture(source, Bc7TestData.Key, new Chacha20()));
+            var error = Assert.Throws<ArgumentException>(() => TextureEncryptManager.EncryptTexture(source, TextureDiagnostics.Key, new Chacha20()));
             Assert.That(error.Message, Does.Contain("memory-saving requirement"));
         }
 

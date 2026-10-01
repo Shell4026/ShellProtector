@@ -1,7 +1,7 @@
 {
   "name": "shell.protector.Benchmark.Editor",
   "rootNamespace": "Shell.Protector.Benchmark",
-  "references": ["shell.protector"],
+  "references": ["shell.protector", "shell.protector.Diagnostics.Editor"],
   "includePlatforms": ["Editor"],
   "autoReferenced": true
 }
