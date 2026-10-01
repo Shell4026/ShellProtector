@@ -78,6 +78,11 @@ namespace Shell.Protector
 
         public abstract bool CanHandle(Shader shader);
 
+        public virtual bool CanReuseShader(Shader shader, EncryptResult encrypted)
+        {
+            return shader != null && (encrypted.Layout == null || shader.FindPropertyIndex(ShaderProperties.BC7LayoutVersion) >= 0);
+        }
+
         public bool WasInjected(Shader shader)
         {
             string shader_path = AssetDatabase.GetAssetPath(shader);

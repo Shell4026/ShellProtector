@@ -5,7 +5,7 @@ using UnityEngine.Experimental.Rendering;
 namespace Shell.Protector
 {
     /// <summary>Public addressing metadata; image content lives only in the encrypted atlas.</summary>
-    public sealed class EncryptedTextureLayout
+    public sealed class BC7TextureLayout
     {
         public const int MaxMipCount = 13;
         public readonly int Width, Height, MipCount, AtlasWidth, AtlasHeight;
@@ -16,7 +16,7 @@ namespace Shell.Protector
         public long AtlasBytes => (long)AtlasWidth * AtlasHeight * 4;
         public int BlockCount { get; }
 
-        public EncryptedTextureLayout(Texture2D source, int mipCount)
+        public BC7TextureLayout(Texture2D source, int mipCount)
         {
             Width = source.width;
             Height = source.height;
@@ -45,18 +45,5 @@ namespace Shell.Protector
                 throw new ArgumentException($"{source.name}: encrypted BC7 needs {AtlasBytes} bytes including atlas padding; RGBA32 with the same mips needs {rgba} bytes. This texture does not meet the memory-saving requirement.");
         }
 
-        public void ApplyTo(Material material)
-        {
-            material.SetInteger(ShaderProperties.BC7LayoutVersion, 1);
-            material.SetVector(ShaderProperties.SourceTexelSize, new Vector4(1f / Width, 1f / Height, Width, Height));
-            material.SetVector(ShaderProperties.SourceSampling, new Vector4(MipCount, IsSrgb ? 1 : 0, (int)WrapU, (int)WrapV));
-            for (int i = 0; i < 4; ++i)
-            {
-                Vector4 offsets = Vector4.zero;
-                for (int j = 0; j < 4; ++j)
-                    if (i * 4 + j < MipCount) offsets[j] = MipBlockOffsets[i * 4 + j];
-                material.SetVector(ShaderProperties.MipOffsetsPrefix + i, offsets);
-            }
-        }
     }
 }

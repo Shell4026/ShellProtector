@@ -335,18 +335,16 @@ namespace Shell.Protector
                 }
             }
 
-            // Validate BC7 before creating generated assets or discarding old output.
+            // Validate format requirements before creating generated assets or discarding old output.
             foreach (var mat in materials)
             {
                 var texture = mat.mainTexture as Texture2D;
-                if (texture == null || texture.format != TextureFormat.BC7) continue;
-                if (MaterialOptions.TryGetValue(mat, out var bc7Option) && bc7Option != null && !bc7Option.Active) continue;
-                if (_algorithm != (int)Algorithm.Chacha)
-                    throw new ArgumentException($"{texture.name}: BC7 requires ChaCha8. Switch the ShellProtector encryption algorithm from XXTEA to ChaCha8.");
+                if (texture == null) continue;
+                if (MaterialOptions.TryGetValue(mat, out var textureOption) && textureOption != null && !textureOption.Active) continue;
                 int mipCount = texture.mipmapCount;
                 if (AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(texture)) is TextureImporter)
-                    mipCount = 1 + (int)Mathf.Log(Mathf.Max(texture.width, texture.height), 2);
-                _ = new EncryptedTextureLayout(texture, mipCount);
+                    mipCount = TextureMipUtility.FullCount(texture.width, texture.height);
+                TextureEncryptManager.Validate(texture, mipCount, (ShellProtectorAlgorithm)_algorithm);
             }
             CleanOutdatedEncrypted();
 
@@ -450,11 +448,10 @@ namespace Shell.Protector
                 _injector.Init(_descriptor.gameObject, mainTexture, keyBytes, _keySize, materialFilter, resourceDir, encryptor);
 
                 int mipRefSize = Math.Max(mat.mainTexture.width, mat.mainTexture.height);
-                bool bc7 = mainTexture.format == TextureFormat.BC7;
-                var mipRefKey = (bc7 ? mainTexture.width : mipRefSize, bc7 ? mainTexture.height : mipRefSize, bc7);
+                var mipRefKey = TextureEncryptManager.MipReference(mainTexture);
                 if (!mips.ContainsKey(mipRefKey))
                 {
-                    Texture2D mipRef = GenerateMipRefTexture(_outputPaths.MipTextureName(mipRefSize), mipRefKey.Item1, mipRefKey.Item2, useSmallMip, bc7);
+                    Texture2D mipRef = GenerateMipRefTexture(_outputPaths.MipTextureName(mipRefSize), mipRefKey.width, mipRefKey.height, useSmallMip, mipRefKey.fullChain);
                     if (mipRef != null)
                         mips.Add(mipRefKey, mipRef);
                 }
@@ -477,14 +474,8 @@ namespace Shell.Protector
                 //////////////////////Inject shader///////////////////////
                 AuxiliaryTextures otherTex = GetLimOutlineTextures(mat);
                 Shader encryptedShader = IsEncryptedBefore(mat.shader);
-                if (bc7 && encryptedShader != null && encryptedShader.FindPropertyIndex(ShaderProperties.BC7LayoutVersion) < 0)
+                if (!_injector.CanReuseShader(encryptedShader, processedTexture.Encrypted))
                     encryptedShader = null;
-                if (encryptedShader != null && _injector is PoiyomiInjector)
-                {
-                    int filterProperty = encryptedShader.FindPropertyIndex(ShaderProperties.InjectedFilter);
-                    if (filterProperty < 0 || encryptedShader.GetPropertyDefaultIntValue(filterProperty) != materialFilter)
-                        encryptedShader = null;
-                }
                 if (encryptedShader == null)
                 {
                     try
@@ -1198,20 +1189,9 @@ namespace Shell.Protector
                 };
             }
 
-            //Set chacha nonce
-            if (_algorithm == (int)Algorithm.Chacha)
-            {
-                Chacha20 chacha = encryptor as Chacha20;
-                if (!processed && mainTexture.format != TextureFormat.BC7)
-                {
-                    byte[] hashMat = KeyGenerator.GetHash(mat.GetInstanceID());
-                    for (int i = 0; i < chacha.Nonce.Length; ++i)
-                        chacha.Nonce[i] ^= hashMat[i];
-                }
-            }
-
             if (!processed)
             {
+                TextureEncryptManager.PrepareNonce(mainTexture, encryptor, mat.GetInstanceID());
                 EncryptResult encryptResult;
                 try
                 {
@@ -1270,10 +1250,7 @@ namespace Shell.Protector
                         fallbackSize = 128;
                         break;
                 }
-                // The preview generator excludes small images. BC7 still supports these
-                // inputs, using the existing solid fallback instead of retaining the source.
-                if (mainTexture.format == TextureFormat.BC7 && (mainTexture.width < 128 || mainTexture.height < 128) && fallbackSize > 1)
-                    fallbackSize = 1;
+                fallbackSize = TextureEncryptManager.FallbackSize(mainTexture, fallbackSize);
                 if (fallbackSize > 1)
                 {
                     fallback = TextureEncryptManager.GenerateFallback(mainTexture, fallbackSize);

@@ -47,163 +47,71 @@ namespace Shell.Protector
             material.DisableKeyword(ShaderProperties.Format1Keyword);
         }
 
-        public override (int, int) CalculateOffsets(Texture2D texture) {
-            int woffset = 13 - (int)Mathf.Log(texture.width, 2) - 1 + 2;
-            int hoffset = 13 - (int)Mathf.Log(texture.height, 2) - 1 + 2;
-            return (woffset, hoffset);
-        }
-    }
+        public override (int, int) CalculateOffsets(Texture2D texture) => TextureMipUtility.Offsets(texture, 2);
+        protected abstract bool HasAlpha { get; }
 
-    public class DXT1Format : DXTFormat {
-        public override bool CanHandle(TextureFormat format) {
-            return format == TextureFormat.DXT1 || format == TextureFormat.DXT1Crunched;
-        }
-
-        public override EncryptResult Encrypt(Texture2D texture, byte[] key, IEncryptor algorithm) {
-            if (texture.width < 8) {
-                throw new Exception($"{texture.name} : The texture width must be >= 8px");
-            }
-
-            if (texture.height < 4) {
-                throw new Exception($"{texture.name} : The texture height must be >= 4px");
-            }
-
-            int mip_lv = GetCanMipmapLevel(texture.width / 4, texture.height / 4);
-            Texture2D dxt1 = HandleCrunchedFormat(texture, mip_lv, false);
-            
+        public override EncryptResult Encrypt(Texture2D texture, byte[] key, IEncryptor algorithm)
+        {
+            if (texture.width < 8) throw new Exception($"{texture.name} : The texture width must be >= 8px");
+            if (texture.height < 4) throw new Exception($"{texture.name} : The texture height must be >= 4px");
+            int mipLevel = TextureMipUtility.LegacyLevel(texture.width / 4, texture.height / 4);
+            Texture2D input = HandleCrunchedFormat(texture, mipLevel, HasAlpha);
+            TextureFormat format = HasAlpha ? TextureFormat.DXT5 : TextureFormat.DXT1;
             var result = new EncryptResult(algorithm);
-            if (mip_lv != 0) {
-                result.Texture1 = new Texture2D(dxt1.width, dxt1.height, TextureFormat.DXT1, mip_lv, true);
-                result.Texture2 = new Texture2D(dxt1.width / 4, dxt1.height / 4, TextureFormat.RGBA32, mip_lv, true);
+            if (mipLevel != 0) {
+                result.Texture1 = new Texture2D(input.width, input.height, format, mipLevel, true);
+                result.Texture2 = new Texture2D(input.width / 4, input.height / 4, TextureFormat.RGBA32, mipLevel, true);
             } else {
-                result.Texture1 = new Texture2D(dxt1.width, dxt1.height, TextureFormat.DXT1, false, true);
-                result.Texture2 = new Texture2D(dxt1.width / 4, dxt1.height / 4, TextureFormat.RGBA32, false, true);
+                result.Texture1 = new Texture2D(input.width, input.height, format, false, true);
+                result.Texture2 = new Texture2D(input.width / 4, input.height / 4, TextureFormat.RGBA32, false, true);
             }
+            if (HasAlpha) result.Texture1.alphaIsTransparency = true;
             result.Texture2.filterMode = FilterMode.Point;
             result.Texture2.anisoLevel = 0;
-
-            var raw_data = dxt1.GetRawTextureData();
-            int lenidx = 0;
-
-            for (int m = 0; m <= mip_lv; ++m) {
-                if (m != 0 && m == mip_lv) break;
-                var tex_data = GetArrayDXT(raw_data, dxt1.width, dxt1.height, false, m);
-                var pixel = result.Texture2.GetPixels32(m);
-
-                // Units are independent and write disjoint texels, so they run in parallel with their own key array.
-                Parallel.For(0, tex_data.Length / 16, unit => {
-                    int i = unit * 16;
-                    var key_uint = ConvertKeyToUInt(key);
-                    key_uint[3] = GetUnitKey(key, (uint)(i / 8), m);
-
-                    uint[] data = new uint[2];
-                    data[0] = (uint)(tex_data[i + 0] + (tex_data[i + 1] << 8) + (tex_data[i + 2] << 16) + (tex_data[i + 3] << 24));
-                    data[1] = (uint)(tex_data[(i + 8) + 0] + (tex_data[(i + 8) + 1] << 8) + (tex_data[(i + 8) + 2] << 16) + (tex_data[(i + 8) + 3] << 24));
-
-                    uint[] data_enc = algorithm.Encrypt(data, key_uint);
-
+            byte[] raw = input.GetRawTextureData();
+            int destination = 0, blockBytes = HasAlpha ? 16 : 8, colorOffset = HasAlpha ? 8 : 0;
+            for (int m = 0; m <= mipLevel; ++m)
+            {
+                if (m != 0 && m == mipLevel) break;
+                byte[] blocks = GetArrayDXT(raw, input.width, input.height, HasAlpha, m);
+                Color32[] pixels = result.Texture2.GetPixels32(m);
+                Parallel.For(0, blocks.Length / (blockBytes * 2), unit => {
+                    int block = unit * 2;
+                    uint[] unitKey = ConvertKeyToUInt(key);
+                    unitKey[3] = GetUnitKey(key, (uint)block, m);
+                    uint[] endpoints = new uint[2];
                     for (int j = 0; j < 2; ++j) {
-                        pixel[i / 8 + j].r = (byte)((data_enc[j] & 0x000000FF) >> 0);
-                        pixel[i / 8 + j].g = (byte)((data_enc[j] & 0x0000FF00) >> 8);
-                        pixel[i / 8 + j].b = (byte)((data_enc[j] & 0x00FF0000) >> 16);
-                        pixel[i / 8 + j].a = (byte)((data_enc[j] & 0xFF000000) >> 24);
+                        int address = (block + j) * blockBytes + colorOffset;
+                        endpoints[j] = (uint)(blocks[address] | (blocks[address + 1] << 8) | (blocks[address + 2] << 16) | (blocks[address + 3] << 24));
                     }
+                    uint[] encrypted = algorithm.Encrypt(endpoints, unitKey);
+                    for (int j = 0; j < 2; ++j)
+                        pixels[block + j] = new Color32((byte)encrypted[j], (byte)(encrypted[j] >> 8), (byte)(encrypted[j] >> 16), (byte)(encrypted[j] >> 24));
                 });
-                for (int i = 0; i < tex_data.Length; i += 8) {
-                    tex_data[i + 0] = 255;
-                    tex_data[i + 1] = 255;
-                    tex_data[i + 2] = 0;
-                    tex_data[i + 3] = 0;
+                for (int i = colorOffset; i < blocks.Length; i += blockBytes) {
+                    blocks[i] = 255; blocks[i + 1] = 255; blocks[i + 2] = 0; blocks[i + 3] = 0;
                 }
-                for (int i = 0; i < tex_data.Length; ++i) {
-                    raw_data[i + lenidx] = tex_data[i];
-                }
-                lenidx += tex_data.Length;
-                result.Texture2.SetPixels32(pixel, m);
+                Array.Copy(blocks, 0, raw, destination, blocks.Length);
+                destination += blocks.Length;
+                result.Texture2.SetPixels32(pixels, m);
             }
-            result.Texture1.LoadRawTextureData(raw_data);
+            result.Texture1.LoadRawTextureData(raw);
             result.Texture1.filterMode = FilterMode.Point;
             result.Texture1.anisoLevel = 0;
-
             return result;
         }
     }
 
-    public class DXT5Format : DXTFormat {
-        public override bool CanHandle(TextureFormat format) {
-            return format == TextureFormat.DXT5 || format == TextureFormat.DXT5Crunched;
-        }
+    public class DXT1Format : DXTFormat
+    {
+        protected override bool HasAlpha => false;
+        public override bool CanHandle(TextureFormat format) => format == TextureFormat.DXT1 || format == TextureFormat.DXT1Crunched;
+    }
 
-        public override EncryptResult Encrypt(Texture2D texture, byte[] key, IEncryptor algorithm) {
-            if (texture.width < 8) {
-                throw new Exception($"{texture.name} : The texture width must be >= 8px");
-            }
-
-            if (texture.height < 4) {
-                throw new Exception($"{texture.name} : The texture height must be >= 4px");
-            }
-
-            int mip_lv = GetCanMipmapLevel(texture.width / 4, texture.height / 4);
-            Texture2D dxt5 = HandleCrunchedFormat(texture, mip_lv, true);
-            
-            var result = new EncryptResult(algorithm);
-            if (mip_lv != 0) {
-                result.Texture1 = new Texture2D(texture.width, texture.height, TextureFormat.DXT5, mip_lv, true);
-                result.Texture2 = new Texture2D(texture.width / 4, texture.height / 4, TextureFormat.RGBA32, mip_lv, true);
-            } else {
-                result.Texture1 = new Texture2D(texture.width, texture.height, TextureFormat.DXT5, false, true);
-                result.Texture2 = new Texture2D(texture.width / 4, texture.height / 4, TextureFormat.RGBA32, false, true);
-            }
-            result.Texture1.alphaIsTransparency = true;
-            result.Texture2.filterMode = FilterMode.Point;
-            result.Texture2.anisoLevel = 0;
-
-            var raw_data = dxt5.GetRawTextureData();
-            int lenidx = 0;
-
-            for (int m = 0; m <= mip_lv; ++m) {
-                if (m != 0 && m == mip_lv) break;
-                var tex_data = GetArrayDXT(raw_data, texture.width, texture.height, true, m);
-                var pixel = result.Texture2.GetPixels32(m);
-
-                // Units are independent and write disjoint texels, so they run in parallel with their own key array.
-                Parallel.For(0, tex_data.Length / 32, unit => {
-                    int i = unit * 32;
-                    var key_uint = ConvertKeyToUInt(key);
-                    key_uint[3] = GetUnitKey(key, (uint)(i / 16), m);
-
-                    uint[] data = new uint[2];
-                    data[0] = (uint)(tex_data[i + 8] + (tex_data[i + 9] << 8) + (tex_data[i + 10] << 16) + (tex_data[i + 11] << 24));
-                    data[1] = (uint)(tex_data[i + 16 + 8] + (tex_data[i + 16 + 9] << 8) + (tex_data[i + 16 + 10] << 16) + (tex_data[i + 16 + 11] << 24));
-
-                    uint[] data_enc = algorithm.Encrypt(data, key_uint);
-
-                    for (int j = 0; j < 2; ++j) {
-                        pixel[i / 16 + j].r = (byte)((data_enc[j] & 0x000000FF) >> 0);
-                        pixel[i / 16 + j].g = (byte)((data_enc[j] & 0x0000FF00) >> 8);
-                        pixel[i / 16 + j].b = (byte)((data_enc[j] & 0x00FF0000) >> 16);
-                        pixel[i / 16 + j].a = (byte)((data_enc[j] & 0xFF000000) >> 24);
-                    }
-                });
-                for (int i = 0; i < tex_data.Length; i += 16) {
-                    tex_data[i + 8] = 255;
-                    tex_data[i + 9] = 255;
-                    tex_data[i + 10] = 0;
-                    tex_data[i + 11] = 0;
-                }
-                for (int i = 0; i < tex_data.Length; ++i) {
-                    raw_data[i + lenidx] = tex_data[i];
-                }
-                lenidx += tex_data.Length;
-                result.Texture2.SetPixels32(pixel, m);
-            }
-            result.Texture1.LoadRawTextureData(raw_data);
-            result.Texture1.filterMode = FilterMode.Point;
-            result.Texture1.anisoLevel = 0;
-
-            return result;
-        }
+    public class DXT5Format : DXTFormat
+    {
+        protected override bool HasAlpha => true;
+        public override bool CanHandle(TextureFormat format) => format == TextureFormat.DXT5 || format == TextureFormat.DXT5Crunched;
     }
 }
-
 #endif

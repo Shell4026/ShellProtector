@@ -5,7 +5,7 @@ namespace Shell.Protector
     public struct EncryptResult {
         public Texture2D Texture1;
         public Texture2D Texture2;
-        public EncryptedTextureLayout Layout;
+        public BC7TextureLayout Layout;
         public readonly EncryptionParameters Cipher;
 
         public EncryptResult(IEncryptor algorithm) {
@@ -55,11 +55,28 @@ namespace Shell.Protector
             return (uint)(key[12] | (key[13] << 8) | (key[14] << 16) | (key[15] << 24)) ^ idx ^ ((uint)mip << 24);
         }
 
-        protected int GetCanMipmapLevel(int w, int h) {
-            if (w < 1 || h <= 1) return 0;
-            int w_level = (int)Mathf.Log(w, 2);
-            int h_level = (int)Mathf.Log(h, 2);
-            return Mathf.Max(w_level, h_level);
+        internal virtual void Validate(Texture2D texture, int mipCount, ShellProtectorAlgorithm algorithm) { }
+
+        internal virtual (int width, int height, bool fullChain) MipReference(Texture2D texture) {
+            int size = Mathf.Max(texture.width, texture.height);
+            return (size, size, false);
+        }
+
+        internal virtual int FallbackSize(Texture2D texture, int requestedSize) => requestedSize;
+
+        internal virtual void PrepareNonce(IEncryptor algorithm, int materialId) {
+            if (algorithm is Chacha20 chacha) {
+                byte[] hash = KeyGenerator.GetHash(materialId);
+                for (int i = 0; i < chacha.Nonce.Length; ++i)
+                    chacha.Nonce[i] ^= hash[i];
+            }
+        }
+
+        internal virtual void ConfigureMaterial(Material material, Texture2D original, EncryptResult encrypted) {
+            SetFormatKeywords(material);
+            var (width, height) = CalculateOffsets(original);
+            material.SetInteger(ShaderProperties.WidthOffset, width);
+            material.SetInteger(ShaderProperties.HeightOffset, height);
         }
 
         public abstract bool CanHandle(TextureFormat format);

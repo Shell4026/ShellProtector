@@ -15,12 +15,12 @@ float3 GammaCorrection(float3 rgb)
 
 float2 GetUV(int idx, int m, int woffset = 0, int hoffset = 0)
 {
-	int w = idx % mw[m + woffset];
-	int h = idx / mw[m + woffset];
-	return float2((float)w/mw[m + woffset], (float)h/mh[m + hoffset]);
+	int w = idx % mipDimensions[m + woffset];
+	int h = idx / mipDimensions[m + woffset];
+	return float2((float)w/mipDimensions[m + woffset], (float)h/mipDimensions[m + hoffset]);
 }
 
 uint2 GetPixelCoord(float2 uv, int m)
 {
-	return (uint2)floor(frac(uv) * float2(mw[m + _Woffset], mh[m + _Hoffset]));
+	return (uint2)floor(frac(uv) * float2(mipDimensions[m + _Woffset], mipDimensions[m + _Hoffset]));
 }

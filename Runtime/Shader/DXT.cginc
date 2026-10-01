@@ -8,8 +8,8 @@ int GetBlockIndex(float2 uv, int m)
 	const float x = frac(uv.x);
 	const float y = frac(uv.y);
 
-	const uint encW = mw[m + _Woffset];
-	const uint encH = mh[m + _Hoffset];
+	const uint encW = mipDimensions[m + _Woffset];
+	const uint encH = mipDimensions[m + _Hoffset];
 
 	return (encW * floor(y * encH)) + floor(x * encW);
 }

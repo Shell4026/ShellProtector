@@ -10,6 +10,13 @@ namespace Shell.Protector
 {
     public class PoiyomiInjector : Injector
     {
+        public override bool CanReuseShader(Shader shader, EncryptResult encrypted)
+        {
+            if (!base.CanReuseShader(shader, encrypted)) return false;
+            int property = shader.FindPropertyIndex(ShaderProperties.InjectedFilter);
+            return property >= 0 && shader.GetPropertyDefaultIntValue(property) == Filter;
+        }
+
         public override bool CanHandle(Shader shader)
         {
             return ShaderManager.IsPoiyomi(shader);

@@ -83,7 +83,7 @@ namespace Shell.Protector.Tests.Unit
         public void AtlasAllocationIncludesPaddingAndFitsTheFourKRange(int width, int height)
         {
             var source = Own(new Texture2D(width, height, TextureFormat.BC7, true, true));
-            var layout = new EncryptedTextureLayout(source, source.mipmapCount);
+            var layout = new BC7TextureLayout(source, source.mipmapCount);
             var atlas = Own(new Texture2D(layout.AtlasWidth, layout.AtlasHeight, TextureFormat.RGBA32, false, true));
             Assert.That(atlas.GetRawTextureData().LongLength, Is.EqualTo(layout.AtlasBytes));
             Assert.That(layout.AtlasBytes, Is.LessThan(layout.RgbaBytes));

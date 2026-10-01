@@ -1,5 +1,4 @@
 using UnityEngine;
-using System.Collections.Generic;
 using System.Linq;
 
 #if UNITY_EDITOR
@@ -8,14 +7,8 @@ namespace Shell.Protector
 {
     public class TextureEncryptManager
     {
-        private static readonly Dictionary<TextureFormat, ITextureFormat> _formats = new Dictionary<TextureFormat, ITextureFormat> {
-            { TextureFormat.DXT1, new DXT1Format() },
-            { TextureFormat.DXT1Crunched, new DXT1Format() },
-            { TextureFormat.DXT5, new DXT5Format() },
-            { TextureFormat.DXT5Crunched, new DXT5Format() },
-            { TextureFormat.RGB24, new RGB24Format() },
-            { TextureFormat.RGBA32, new RGBA32Format() },
-            { TextureFormat.BC7, new BC7Format() }
+        private static readonly BaseTextureFormat[] _formats = {
+            new DXT1Format(), new DXT5Format(), new RGB24Format(), new RGBA32Format(), new BC7Format()
         };
 
         public static bool HasAlpha(Texture2D texture)
@@ -30,8 +23,7 @@ namespace Shell.Protector
 
         public static Texture2D GenerateRefMipmap(int width, int height, bool small = false, bool fullChain = false)
         {
-            int mip_lv = GetCanMipmapLevel(width, height);
-            if (fullChain) mip_lv = 1 + (int)Mathf.Log(Mathf.Max(width, height), 2);
+            int mip_lv = fullChain ? TextureMipUtility.FullCount(width, height) : TextureMipUtility.LegacyLevel(width, height);
             Debug.LogFormat("mip {0}, {1} : {2}", width, height, mip_lv);
 
             // A one-row reference still needs the longest axis to hold every mip of a tall rectangle.
@@ -90,15 +82,7 @@ namespace Shell.Protector
             return resizedTexture;
         }
 
-        private static int GetCanMipmapLevel(int w, int h)
-        {
-            if (w < 1 || h <= 1) return 0;
-            int w_level = (int)Mathf.Log(w, 2);
-            int h_level = (int)Mathf.Log(h, 2);
-            return Mathf.Max(w_level, h_level);
-        }
-
-        private static ITextureFormat GetFormat(Texture texture)
+        private static BaseTextureFormat GetFormat(Texture texture)
         {
             if (texture == null)
             {
@@ -110,10 +94,10 @@ namespace Shell.Protector
                 return null;
             }
 
-            return _formats.FirstOrDefault(f => f.Value.CanHandle(texture2D.format)).Value;
+            return _formats.FirstOrDefault(f => f.CanHandle(texture2D.format));
         }
 
-        private static ITextureFormat GetFormat(Material material)
+        private static BaseTextureFormat GetFormat(Material material)
         {
             if (material == null || material.mainTexture == null)
             {
@@ -148,16 +132,23 @@ namespace Shell.Protector
 
         public static void ConfigureMaterial(Material material, Texture2D original, EncryptResult encrypted)
         {
-            SetFormatKeywords(material, original);
-            if (encrypted.Layout != null)
-                encrypted.Layout.ApplyTo(material);
+            var format = GetFormat(original);
+            if (format != null) format.ConfigureMaterial(material, original, encrypted);
             else
             {
-                var (widthOffset, heightOffset) = CalculateOffsets(original);
-                material.SetInteger(ShaderProperties.WidthOffset, widthOffset);
-                material.SetInteger(ShaderProperties.HeightOffset, heightOffset);
+                material.SetInteger(ShaderProperties.WidthOffset, 0);
+                material.SetInteger(ShaderProperties.HeightOffset, 0);
             }
         }
+
+        internal static void Validate(Texture2D texture, int mipCount, ShellProtectorAlgorithm algorithm) =>
+            GetFormat(texture)?.Validate(texture, mipCount, algorithm);
+
+        internal static (int width, int height, bool fullChain) MipReference(Texture2D texture) => GetFormat(texture).MipReference(texture);
+
+        internal static int FallbackSize(Texture2D texture, int requestedSize) => GetFormat(texture).FallbackSize(texture, requestedSize);
+
+        internal static void PrepareNonce(Texture2D texture, IEncryptor algorithm, int materialId) => GetFormat(texture).PrepareNonce(algorithm, materialId);
 
         public static bool IsSupportedTexture(Texture texture)
         {
