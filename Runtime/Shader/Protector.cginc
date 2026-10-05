@@ -126,32 +126,32 @@ float4 DecryptTextureBilinear(Texture2D tex0, Texture2D tex1, SamplerState texSa
 
 		uint data[_SHELL_PROTECTOR_DATA_LENGTH];
 		DecryptData(data, tex0, tex1, texSampler, uv00, m[mip]);
-		const uint word00 = data[k00];
-		uint word10 = data[k10];
-		uint word01 = data[k01];
-		uint word11 = data[k11];
+		const uint word00 = SelectWord(data, k00);
+		uint word10 = SelectWord(data, k10);
+		uint word01 = SelectWord(data, k01);
+		uint word11 = SelectWord(data, k11);
 
 		[branch]
 		if (unit10 != unit00)
 		{
 			DecryptData(data, tex0, tex1, texSampler, uv10, m[mip]);
-			word10 = data[k10];
+			word10 = SelectWord(data, k10);
 			if (unit11 == unit10)
-				word11 = data[k11];
+				word11 = SelectWord(data, k11);
 		}
 		[branch]
 		if (unit01 != unit00)
 		{
 			DecryptData(data, tex0, tex1, texSampler, uv01, m[mip]);
-			word01 = data[k01];
+			word01 = SelectWord(data, k01);
 			if (unit11 == unit01)
-				word11 = data[k11];
+				word11 = SelectWord(data, k11);
 		}
 		[branch]
 		if (unit11 != unit00 && unit11 != unit10 && unit11 != unit01)
 		{
 			DecryptData(data, tex0, tex1, texSampler, uv11, m[mip]);
-			word11 = data[k11];
+			word11 = SelectWord(data, k11);
 		}
 
 		const float4 c00 = GetBlockPixel(tex0, texSampler, word00, uv00, m[mip]);

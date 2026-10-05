@@ -47,7 +47,7 @@ float4 GetBlockPixel(Texture2D tex0, SamplerState tex0Sampler, uint keystream, f
 
 float4 GetPixel(Texture2D tex0, SamplerState tex0Sampler, in uint data[16], float2 uv, int m)
 {
-	return GetBlockPixel(tex0, tex0Sampler, data[GetBlockLocalIndex(uv, m)], uv, m);
+	return GetBlockPixel(tex0, tex0Sampler, SelectWord(data, GetBlockLocalIndex(uv, m)), uv, m);
 }
 
 #else

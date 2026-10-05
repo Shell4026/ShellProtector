@@ -24,3 +24,24 @@ uint2 GetPixelCoord(float2 uv, int m)
 {
 	return (uint2)floor(frac(uv) * float2(mw[m + _Woffset], mh[m + _Hoffset]));
 }
+
+// data[k] with constant indices only. A per-pixel k into a local array becomes an indexable temp,
+// which AMD compiles to a loop over every distinct k in the wave (verified with RGA on GCN and RDNA).
+uint SelectWord(const uint data[16], int k)
+{
+	const bool b0 = (k & 1) != 0;
+	const bool b1 = (k & 2) != 0;
+	const bool b2 = (k & 4) != 0;
+	const bool b3 = (k & 8) != 0;
+	// Each step halves the candidates by one bit of k: a, b = data[2j + b0] for j < 8, c = data[4j + 2*b1 + b0], ...
+	const uint4 a = b0 ? uint4(data[1], data[3], data[5], data[7]) : uint4(data[0], data[2], data[4], data[6]);
+	const uint4 b = b0 ? uint4(data[9], data[11], data[13], data[15]) : uint4(data[8], data[10], data[12], data[14]);
+	const uint4 c = b1 ? uint4(a.yw, b.yw) : uint4(a.xz, b.xz);
+	const uint2 d = b2 ? c.yw : c.xz;
+	return b3 ? d.y : d.x;
+}
+
+uint SelectWord(const uint data[2], int k)
+{
+	return (k & 1) != 0 ? data[1] : data[0];
+}
