@@ -264,10 +264,8 @@ namespace Shell.Protector
 
                 var syncSize_value = syncSize.intValue;
                 int syncSize_index = 0;
-                //int[] syncSizeCandidates = { 1, 2, 4};
-                //string[] selectableValues = { "1", "2", "4" };
-                int[] syncSizeCandidates = { 1 };
-                string[] selectableValues = { "1" };
+                int[] syncSizeCandidates = { 1, 2, 4 };
+                string[] selectableValues = { "1", "2", "4" };
                 for (int i = 0; i < syncSizeCandidates.Length; i++)
                     if (syncSizeCandidates[i] == syncSize_value)
                         syncSize_index = i;
@@ -277,8 +275,7 @@ namespace Shell.Protector
                     GUILayout.Label(Lang("Sync speed"), EditorStyles.boldLabel);
                     syncSize_index = EditorGUILayout.Popup(syncSize_index, selectableValues, GUILayout.Width(100));
                     syncSize.intValue = syncSizeCandidates[syncSize_index];
-                    GUILayout.Label(Lang("Under development."), EditorStyles.boldLabel);
-                    //GUILayout.Label(Lang("When the Sync speed is 2 or higher, OSC1.7 or higher must be used."), EditorStyles.boldLabel);
+                    GUILayout.Label(Lang("Number of key bytes synced at once. At 2 or higher the key syncs faster and is saved in the avatar, so the OSC program only has to run once, but more parameters are used."), EditorStyles.wordWrappedLabel);
                     GUILayout.Space(10);
                 }
 

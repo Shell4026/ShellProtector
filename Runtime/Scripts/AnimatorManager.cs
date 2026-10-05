@@ -179,15 +179,14 @@ namespace Shell.Protector
 
         private static void AddTransition(AnimatorStateTransition transition, int keyLength, int syncSize, int idx, UserKey key)
         {
-            transition.AddCondition(AnimatorConditionMode.IfNot, 0, ParameterManager.GetSyncLockName(key));
+            transition.AddCondition(AnimatorConditionMode.IfNot, 0, ParameterManager.GetSyncLockName(syncSize, key));
             AnimatorConditionMode[] switchConditions = GetSwitchConditions(ShellProtector.GetRequiredSwitchCount(keyLength, syncSize), idx);
             for (int i = 0; i < switchConditions.Length; ++i)
-                transition.AddCondition(switchConditions[i], 0, ParameterManager.GetSyncSwitchName(i, key));
+                transition.AddCondition(switchConditions[i], 0, ParameterManager.GetSyncSwitchName(i, syncSize, key));
         }
 
         private static void AddParameters(AnimatorController anim, int keyLength, int syncSize, UserKey key)
         {
-            bool bLegacy = syncSize == 1;
             AddParameterIfMissing(anim, new AnimatorControllerParameter
             {
                 defaultFloat = 1.0f,
@@ -205,18 +204,18 @@ namespace Shell.Protector
             for (var i = 0; i < keyLength; ++i)
                 AddParameterIfMissing(anim, ParameterManager.GetKeyName(i, key), AnimatorControllerParameterType.Float);
 
-            AddParameterIfMissing(anim, ParameterManager.GetSyncLockName(key), AnimatorControllerParameterType.Bool);
+            AddParameterIfMissing(anim, ParameterManager.GetSyncLockName(syncSize, key), AnimatorControllerParameterType.Bool);
             var switchCount = ShellProtector.GetRequiredSwitchCount(keyLength, syncSize);
 
-            if (!bLegacy)
+            if (!ParameterManager.IsOscMultiplexed(syncSize))
             {
                 for (var i = 0; i < keyLength; ++i)
                     AddParameterIfMissing(anim, ParameterManager.GetSavedKeyName(i, key), AnimatorControllerParameterType.Float);
             }
             for (var i = 0; i < syncSize; ++i)
-                AddParameterIfMissing(anim, ParameterManager.GetSyncedKeyName(i, bLegacy, key), AnimatorControllerParameterType.Float);
+                AddParameterIfMissing(anim, ParameterManager.GetSyncedKeyName(i, syncSize, key), AnimatorControllerParameterType.Float);
             for (var i = 0; i < switchCount; ++i)
-                AddParameterIfMissing(anim, ParameterManager.GetSyncSwitchName(i, key), AnimatorControllerParameterType.Bool);
+                AddParameterIfMissing(anim, ParameterManager.GetSyncSwitchName(i, syncSize, key), AnimatorControllerParameterType.Bool);
         }
 
         private static void AddParameterIfMissing(AnimatorController anim, string name, AnimatorControllerParameterType type)
@@ -241,7 +240,7 @@ namespace Shell.Protector
 
             AddParameters(anim, keyLength, syncSize, key);
 
-            AddMuxLayer(anim, keyLength, syncSize, 0.15f, 0.1f, 1f, key); // 10hz
+            AddMuxLayer(anim, keyLength, syncSize, 0.15f, 0.15f, 0.1f, 0.1f, key);
             AddDemuxLayer(anim, keyLength, syncSize, key);
 
             AnimatorStateMachine stateMachine = new AnimatorStateMachine
@@ -283,14 +282,16 @@ namespace Shell.Protector
             transition.AddCondition(AnimatorConditionMode.If, 0, ParameterManager.GetIsLocalName());
         }
 
-        private static void AddMuxLayer(AnimatorController anim, int keyLength, int syncSize, float unlockDelay, float interval, float delay, UserKey key)
+        // Each step: lock on, wait `interval` (`delay` for the first step), change the synced keys, wait `settleTime`,
+        // lock off, wait `unlockedTime`, next step. VRChat sends synced parameters at most 10 times a second, so the
+        // waits have to be long enough for remote players to see every lock state.
+        private static void AddMuxLayer(AnimatorController anim, int keyLength, int syncSize, float settleTime, float unlockedTime, float interval, float delay, UserKey key)
         {
             if (anim.layers.Any(l => l.name == "ShellProtectorMux")) 
                 return;
 
-            bool bLegacy = syncSize == 1;
-
-            if (bLegacy)
+            // With a sync speed of 1 the OSC app multiplexes the key itself.
+            if (ParameterManager.IsOscMultiplexed(syncSize))
                 return;
 
             var stateMachine = new AnimatorStateMachine
@@ -317,14 +318,20 @@ namespace Shell.Protector
                 var syncState = layer.stateMachine.AddState("mux" + step + "_sync", new Vector3(x * 2, y * step));
                 var unlockState = layer.stateMachine.AddState("mux" + step + "_unlock", new Vector3(x * 3, y * step));
 
+                // A parameter driver runs when its state is entered, which is the start of the transition into it, and
+                // the next transition can't start until that one finishes. So each wait is the duration of the
+                // transition into the state whose driver acts before it:
+                // - lock -> sync: the lock stays on after the synced keys change. Remote players interpolate synced
+                //   floats, and the demux layer must not copy them before they settle.
+                // - sync -> unlock: the lock stays off before the next step turns it on again.
                 var lockToSync = lockState.AddTransition(syncState);
                 lockToSync.hasExitTime = false;
-                lockToSync.duration = 0;
+                lockToSync.duration = settleTime;
                 AddSyncEnabledCondition(lockToSync);
 
                 var syncToUnlock = syncState.AddTransition(unlockState);
                 syncToUnlock.hasExitTime = false;
-                syncToUnlock.duration = unlockDelay;
+                syncToUnlock.duration = unlockedTime;
                 AddSyncEnabledCondition(syncToUnlock);
 
                 if (step == 0) // first step
@@ -336,18 +343,21 @@ namespace Shell.Protector
                 }
                 else
                 {
-                    if (step == steps - 1)
-                    {
-                        var exit = unlockState.AddExitTransition(); // last step exit
-                        exit.hasExitTime = false;
-                        exit.duration = 0;
-                        AddSyncEnabledCondition(exit);
-                    }
                     var previousUnlock = unlockStates[step - 1];
                     var transition = previousUnlock.AddTransition(lockState);
                     transition.hasExitTime = false;
                     transition.duration = interval;
                     AddSyncEnabledCondition(transition);
+                }
+
+                // Exit goes back to Idle, so the mux keeps cycling and picks up new saved keys. This also covers a
+                // single step (sync speed equal to the key length).
+                if (step == steps - 1)
+                {
+                    var exit = unlockState.AddExitTransition();
+                    exit.hasExitTime = false;
+                    exit.duration = 0;
+                    AddSyncEnabledCondition(exit);
                 }
 
                 var lockDriver = lockState.AddStateMachineBehaviour<VRCAvatarParameterDriver>();
@@ -357,16 +367,17 @@ namespace Shell.Protector
                 lockDriver.parameters.Add(new VRC_AvatarParameterDriver.Parameter
                 {
                     type = VRC_AvatarParameterDriver.ChangeType.Set,
-                    name = ParameterManager.GetSyncLockName(key),
+                    name = ParameterManager.GetSyncLockName(syncSize, key),
                     value = 1
                 });
 
+                // The demux layer copies the synced keys into the key parameters, here and on remote players.
                 for (var i = 0; i < syncSize; i++)
                 {
                     syncDriver.parameters.Add(new VRC_AvatarParameterDriver.Parameter
                     {
                         type = VRC_AvatarParameterDriver.ChangeType.Copy,
-                        name = ParameterManager.GetKeyName(step * syncSize + i, key),
+                        name = ParameterManager.GetSyncedKeyName(i, syncSize, key),
                         source = ParameterManager.GetSavedKeyName(step * syncSize + i, key)
                     });
                 }
@@ -376,7 +387,7 @@ namespace Shell.Protector
                     syncDriver.parameters.Add(new VRC_AvatarParameterDriver.Parameter
                     {
                         type = VRC_AvatarParameterDriver.ChangeType.Set,
-                        name = ParameterManager.GetSyncSwitchName(i, key),
+                        name = ParameterManager.GetSyncSwitchName(i, syncSize, key),
                         value = (step & (1 << i)) != 0 ? 1 : 0
                     });
                 }
@@ -384,7 +395,7 @@ namespace Shell.Protector
                 unlockDriver.parameters.Add(new VRC_AvatarParameterDriver.Parameter
                 {
                     type = VRC_AvatarParameterDriver.ChangeType.Set,
-                    name = ParameterManager.GetSyncLockName(key),
+                    name = ParameterManager.GetSyncLockName(syncSize, key),
                     value = 0
                 });
 
@@ -396,7 +407,6 @@ namespace Shell.Protector
 
         private static void AddDemuxLayer(AnimatorController anim, int keyLength, int syncSize, UserKey key)
         {
-            bool bLegacy = syncSize == 1;
             if (anim.layers.Any(l => l.name == "ShellProtectorDemux")) return;
 
             var stateMachine = new AnimatorStateMachine
@@ -415,7 +425,7 @@ namespace Shell.Protector
             transition.exitTime = 0;
             transition.duration = 0;
             transition.hasExitTime = false;
-            transition.AddCondition(AnimatorConditionMode.If, 0, ParameterManager.GetSyncLockName(key));
+            transition.AddCondition(AnimatorConditionMode.If, 0, ParameterManager.GetSyncLockName(syncSize, key));
 
             for (var i = 0; i < keyLength / syncSize; ++i)
             {
@@ -427,7 +437,7 @@ namespace Shell.Protector
                     behaviour.parameters.Add(new VRCAvatarParameterDriver.Parameter
                     {
                         type = VRC_AvatarParameterDriver.ChangeType.Copy,
-                        source = ParameterManager.GetSyncedKeyName(j, bLegacy, key),
+                        source = ParameterManager.GetSyncedKeyName(j, syncSize, key),
                         name = ParameterManager.GetKeyName(i * syncSize + j, key)
                     });
                 }

@@ -10,22 +10,34 @@ public static class ParameterManager
 {
     // Every key parameter is named by UserKey.ObfuscateParameter, so its name says nothing about its role
     // and differs per avatar. The OSC app derives the same names.
-    public static string GetSyncedKeyName(int index, bool bLegacy, UserKey key)
+    //
+    // The sync speed (syncSize) is the number of key bytes synced at once:
+    // - 1: the OSC app multiplexes the key itself. It drives encrypt_lock, encrypt_switch* and the single
+    //   synced key "pkey", so it has to keep running.
+    // - 2 or 4: the OSC app writes each key byte to a saved local parameter (saved_key*). The avatar's mux
+    //   layer then cycles through them with sync_lock, sync_switch* and the synced keys pkey0..pkey{syncSize-1},
+    //   so the key survives restarts without the OSC app. The lock and switches have names of their own so
+    //   that the OSC app, which sends both protocols, never fights the mux layer over them.
+    public static bool IsOscMultiplexed(int syncSize) => syncSize == 1;
+
+    public static string GetSyncedKeyName(int index, int syncSize, UserKey key)
     {
-        if (bLegacy)
+        if (IsOscMultiplexed(syncSize))
             return key.ObfuscateParameter("pkey");
         return key.ObfuscateParameter("pkey" + index);
     }
     public static string GetKeyName(int index, UserKey key) => key.ObfuscateParameter("key" + index);
     public static string GetSavedKeyName(int index, UserKey key) => key.ObfuscateParameter("saved_key" + index);
-    public static string GetSyncSwitchName(int index, UserKey key) => key.ObfuscateParameter("encrypt_switch" + index);
-    public static string GetSyncLockName(UserKey key) => key.ObfuscateParameter("encrypt_lock");
+    public static string GetSyncSwitchName(int index, int syncSize, UserKey key) =>
+        key.ObfuscateParameter((IsOscMultiplexed(syncSize) ? "encrypt_switch" : "sync_switch") + index);
+    public static string GetSyncLockName(int syncSize, UserKey key) =>
+        key.ObfuscateParameter(IsOscMultiplexed(syncSize) ? "encrypt_lock" : "sync_lock");
     public static string GetIsLocalName() => "IsLocal";
 
 
     public static VRCExpressionParameters AddKeyParameter(VRCExpressionParameters vrcParameters, int keyLength, int syncSize, UserKey key)
     {
-        bool bLegacy = syncSize == 1;
+        bool oscMultiplexed = IsOscMultiplexed(syncSize);
         var parameters = new List<VRCExpressionParameters.Parameter>();
 
         // Local only, so it costs no sync bits. It just exposes the salt to the OSC app.
@@ -40,7 +52,7 @@ public static class ParameterManager
 
         parameters.Add(new VRCExpressionParameters.Parameter
         {
-            name = GetSyncLockName(key),
+            name = GetSyncLockName(syncSize, key),
             saved = true,
             networkSynced = true,
             valueType = VRCExpressionParameters.ValueType.Bool,
@@ -51,7 +63,7 @@ public static class ParameterManager
         {
             parameters.Add(new VRCExpressionParameters.Parameter
             {
-                name = GetSyncedKeyName(i, bLegacy, key),
+                name = GetSyncedKeyName(i, syncSize, key),
                 saved = true,
                 networkSynced = true,
                 valueType = VRCExpressionParameters.ValueType.Float,
@@ -63,7 +75,7 @@ public static class ParameterManager
         {
             parameters.Add(new VRCExpressionParameters.Parameter
             {
-                name = GetSyncSwitchName(i, key),
+                name = GetSyncSwitchName(i, syncSize, key),
                 saved = true,
                 networkSynced = true,
                 valueType = VRCExpressionParameters.ValueType.Bool,
@@ -82,7 +94,7 @@ public static class ParameterManager
                 defaultValue = 0.0f
             });
 
-            if (!bLegacy)
+            if (!oscMultiplexed)
             {
                 parameters.Add(new VRCExpressionParameters.Parameter
                 {

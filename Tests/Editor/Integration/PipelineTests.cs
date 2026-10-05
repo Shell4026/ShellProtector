@@ -175,8 +175,47 @@ namespace Shell.Protector.Tests.Integration
             Assert.That(controller.layers.Count(l => l.name == "ShellProtector"), Is.EqualTo(1));
             Assert.That(controller.parameters.Count(p => p.name == "key_weight"), Is.EqualTo(1));
             Assert.That(controller.parameters.Count(p => p.name == ParameterManager.GetKeyName(0, key)), Is.EqualTo(1));
-            Assert.That(controller.parameters.Count(p => p.name == ParameterManager.GetSyncLockName(key)), Is.EqualTo(1));
-            Assert.That(controller.parameters.Count(p => p.name == ParameterManager.GetSyncSwitchName(0, key)), Is.EqualTo(1));
+            Assert.That(controller.parameters.Count(p => p.name == ParameterManager.GetSyncLockName(1, key)), Is.EqualTo(1));
+            Assert.That(controller.parameters.Count(p => p.name == ParameterManager.GetSyncSwitchName(0, 1, key)), Is.EqualTo(1));
+        }
+
+        [TestCase(8, 2)]
+        [TestCase(4, 4)]
+        public void AddKeyLayer_MuxSyncsSavedKeysAndKeepsCycling(int keyLength, int syncSize)
+        {
+            string controllerDir = TestAssetScope.GeneratedRoot + "/Mux";
+            TestAssetScope.EnsureFolder(controllerDir);
+            AnimatorController controller = AnimatorController.CreateAnimatorControllerAtPath(controllerDir + "/fx.controller");
+            UserKey key = TestKeys.UserKey;
+
+            AnimatorManager.AddKeyLayer(controller, "Assets/ShellProtector/Runtime/Animations", keyLength, syncSize, 3.0f, key);
+
+            AnimatorStateMachine mux = controller.layers.Single(l => l.name == "ShellProtectorMux").stateMachine;
+            AnimatorState State(string name) => mux.states.Single(s => s.state.name == name).state;
+            int steps = keyLength / syncSize;
+
+            for (int step = 0; step < steps; ++step)
+            {
+                // The saved keys go into the synced keys, which the demux layer copies into the keys.
+                var copies = State("mux" + step + "_sync").behaviours.OfType<VRCAvatarParameterDriver>()
+                    .SelectMany(d => d.parameters).Where(p => p.type == VRC_AvatarParameterDriver.ChangeType.Copy).ToArray();
+                Assert.That(copies.Select(p => p.source),
+                    Is.EqualTo(Enumerable.Range(0, syncSize).Select(i => ParameterManager.GetSavedKeyName(step * syncSize + i, key))));
+                Assert.That(copies.Select(p => p.name),
+                    Is.EqualTo(Enumerable.Range(0, syncSize).Select(i => ParameterManager.GetSyncedKeyName(i, syncSize, key))));
+
+                // The lock stays on while remote players' synced floats settle, and then stays off long enough to be synced.
+                Assert.That(State("mux" + step + "_lock").transitions.Single().duration, Is.GreaterThan(0f));
+                Assert.That(State("mux" + step + "_sync").transitions.Single().duration, Is.GreaterThan(0f));
+            }
+
+            Assert.That(State("mux" + (steps - 1) + "_unlock").transitions.Single().isExit, Is.True);
+
+            AnimatorStateMachine demux = controller.layers.Single(l => l.name == "ShellProtectorDemux").stateMachine;
+            var demuxCopies = demux.states.SelectMany(s => s.state.behaviours.OfType<VRCAvatarParameterDriver>()).SelectMany(d => d.parameters).ToArray();
+            Assert.That(demuxCopies.Select(p => p.name), Is.EquivalentTo(Enumerable.Range(0, keyLength).Select(i => ParameterManager.GetKeyName(i, key))));
+            Assert.That(controller.parameters.Select(p => p.name), Does.Contain(ParameterManager.GetSyncLockName(syncSize, key)));
+            Assert.That(controller.parameters.Select(p => p.name), Does.Not.Contain(ParameterManager.GetSyncLockName(1, key)));
         }
 
         private Fixture CreateFixture(string name, string assetDir = TestAssetScope.GeneratedRoot)
@@ -375,7 +414,7 @@ namespace Shell.Protector.Tests.Integration
             Assert.That(fx.layers.Select(l => l.name), Does.Contain("ShellProtector"));
             Assert.That(fx.layers.Select(l => l.name), Does.Contain("ShellProtectorDemux"));
             Assert.That(fx.parameters.Select(p => p.name), Does.Contain(ParameterManager.GetKeyName(0, key)));
-            Assert.That(fx.parameters.Select(p => p.name), Does.Contain(ParameterManager.GetSyncLockName(key)));
+            Assert.That(fx.parameters.Select(p => p.name), Does.Contain(ParameterManager.GetSyncLockName(1, key)));
             Assert.That(fx.parameters.Any(p => p.name.StartsWith("SHELL_PROTECTOR_") || p.name == "encrypt_lock" || p.name == "pkey"), Is.False);
         }
 
@@ -387,7 +426,7 @@ namespace Shell.Protector.Tests.Integration
 
             Assert.That(parameters, Is.Not.Null);
             Assert.That(snapshots.Select(p => p.Name), Does.Contain(ParameterManager.GetKeyName(11, key)));
-            Assert.That(snapshots.Select(p => p.Name), Does.Contain(ParameterManager.GetSyncLockName(key)));
+            Assert.That(snapshots.Select(p => p.Name), Does.Contain(ParameterManager.GetSyncLockName(1, key)));
             Assert.That(snapshots.Select(p => p.Name), Does.Contain(key.SaltParameterName));
             Assert.That(snapshots.Any(p => p.Name.StartsWith("SHELL_PROTECTOR_") || p.Name == "encrypt_lock" || p.Name == "pkey"), Is.False);
             Assert.That(AssetDatabase.GetAssetPath(parameters), Does.StartWith(TestAssetScope.GeneratedRoot));

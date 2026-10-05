@@ -101,7 +101,7 @@ namespace Shell.Protector
             { "The main texture is not Texture2D.", "메인 텍스쳐가 Texture2D가 아닙니다." },
             { "Opponents with Safety option turned on will see degraded textures instead of noise.", "세이프티를 켜둔 상대방은 노이즈 대신 저하된 텍스처를 보게 됩니다."},
             { "Default fallback texture", "기본 폴백 텍스쳐" },
-            { "Under development.", "개발 중입니다." }
+            { "Number of key bytes synced at once. At 2 or higher the key syncs faster and is saved in the avatar, so the OSC program only has to run once, but more parameters are used.", "한 번에 동기화하는 키 바이트 수입니다. 2 이상이면 키가 더 빨리 동기화되고 아바타에 저장되어 OSC 프로그램을 한 번만 실행하면 되지만, 파라미터를 더 사용합니다." }
         };
 
             var jpStrings = new Dictionary<string, string>()
@@ -185,7 +185,7 @@ namespace Shell.Protector
             {"The main texture is not Texture2D.", "メインテクスチャがTexture2Dではありません。" },
             { "Opponents with Safety option turned on will see degraded textures instead of noise.", "Safetyオプションをオンにした相手には、ノイズの代わりに劣化したテクスチャが表示されます。"},
             { "Default fallback texture", "デフォルトのフォールバックテクスチャ" },
-            { "Under development.", "開発中です。" }
+            { "Number of key bytes synced at once. At 2 or higher the key syncs faster and is saved in the avatar, so the OSC program only has to run once, but more parameters are used.", "一度に同期するキーのバイト数です。2以上にするとキーの同期が速くなり、アバターに保存されるためOSCプログラムは一度実行するだけで済みますが、より多くのパラメータを使用します。" }
         };
 
             languageMap.Add("kor", koreanStrings);
