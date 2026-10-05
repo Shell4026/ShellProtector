@@ -130,6 +130,17 @@ namespace Shell.Protector
             GUILayout.FlexibleSpace();
             GUILayout.Label(Lang("Lastest version: ") + VersionManager.GetInstance().GetGithubVersion(), EditorStyles.boldLabel);
             GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(Lang("OSC program: "));
+            if (EditorGUILayout.LinkButton(Lang("Releases page")))
+                Application.OpenURL(OscDownloader.ReleasesUrl);
+            GUILayout.FlexibleSpace();
+            using (new EditorGUI.DisabledScope(OscDownloader.IsBusy))
+            {
+                if (GUILayout.Button(Lang("Download latest OSC"), GUILayout.Width(180)))
+                    OscDownloader.DownloadLatest(root.Language);
+            }
+            GUILayout.EndHorizontal();
             EditorGUILayout.Separator();
 
             GUILayout.BeginHorizontal();
