@@ -145,6 +145,7 @@ namespace Shell.Protector
                     OscDownloader.DownloadLatest(root.Language);
             }
             GUILayout.EndHorizontal();
+            EditorGUILayout.HelpBox(Lang("ShellProtector 2.8 or later requires ShellProtectorOSC 1.7 or later."), MessageType.Info);
             EditorGUILayout.Separator();
 
             GUILayout.BeginHorizontal();
