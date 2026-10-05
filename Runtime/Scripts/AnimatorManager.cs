@@ -114,19 +114,25 @@ namespace Shell.Protector
             return string.Join("/", names);
         }
 
-        static AnimationCurve CreateKeyCurve(bool secondKeyClip)
+        // The key blend trees map a key parameter p in [-1, 1] to _Key = (p + 1) * 127, so the clips end at 0 and 254.
+        // The OSC app sends key byte b as p = (b - 127) / 127. That lands exactly on VRChat's network quantization
+        // (synced floats are multiples of 1/127), so remote players decode the same byte as the local player.
+        // 255 can't be represented, which is why UserKey never produces it.
+        public const float KeyCurveEnd = 2.1333334f;
+
+        public static AnimationCurve CreateKeyCurve(bool secondKeyClip)
         {
             if (!secondKeyClip)
             {
                 return new AnimationCurve(
                     new Keyframe(0, -128, -1919.995f, 59.999996f),
-                    new Keyframe(2.1333334f, 0, 59.999996f, -1919.995f)
+                    new Keyframe(KeyCurveEnd, 0, 59.999996f, -1919.995f)
                 );
             }
 
             return new AnimationCurve(
-                new Keyframe(0, 128, 423.3333f, 60.000004f),
-                new Keyframe(2.1333334f, 256, 59.999996f, 60)
+                new Keyframe(0, UserKey.MaxKeyByte - 128, 423.3333f, 60.000004f),
+                new Keyframe(KeyCurveEnd, UserKey.MaxKeyByte, 59.999996f, 60)
             );
         }
 

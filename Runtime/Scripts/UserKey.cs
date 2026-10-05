@@ -10,7 +10,7 @@ namespace Shell.Protector
     //   password = UTF-8 bytes of the user password, truncated to the key length
     //   salt     = ASCII bytes of the 32-character lowercase hex salt string
     //   derived  = PBKDF2-HMAC-SHA256(password, salt, Iterations, 32 bytes)
-    //   key      = derived[0, keyLength)
+    //   key      = min(derived[i], 254) for i in [0, keyLength)
     //   name(n)  = lowercase hex of HMAC-SHA256(derived[16, 32), UTF-8 n), first 8 bytes
     // The salt is published to the OSC app through a local-only parameter named SaltParameterPrefix + salt,
     // which VRChat lists in the avatar's OSC config.
@@ -20,6 +20,8 @@ namespace Shell.Protector
         public const int MaxLength = 16;
         public const int SaltLength = 16;
         public const string SaltParameterPrefix = "SP_SALT_";
+        // Key bytes reach the avatar as synced floats, which carry only 255 distinct values (see AnimatorManager.CreateKeyCurve).
+        public const byte MaxKeyByte = 254;
 
         readonly byte[] derived;
 
@@ -79,7 +81,8 @@ namespace Shell.Protector
         public byte[] GetKeyBytes()
         {
             byte[] key = new byte[Length];
-            Array.Copy(derived, key, Length);
+            for (int i = 0; i < Length; ++i)
+                key[i] = Math.Min(derived[i], MaxKeyByte);
             return key;
         }
 
