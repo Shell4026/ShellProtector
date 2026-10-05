@@ -28,12 +28,14 @@ namespace Shell.Protector.Tests.Integration
             TestAssetScope.DestroyObjects(sceneObjects);
             TestAssetScope.DeleteGeneratedRoot();
             TestAssetScope.DeleteDefaultGeneratedRoot();
+            SaltRegistry.FileOverride = null;
         }
 
         [Test]
         public void ManualEncrypt_CreatesEncryptedAvatarAndRewritesProtectionAssets()
         {
             Fixture fixture = CreateFixture("Manual");
+            UserKey key = fixture.Protector.GetUserKey();
 
             GameObject encryptedAvatar = fixture.Protector.Encrypt(false);
             sceneObjects.Add(encryptedAvatar);
@@ -47,8 +49,8 @@ namespace Shell.Protector.Tests.Integration
 
             AssertEncryptedRenderer(encryptedAvatar, fixture.Material);
             AssertGeneratedPaths(encryptedAvatar, fixture.Material, TestAssetScope.GeneratedRoot);
-            AssertFxController(encryptedAvatar);
-            AssertExpressionParameters(encryptedAvatar);
+            AssertFxController(encryptedAvatar, key);
+            AssertExpressionParameters(encryptedAvatar, key);
             AssertBlendShapeWasObfuscated(encryptedAvatar);
             AssertAnimationMaterialWasRewritten(encryptedAvatar, fixture.Material);
         }
@@ -89,6 +91,7 @@ namespace Shell.Protector.Tests.Integration
         public void InPlaceEncrypt_RewritesOriginalAvatarWhenNdmfStyleStepsRun()
         {
             Fixture fixture = CreateFixture("InPlace");
+            UserKey key = fixture.Protector.GetUserKey();
 
             GameObject avatar = fixture.Protector.Encrypt(true);
             fixture.Protector.ReplaceMaterials(avatar);
@@ -105,8 +108,8 @@ namespace Shell.Protector.Tests.Integration
 
             AssertEncryptedRenderer(avatar, fixture.Material);
             AssertGeneratedPaths(avatar, fixture.Material, TestAssetScope.GeneratedRoot);
-            AssertFxController(avatar);
-            AssertExpressionParameters(avatar);
+            AssertFxController(avatar, key);
+            AssertExpressionParameters(avatar, key);
             AssertBlendShapeWasObfuscated(avatar);
             AssertAnimationMaterialWasRewritten(avatar, fixture.Material);
         }
@@ -165,14 +168,15 @@ namespace Shell.Protector.Tests.Integration
             AnimatorController controller = AnimatorController.CreateAnimatorControllerAtPath(controllerDir + "/fx.controller");
             string animationDir = "Assets/ShellProtector/Runtime/Animations";
 
-            AnimatorManager.AddKeyLayer(controller, animationDir, 4, 1, 3.0f);
-            AnimatorManager.AddKeyLayer(controller, animationDir, 4, 1, 3.0f);
+            UserKey key = TestKeys.UserKey;
+            AnimatorManager.AddKeyLayer(controller, animationDir, 4, 1, 3.0f, key);
+            AnimatorManager.AddKeyLayer(controller, animationDir, 4, 1, 3.0f, key);
 
             Assert.That(controller.layers.Count(l => l.name == "ShellProtector"), Is.EqualTo(1));
             Assert.That(controller.parameters.Count(p => p.name == "key_weight"), Is.EqualTo(1));
-            Assert.That(controller.parameters.Count(p => p.name == ParameterManager.GetKeyName(0)), Is.EqualTo(1));
-            Assert.That(controller.parameters.Count(p => p.name == ParameterManager.GetSyncLockName(true)), Is.EqualTo(1));
-            Assert.That(controller.parameters.Count(p => p.name == ParameterManager.GetSyncSwitchName(0, true)), Is.EqualTo(1));
+            Assert.That(controller.parameters.Count(p => p.name == ParameterManager.GetKeyName(0, key)), Is.EqualTo(1));
+            Assert.That(controller.parameters.Count(p => p.name == ParameterManager.GetSyncLockName(key)), Is.EqualTo(1));
+            Assert.That(controller.parameters.Count(p => p.name == ParameterManager.GetSyncSwitchName(0, key)), Is.EqualTo(1));
         }
 
         private Fixture CreateFixture(string name, string assetDir = TestAssetScope.GeneratedRoot)
@@ -363,26 +367,29 @@ namespace Shell.Protector.Tests.Integration
             }
         }
 
-        private static void AssertFxController(GameObject avatar)
+        private static void AssertFxController(GameObject avatar, UserKey key)
         {
             AnimatorController fx = ShellProtector.GetFx(avatar);
 
             Assert.That(fx, Is.Not.Null);
             Assert.That(fx.layers.Select(l => l.name), Does.Contain("ShellProtector"));
             Assert.That(fx.layers.Select(l => l.name), Does.Contain("ShellProtectorDemux"));
-            Assert.That(fx.parameters.Select(p => p.name), Does.Contain("SHELL_PROTECTOR_key0"));
-            Assert.That(fx.parameters.Select(p => p.name), Does.Contain("encrypt_lock"));
+            Assert.That(fx.parameters.Select(p => p.name), Does.Contain(ParameterManager.GetKeyName(0, key)));
+            Assert.That(fx.parameters.Select(p => p.name), Does.Contain(ParameterManager.GetSyncLockName(key)));
+            Assert.That(fx.parameters.Any(p => p.name.StartsWith("SHELL_PROTECTOR_") || p.name == "encrypt_lock" || p.name == "pkey"), Is.False);
         }
 
-        private static void AssertExpressionParameters(GameObject avatar)
+        private static void AssertExpressionParameters(GameObject avatar, UserKey key)
         {
             VRCAvatarDescriptor descriptor = avatar.GetComponent<VRCAvatarDescriptor>();
             ScriptableObject parameters = VrcExpressionParametersTestUtil.GetDescriptorParameters(descriptor);
             VrcExpressionParametersTestUtil.ParameterSnapshot[] snapshots = VrcExpressionParametersTestUtil.Read(parameters).ToArray();
 
             Assert.That(parameters, Is.Not.Null);
-            Assert.That(snapshots.Select(p => p.Name), Does.Contain("SHELL_PROTECTOR_key11"));
-            Assert.That(snapshots.Select(p => p.Name), Does.Contain("encrypt_lock"));
+            Assert.That(snapshots.Select(p => p.Name), Does.Contain(ParameterManager.GetKeyName(11, key)));
+            Assert.That(snapshots.Select(p => p.Name), Does.Contain(ParameterManager.GetSyncLockName(key)));
+            Assert.That(snapshots.Select(p => p.Name), Does.Contain(key.SaltParameterName));
+            Assert.That(snapshots.Any(p => p.Name.StartsWith("SHELL_PROTECTOR_") || p.Name == "encrypt_lock" || p.Name == "pkey"), Is.False);
             Assert.That(AssetDatabase.GetAssetPath(parameters), Does.StartWith(TestAssetScope.GeneratedRoot));
         }
 

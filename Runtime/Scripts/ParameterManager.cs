@@ -8,38 +8,39 @@ namespace Shell.Protector
 {
 public static class ParameterManager
 {
-    private const string Prefix = "SHELL_PROTECTOR_";
-    public static string GetSyncedKeyName(int index, bool bLegacy = false)
+    // Every key parameter is named by UserKey.ObfuscateParameter, so its name says nothing about its role
+    // and differs per avatar. The OSC app derives the same names.
+    public static string GetSyncedKeyName(int index, bool bLegacy, UserKey key)
     {
         if (bLegacy)
-            return "pkey";
-        return Prefix + "synced_key" + index;
+            return key.ObfuscateParameter("pkey");
+        return key.ObfuscateParameter("pkey" + index);
     }
-    public static string GetKeyName(int index) => Prefix + "key" + index;
-    public static string GetSavedKeyName(int index) => Prefix + "saved_key" + index;
-    public static string GetSyncSwitchName(int index, bool bLegacy = false)
-    {
-        if (bLegacy)
-            return "encrypt_switch" + index;
-        return Prefix + "sync_switch" + index; 
-    }
-    public static string GetSyncLockName(bool bLegacy = false)
-    {
-        if (bLegacy)
-            return "encrypt_lock";
-        return Prefix + "sync_lock"; 
-    }
+    public static string GetKeyName(int index, UserKey key) => key.ObfuscateParameter("key" + index);
+    public static string GetSavedKeyName(int index, UserKey key) => key.ObfuscateParameter("saved_key" + index);
+    public static string GetSyncSwitchName(int index, UserKey key) => key.ObfuscateParameter("encrypt_switch" + index);
+    public static string GetSyncLockName(UserKey key) => key.ObfuscateParameter("encrypt_lock");
     public static string GetIsLocalName() => "IsLocal";
 
 
-    public static VRCExpressionParameters AddKeyParameter(VRCExpressionParameters vrcParameters, int keyLength, int syncSize)
+    public static VRCExpressionParameters AddKeyParameter(VRCExpressionParameters vrcParameters, int keyLength, int syncSize, UserKey key)
     {
         bool bLegacy = syncSize == 1;
         var parameters = new List<VRCExpressionParameters.Parameter>();
 
+        // Local only, so it costs no sync bits. It just exposes the salt to the OSC app.
         parameters.Add(new VRCExpressionParameters.Parameter
         {
-            name = GetSyncLockName(bLegacy),
+            name = key.SaltParameterName,
+            saved = false,
+            networkSynced = false,
+            valueType = VRCExpressionParameters.ValueType.Bool,
+            defaultValue = 0.0f
+        });
+
+        parameters.Add(new VRCExpressionParameters.Parameter
+        {
+            name = GetSyncLockName(key),
             saved = true,
             networkSynced = true,
             valueType = VRCExpressionParameters.ValueType.Bool,
@@ -50,7 +51,7 @@ public static class ParameterManager
         {
             parameters.Add(new VRCExpressionParameters.Parameter
             {
-                name = GetSyncedKeyName(i, bLegacy),
+                name = GetSyncedKeyName(i, bLegacy, key),
                 saved = true,
                 networkSynced = true,
                 valueType = VRCExpressionParameters.ValueType.Float,
@@ -62,7 +63,7 @@ public static class ParameterManager
         {
             parameters.Add(new VRCExpressionParameters.Parameter
             {
-                name = GetSyncSwitchName(i, bLegacy),
+                name = GetSyncSwitchName(i, key),
                 saved = true,
                 networkSynced = true,
                 valueType = VRCExpressionParameters.ValueType.Bool,
@@ -74,7 +75,7 @@ public static class ParameterManager
         {
             parameters.Add(new VRCExpressionParameters.Parameter
             {
-                name = GetKeyName(i),
+                name = GetKeyName(i, key),
                 saved = false,
                 networkSynced = false,
                 valueType = VRCExpressionParameters.ValueType.Float,
@@ -85,7 +86,7 @@ public static class ParameterManager
             {
                 parameters.Add(new VRCExpressionParameters.Parameter
                 {
-                    name = GetSavedKeyName(i),
+                    name = GetSavedKeyName(i, key),
                     saved = true,
                     networkSynced = false,
                     valueType = VRCExpressionParameters.ValueType.Float,

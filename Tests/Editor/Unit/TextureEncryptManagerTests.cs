@@ -63,7 +63,7 @@ namespace Shell.Protector.Tests.Unit
         {
             Texture2D texture = TestAssetScope.CreatePatternTexture(16, 16, sourceFormat, alpha);
             XXTEA xxtea = new XXTEA { Rounds = 20 };
-            byte[] key = KeyGenerator.MakeKeyBytes("password", "pass", 12);
+            byte[] key = TestKeys.Default;
 
             EncryptResult result = TextureEncryptManager.EncryptTexture(texture, key, xxtea);
 
@@ -87,7 +87,7 @@ namespace Shell.Protector.Tests.Unit
             Texture2D texture = TestAssetScope.CreatePatternTexture(width, height, TextureFormat.RGBA32, true);
             texture.name = "OddTexture";
             XXTEA xxtea = new XXTEA { Rounds = 20 };
-            byte[] key = KeyGenerator.MakeKeyBytes("password", "pass", 12);
+            byte[] key = TestKeys.Default;
 
             LogAssert.Expect(LogType.Error, "OddTexture : The texture size must be a multiple of 2!");
             EncryptResult result = TextureEncryptManager.EncryptTexture(texture, key, xxtea);

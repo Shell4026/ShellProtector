@@ -7,29 +7,16 @@ namespace Shell.Protector
 {
 public class KeyGenerator
 {
-    //key1 is fixed key
-    //key2 is user key
-    public static byte[] MakeKeyBytes(string fixedKey, string userKey, int userKeylength = 4)
+    // The fixed key fills the key from the front and the user key (see UserKey) fills its last bytes.
+    public static byte[] MakeKeyBytes(string fixedKey, byte[] userKey)
     {
-        byte[] key = new byte[16] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+        byte[] key = new byte[16];
         byte[] fixedKeyBytes = Encoding.ASCII.GetBytes(fixedKey);
-        byte[] userKeyBytes = Encoding.ASCII.GetBytes(userKey);
-        byte[] hash = GetKeyHash(userKeyBytes);
 
-        for (int i = 0; i < fixedKeyBytes.Length; ++i)
+        for (int i = 0; i < fixedKeyBytes.Length && i < key.Length; ++i)
             key[i] = fixedKeyBytes[i];
 
-        if (userKeylength > 0)
-        {
-            for (int i = (16 - userKeylength), j = 0; i < key.Length; ++i, ++j)
-            {
-                if (j < userKeyBytes.Length)
-                    key[i] = userKeyBytes[j] ^= hash[j];
-                else
-                    key[i] = hash[j];
-            }
-                
-        }
+        Array.Copy(userKey, 0, key, key.Length - userKey.Length, userKey.Length);
         return key;
     }
 

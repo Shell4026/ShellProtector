@@ -42,13 +42,13 @@ namespace Shell.Protector.Tests
             return parameters;
         }
 
-        public static ScriptableObject AddKeyParameter(ScriptableObject parameters, int keyLength, int syncSize)
+        public static ScriptableObject AddKeyParameter(ScriptableObject parameters, int keyLength, int syncSize, UserKey key)
         {
             MethodInfo method = typeof(ParameterManager).GetMethod(
                 "AddKeyParameter",
                 BindingFlags.Public | BindingFlags.Static);
             AssertMethod(method, "ParameterManager.AddKeyParameter");
-            return (ScriptableObject)method.Invoke(null, new object[] { parameters, keyLength, syncSize });
+            return (ScriptableObject)method.Invoke(null, new object[] { parameters, keyLength, syncSize, key });
         }
 
         public static IReadOnlyList<ParameterSnapshot> Read(ScriptableObject parameters)

@@ -8,39 +8,51 @@ namespace Shell.Protector.Tests.Unit
     public class ParameterManagerTests
     {
         [Test]
-        public void AddKeyParameter_UsesLegacyNamesForSyncSizeOne()
+        public void AddKeyParameter_ObfuscatesLegacyNamesForSyncSizeOne()
         {
             ScriptableObject original = CreateBaseParameters();
 
-            ScriptableObject result = VrcExpressionParametersTestUtil.AddKeyParameter(original, 12, 1);
+            ScriptableObject result = VrcExpressionParametersTestUtil.AddKeyParameter(original, 12, 1, TestKeys.UserKey);
             VrcExpressionParametersTestUtil.ParameterSnapshot[] parameters = VrcExpressionParametersTestUtil.Read(result).ToArray();
 
             Assert.That(result.name, Is.EqualTo("BaseParams_encrypted"));
-            Assert.That(parameters.Length, Is.EqualTo(19));
+            Assert.That(parameters.Length, Is.EqualTo(20));
             AssertParameter(parameters, "existing", false, false, "Bool");
-            AssertParameter(parameters, "encrypt_lock", true, true, "Bool");
-            AssertParameter(parameters, "pkey", true, true, "Float");
-            AssertParameter(parameters, "encrypt_switch0", true, true, "Bool");
-            AssertParameter(parameters, "encrypt_switch3", true, true, "Bool");
-            AssertParameter(parameters, "SHELL_PROTECTOR_key11", false, false, "Float");
-            Assert.That(parameters.Any(p => p.Name == "SHELL_PROTECTOR_saved_key0"), Is.False);
+            AssertParameter(parameters, TestKeys.UserKey.SaltParameterName, false, false, "Bool");
+            AssertParameter(parameters, Obfuscated("encrypt_lock"), true, true, "Bool");
+            AssertParameter(parameters, Obfuscated("pkey"), true, true, "Float");
+            AssertParameter(parameters, Obfuscated("encrypt_switch0"), true, true, "Bool");
+            AssertParameter(parameters, Obfuscated("encrypt_switch3"), true, true, "Bool");
+            AssertParameter(parameters, Obfuscated("key11"), false, false, "Float");
+            Assert.That(parameters.Any(p => p.Name == Obfuscated("saved_key0")), Is.False);
+            AssertNoReadableNames(parameters);
         }
 
         [Test]
-        public void AddKeyParameter_UsesPrefixedNamesForMultiSync()
+        public void AddKeyParameter_ObfuscatesNamesForMultiSync()
         {
             ScriptableObject original = CreateBaseParameters();
 
-            ScriptableObject result = VrcExpressionParametersTestUtil.AddKeyParameter(original, 12, 3);
+            ScriptableObject result = VrcExpressionParametersTestUtil.AddKeyParameter(original, 12, 3, TestKeys.UserKey);
             VrcExpressionParametersTestUtil.ParameterSnapshot[] parameters = VrcExpressionParametersTestUtil.Read(result).ToArray();
 
-            Assert.That(parameters.Length, Is.EqualTo(31));
-            AssertParameter(parameters, "SHELL_PROTECTOR_sync_lock", true, true, "Bool");
-            AssertParameter(parameters, "SHELL_PROTECTOR_synced_key0", true, true, "Float");
-            AssertParameter(parameters, "SHELL_PROTECTOR_synced_key2", true, true, "Float");
-            AssertParameter(parameters, "SHELL_PROTECTOR_sync_switch1", true, true, "Bool");
-            AssertParameter(parameters, "SHELL_PROTECTOR_key11", false, false, "Float");
-            AssertParameter(parameters, "SHELL_PROTECTOR_saved_key11", true, false, "Float");
+            Assert.That(parameters.Length, Is.EqualTo(32));
+            AssertParameter(parameters, TestKeys.UserKey.SaltParameterName, false, false, "Bool");
+            AssertParameter(parameters, Obfuscated("encrypt_lock"), true, true, "Bool");
+            AssertParameter(parameters, Obfuscated("pkey0"), true, true, "Float");
+            AssertParameter(parameters, Obfuscated("pkey2"), true, true, "Float");
+            AssertParameter(parameters, Obfuscated("encrypt_switch1"), true, true, "Bool");
+            AssertParameter(parameters, Obfuscated("key11"), false, false, "Float");
+            AssertParameter(parameters, Obfuscated("saved_key11"), true, false, "Float");
+            AssertNoReadableNames(parameters);
+        }
+
+        private static string Obfuscated(string name) => TestKeys.UserKey.ObfuscateParameter(name);
+
+        private static void AssertNoReadableNames(VrcExpressionParametersTestUtil.ParameterSnapshot[] parameters)
+        {
+            string[] readable = { "pkey", "encrypt_lock", "encrypt_switch", "SHELL_PROTECTOR_" };
+            Assert.That(parameters.Where(p => readable.Any(r => p.Name.StartsWith(r))).Select(p => p.Name), Is.Empty);
         }
 
         private static ScriptableObject CreateBaseParameters()

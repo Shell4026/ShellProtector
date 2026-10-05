@@ -5,10 +5,9 @@ namespace Shell.Protector
 {
 public class Test
 {
-    public static void XXTEATest(string fixedKey, string userKey, int userKeySize)
+    public static void XXTEATest(byte[] keyBytes)
     {
         byte[] dataBytes = new byte[12] { 255, 250, 245, 240, 235, 230, 225, 220, 215, 210, 205, 200 };
-        byte[] keyBytes = KeyGenerator.MakeKeyBytes(fixedKey, userKey, userKeySize);
 
         uint[] data = new uint[3];
         data[0] = (uint)(dataBytes[0] | (dataBytes[1] << 8) | (dataBytes[2] << 16) | (dataBytes[3] << 24));
@@ -32,10 +31,9 @@ public class Test
         result = xxtea.Decrypt(result, key);
         Debug.Log("Decrypted data: " + string.Join(", ", result));
     }
-    public static void ChachaTest(string fixedKey, string userKey, int userKeySize)
+    public static void ChachaTest(byte[] keyBytes)
     {
         byte[] dataBytes = new byte[8] { 255, 255, 245, 240, 235, 230, 225, 220 };
-        byte[] keyBytes = KeyGenerator.MakeKeyBytes(fixedKey, userKey, userKeySize);
 
         uint[] data = new uint[2];
         data[0] = (uint)(dataBytes[0] | (dataBytes[1] << 8) | (dataBytes[2] << 16) | (dataBytes[3] << 24));

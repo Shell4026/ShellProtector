@@ -130,7 +130,7 @@ namespace Shell.Protector
             );
         }
 
-        private static BlendTree[] CreateKeyTree(string animationDir, int keyLength, float speed)
+        private static BlendTree[] CreateKeyTree(string animationDir, int keyLength, float speed, UserKey key)
         {
             BlendTree[] tree = new BlendTree[keyLength];
             int offset = 16 - keyLength;
@@ -139,7 +139,7 @@ namespace Shell.Protector
                 BlendTree keyTree = new BlendTree();
                 keyTree.name = "key" + i;
                 keyTree.blendType = BlendTreeType.Simple1D;
-                keyTree.blendParameter = ParameterManager.GetKeyName(i);
+                keyTree.blendParameter = ParameterManager.GetKeyName(i, key);
                 keyTree.useAutomaticThresholds = false;
 
                 Motion motion0 = AssetDatabase.LoadAssetAtPath(Path.Combine(animationDir, "key" + (i + offset) + ".anim"), typeof(AnimationClip)) as AnimationClip;
@@ -171,16 +171,15 @@ namespace Shell.Protector
             return mode;
         }
 
-        private static void AddTransition(AnimatorStateTransition transition, int keyLength, int syncSize, int idx)
+        private static void AddTransition(AnimatorStateTransition transition, int keyLength, int syncSize, int idx, UserKey key)
         {
-            bool bLegacy = syncSize == 1;
-            transition.AddCondition(AnimatorConditionMode.IfNot, 0, ParameterManager.GetSyncLockName(bLegacy));
+            transition.AddCondition(AnimatorConditionMode.IfNot, 0, ParameterManager.GetSyncLockName(key));
             AnimatorConditionMode[] switchConditions = GetSwitchConditions(ShellProtector.GetRequiredSwitchCount(keyLength, syncSize), idx);
             for (int i = 0; i < switchConditions.Length; ++i)
-                transition.AddCondition(switchConditions[i], 0, ParameterManager.GetSyncSwitchName(i, bLegacy));
+                transition.AddCondition(switchConditions[i], 0, ParameterManager.GetSyncSwitchName(i, key));
         }
 
-        private static void AddParameters(AnimatorController anim, int keyLength, int syncSize)
+        private static void AddParameters(AnimatorController anim, int keyLength, int syncSize, UserKey key)
         {
             bool bLegacy = syncSize == 1;
             AddParameterIfMissing(anim, new AnimatorControllerParameter
@@ -198,20 +197,20 @@ namespace Shell.Protector
             });
 
             for (var i = 0; i < keyLength; ++i)
-                AddParameterIfMissing(anim, ParameterManager.GetKeyName(i), AnimatorControllerParameterType.Float);
+                AddParameterIfMissing(anim, ParameterManager.GetKeyName(i, key), AnimatorControllerParameterType.Float);
 
-            AddParameterIfMissing(anim, ParameterManager.GetSyncLockName(bLegacy), AnimatorControllerParameterType.Bool);
+            AddParameterIfMissing(anim, ParameterManager.GetSyncLockName(key), AnimatorControllerParameterType.Bool);
             var switchCount = ShellProtector.GetRequiredSwitchCount(keyLength, syncSize);
 
             if (!bLegacy)
             {
                 for (var i = 0; i < keyLength; ++i)
-                    AddParameterIfMissing(anim, ParameterManager.GetSavedKeyName(i), AnimatorControllerParameterType.Float);
+                    AddParameterIfMissing(anim, ParameterManager.GetSavedKeyName(i, key), AnimatorControllerParameterType.Float);
             }
             for (var i = 0; i < syncSize; ++i)
-                AddParameterIfMissing(anim, ParameterManager.GetSyncedKeyName(i, bLegacy), AnimatorControllerParameterType.Float);
+                AddParameterIfMissing(anim, ParameterManager.GetSyncedKeyName(i, bLegacy, key), AnimatorControllerParameterType.Float);
             for (var i = 0; i < switchCount; ++i)
-                AddParameterIfMissing(anim, ParameterManager.GetSyncSwitchName(i, bLegacy), AnimatorControllerParameterType.Bool);
+                AddParameterIfMissing(anim, ParameterManager.GetSyncSwitchName(i, key), AnimatorControllerParameterType.Bool);
         }
 
         private static void AddParameterIfMissing(AnimatorController anim, string name, AnimatorControllerParameterType type)
@@ -230,14 +229,14 @@ namespace Shell.Protector
             anim.AddParameter(parameter);
         }
 
-        public static void AddKeyLayer(AnimatorController anim, string animationDir, int keyLength, int syncSize, float speed)
+        public static void AddKeyLayer(AnimatorController anim, string animationDir, int keyLength, int syncSize, float speed, UserKey key)
         {
             if (anim.layers.Any(l => l.name == "ShellProtector")) return;
 
-            AddParameters(anim, keyLength, syncSize);
+            AddParameters(anim, keyLength, syncSize, key);
 
-            AddMuxLayer(anim, keyLength, syncSize, 0.15f, 0.1f, 1f); // 10hz
-            AddDemuxLayer(anim, keyLength, syncSize);
+            AddMuxLayer(anim, keyLength, syncSize, 0.15f, 0.1f, 1f, key); // 10hz
+            AddDemuxLayer(anim, keyLength, syncSize, key);
 
             AnimatorStateMachine stateMachine = new AnimatorStateMachine
             {
@@ -259,7 +258,7 @@ namespace Shell.Protector
             AssetDatabase.AddObjectToAsset(rootTree, anim);
             state.motion = rootTree;
 
-            var keyTrees = CreateKeyTree(animationDir, keyLength, speed);
+            var keyTrees = CreateKeyTree(animationDir, keyLength, speed, key);
             for (int i = 0; i < keyLength; ++i)
             {
                 rootTree.AddChild(keyTrees[i]);
@@ -278,7 +277,7 @@ namespace Shell.Protector
             transition.AddCondition(AnimatorConditionMode.If, 0, ParameterManager.GetIsLocalName());
         }
 
-        private static void AddMuxLayer(AnimatorController anim, int keyLength, int syncSize, float unlockDelay, float interval, float delay)
+        private static void AddMuxLayer(AnimatorController anim, int keyLength, int syncSize, float unlockDelay, float interval, float delay, UserKey key)
         {
             if (anim.layers.Any(l => l.name == "ShellProtectorMux")) 
                 return;
@@ -352,7 +351,7 @@ namespace Shell.Protector
                 lockDriver.parameters.Add(new VRC_AvatarParameterDriver.Parameter
                 {
                     type = VRC_AvatarParameterDriver.ChangeType.Set,
-                    name = ParameterManager.GetSyncLockName(bLegacy),
+                    name = ParameterManager.GetSyncLockName(key),
                     value = 1
                 });
 
@@ -361,8 +360,8 @@ namespace Shell.Protector
                     syncDriver.parameters.Add(new VRC_AvatarParameterDriver.Parameter
                     {
                         type = VRC_AvatarParameterDriver.ChangeType.Copy,
-                        name = ParameterManager.GetKeyName(step * syncSize + i),
-                        source = ParameterManager.GetSavedKeyName(step * syncSize + i)
+                        name = ParameterManager.GetKeyName(step * syncSize + i, key),
+                        source = ParameterManager.GetSavedKeyName(step * syncSize + i, key)
                     });
                 }
 
@@ -371,7 +370,7 @@ namespace Shell.Protector
                     syncDriver.parameters.Add(new VRC_AvatarParameterDriver.Parameter
                     {
                         type = VRC_AvatarParameterDriver.ChangeType.Set,
-                        name = ParameterManager.GetSyncSwitchName(i, bLegacy),
+                        name = ParameterManager.GetSyncSwitchName(i, key),
                         value = (step & (1 << i)) != 0 ? 1 : 0
                     });
                 }
@@ -379,7 +378,7 @@ namespace Shell.Protector
                 unlockDriver.parameters.Add(new VRC_AvatarParameterDriver.Parameter
                 {
                     type = VRC_AvatarParameterDriver.ChangeType.Set,
-                    name = ParameterManager.GetSyncLockName(bLegacy),
+                    name = ParameterManager.GetSyncLockName(key),
                     value = 0
                 });
 
@@ -389,7 +388,7 @@ namespace Shell.Protector
             }
         }
 
-        private static void AddDemuxLayer(AnimatorController anim, int keyLength, int syncSize)
+        private static void AddDemuxLayer(AnimatorController anim, int keyLength, int syncSize, UserKey key)
         {
             bool bLegacy = syncSize == 1;
             if (anim.layers.Any(l => l.name == "ShellProtectorDemux")) return;
@@ -410,7 +409,7 @@ namespace Shell.Protector
             transition.exitTime = 0;
             transition.duration = 0;
             transition.hasExitTime = false;
-            transition.AddCondition(AnimatorConditionMode.If, 0, ParameterManager.GetSyncLockName(bLegacy));
+            transition.AddCondition(AnimatorConditionMode.If, 0, ParameterManager.GetSyncLockName(key));
 
             for (var i = 0; i < keyLength / syncSize; ++i)
             {
@@ -422,8 +421,8 @@ namespace Shell.Protector
                     behaviour.parameters.Add(new VRCAvatarParameterDriver.Parameter
                     {
                         type = VRC_AvatarParameterDriver.ChangeType.Copy,
-                        source = ParameterManager.GetSyncedKeyName(j, bLegacy),
-                        name = ParameterManager.GetKeyName(i * syncSize + j)
+                        source = ParameterManager.GetSyncedKeyName(j, bLegacy, key),
+                        name = ParameterManager.GetKeyName(i * syncSize + j, key)
                     });
                 }
 
@@ -432,7 +431,7 @@ namespace Shell.Protector
                 transition.exitTime = 0;
                 transition.duration = 0;
                 transition.hasExitTime = false;
-                AddTransition(transition, keyLength, syncSize, i);
+                AddTransition(transition, keyLength, syncSize, i, key);
             }
         }
 

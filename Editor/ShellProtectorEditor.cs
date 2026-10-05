@@ -114,6 +114,10 @@ namespace Shell.Protector
             keyLengthLabels[3] = Lang("12 (Hight security)");
             keyLengthLabels[4] = Lang("16 (Unbreakable security)");
 
+            // Save the salt on the scene component so NDMF builds, which run on a copy, reuse it.
+            foreach (var t in targets)
+                (t as ShellProtector)?.EnsureParameterSalt();
+
             VersionManager.GetInstance().Refresh();
 
             shaders = AssetManager.GetInstance().CheckShader();
@@ -407,9 +411,9 @@ namespace Shell.Protector
             {
                 GUILayout.Space(10);
                 if (GUILayout.Button(Lang("XXTEA test")))
-                    Test.XXTEATest(root.FixedPassword, root.UserPassword, root.GetKeySize());
+                    Test.XXTEATest(root.GetKeyBytes());
                 if (GUILayout.Button(Lang("Chacha8 test")))
-                    Test.ChachaTest(root.FixedPassword, root.UserPassword, root.GetKeySize());
+                    Test.ChachaTest(root.GetKeyBytes());
                 GUILayout.Space(10);
 
                 textureList.DoLayoutList();
@@ -425,7 +429,7 @@ namespace Shell.Protector
 
                         TextureSettings.SetRWEnableTexture(texture);
 
-                        var result = TextureEncryptManager.EncryptTexture(texture, KeyGenerator.MakeKeyBytes(root.FixedPassword, root.UserPassword, keySize.intValue), new XXTEA());
+                        var result = TextureEncryptManager.EncryptTexture(texture, root.GetKeyBytes(), new XXTEA());
                         if (result.Texture1 == null)
                             continue;
 

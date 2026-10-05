@@ -12,8 +12,12 @@ namespace Shell.Protector.Tests
         public const string GeneratedRoot = "Assets/ShellProtector/Tests/__Generated";
         public const string DefaultGeneratedRoot = "Assets/ShellProtector/Generated";
 
+        public static readonly string SaltFile = Path.Combine(Path.GetTempPath(), "ShellProtectorTests", "salts.txt");
+
         public static void Reset()
         {
+            // Builds record their salt for the OSC app; keep test salts out of the user's real file
+            SaltRegistry.FileOverride = SaltFile;
             DeleteGeneratedRoot();
             DeleteDefaultGeneratedRoot();
             EnsureFolder(GeneratedRoot);

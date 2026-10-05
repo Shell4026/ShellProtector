@@ -7,9 +7,9 @@ namespace Shell.Protector.Tests.Unit
     public class CryptoTests
     {
         [Test]
-        public void MakeKeyBytes_ReturnsStablePasswordKey()
+        public void MakeKeyBytes_PlacesUserKeyAfterFixedKey()
         {
-            byte[] key = KeyGenerator.MakeKeyBytes("password", "pass", 12);
+            byte[] key = KeyGenerator.MakeKeyBytes("password", TestKeys.FromHex("a72e839d8da3b9806b18c877"));
 
             Assert.That(ToHex(key), Is.EqualTo("70617373a72e839d8da3b9806b18c877"));
         }
@@ -17,7 +17,7 @@ namespace Shell.Protector.Tests.Unit
         [Test]
         public void MakeKeyBytes_UsesFixedPasswordPrefix()
         {
-            byte[] key = KeyGenerator.MakeKeyBytes("fixed", "user", 12);
+            byte[] key = KeyGenerator.MakeKeyBytes("fixed", new byte[12]);
 
             Assert.That(key, Has.Length.EqualTo(16));
             Assert.That(key[0], Is.EqualTo((byte)'f'));
@@ -27,7 +27,7 @@ namespace Shell.Protector.Tests.Unit
         [Test]
         public void SimpleHash_ReturnsStableHash()
         {
-            byte[] key = KeyGenerator.MakeKeyBytes("password", "pass", 12);
+            byte[] key = TestKeys.Default;
 
             Assert.That(KeyGenerator.SimpleHash(key, 0x12345678u), Is.EqualTo(0x94f301a9u));
         }

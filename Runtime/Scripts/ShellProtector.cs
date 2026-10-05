@@ -53,6 +53,8 @@ namespace Shell.Protector
         [SerializeField] string _fixedPassword = "password";
         [FormerlySerializedAs("pwd2")]
         [SerializeField] string _userPassword = "pass";
+        // Per-avatar salt for UserKey. It stays the same across builds so the OSC app keeps finding it.
+        [SerializeField] string _parameterSalt = "";
         [FormerlySerializedAs("langIdx")]
         [SerializeField] int _languageIndex;
         [FormerlySerializedAs("lang")]
@@ -63,6 +65,7 @@ namespace Shell.Protector
         public string AssetDir { get => _assetDir; set => _assetDir = value; }
         public string FixedPassword { get => _fixedPassword; set => _fixedPassword = value; }
         public string UserPassword { get => _userPassword; set => _userPassword = value; }
+        public string ParameterSalt { get => _parameterSalt; set => _parameterSalt = value; }
         public int LanguageIndex { get => _languageIndex; set => _languageIndex = value; }
         public string Language { get => _language; set => _language = value; }
         public VRCAvatarDescriptor Descriptor { get => _descriptor; set => _descriptor = value; }
@@ -218,9 +221,41 @@ namespace Shell.Protector
             }
         }
 
+        UserKey _userKey;
+        string _userKeyPassword;
+
+        void Reset()
+        {
+            EnsureParameterSalt();
+        }
+
+        // Returns true if a new salt was generated.
+        public bool EnsureParameterSalt()
+        {
+            if (UserKey.IsValidSalt(_parameterSalt))
+                return false;
+            _parameterSalt = UserKey.GenerateSalt();
+            if (PrefabUtility.IsPartOfPrefabInstance(this))
+                PrefabUtility.RecordPrefabInstancePropertyModifications(this);
+            EditorUtility.SetDirty(this);
+            return true;
+        }
+
+        // PBKDF2 is slow on purpose, so the result is reused until the inputs change.
+        public UserKey GetUserKey()
+        {
+            EnsureParameterSalt();
+            if (_userKey == null || _userKeyPassword != _userPassword || _userKey.Salt != _parameterSalt || _userKey.Length != _keySize)
+            {
+                _userKey = UserKey.Derive(_userPassword, _parameterSalt, _keySize);
+                _userKeyPassword = _userPassword;
+            }
+            return _userKey;
+        }
+
         public byte[] GetKeyBytes()
         {
-            return KeyGenerator.MakeKeyBytes(_fixedPassword, _userPassword, _keySize);
+            return KeyGenerator.MakeKeyBytes(_fixedPassword, GetUserKey().GetKeyBytes());
         }
 
         public GameObject DuplicateAvatar(GameObject avatar)
@@ -258,6 +293,7 @@ namespace Shell.Protector
                 AssetDir = _assetDir,
                 FixedPassword = _fixedPassword,
                 UserPassword = _userPassword,
+                ParameterSalt = _parameterSalt,
                 Language = _language,
                 LanguageIndex = _languageIndex,
                 Rounds = _rounds,
@@ -282,6 +318,7 @@ namespace Shell.Protector
             _outputPaths = null;
             _fixedPassword = settings.FixedPassword;
             _userPassword = settings.UserPassword;
+            _parameterSalt = settings.ParameterSalt;
             _language = settings.Language;
             _languageIndex = settings.LanguageIndex;
             _rounds = settings.Rounds;
@@ -312,6 +349,10 @@ namespace Shell.Protector
 
             Debug.Log("AssetDir: " + _assetDir);
             CleanOutdatedEncrypted();
+
+            if (EnsureParameterSalt() && isModular)
+                Debug.LogWarning("[ShellProtector] The parameter salt was generated during the build, so it changes on every upload. Select the ShellProtector component once to save a salt.");
+            SaltRegistry.Register(_parameterSalt);
 
             if (_fallbackWhite == null)
                 _fallbackWhite = AssetDatabase.LoadAssetAtPath(OutputPaths.Combine(resourceDir, "white.png"), typeof(Texture2D)) as Texture2D;
@@ -506,7 +547,7 @@ namespace Shell.Protector
 
             ///////////////////////parameter////////////////////
             var av3 = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
-            av3.expressionParameters = ParameterManager.AddKeyParameter(av3.expressionParameters, _keySize, _syncSize);
+            av3.expressionParameters = ParameterManager.AddKeyParameter(av3.expressionParameters, _keySize, _syncSize, GetUserKey());
             _assetWriter.CreateAssetInFolder(av3.expressionParameters, _outputPaths.Folders.AvatarGuid, _outputPaths.ParametersName(av3.expressionParameters.name));
             ////////////////////////////////////////////////////
             if (!isModular)
@@ -752,7 +793,7 @@ namespace Shell.Protector
             GameObject[] meshArray = new GameObject[Meshes.Count];
             Meshes.CopyTo(meshArray);
             AnimatorManager.CreateKeyAnimations(OutputPaths.Combine(GetRuntimeAssetDir(), "Animations"), paths, _assetWriter, meshArray);
-            AnimatorManager.AddKeyLayer(fx, animationDir, _keySize, _syncSize, 3.0f);
+            AnimatorManager.AddKeyLayer(fx, animationDir, _keySize, _syncSize, 3.0f, GetUserKey());
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();

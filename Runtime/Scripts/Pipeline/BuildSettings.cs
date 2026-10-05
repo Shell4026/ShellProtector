@@ -6,6 +6,7 @@ namespace Shell.Protector
         public string AssetDir { get; set; }
         public string FixedPassword { get; set; }
         public string UserPassword { get; set; }
+        public string ParameterSalt { get; set; }
         public string Language { get; set; }
         public int LanguageIndex { get; set; }
         public uint Rounds { get; set; }

@@ -8,7 +8,7 @@ namespace Shell.Protector.Tests.Gpu
     public class GpuTextureDecryptionTests
     {
         private const int Size = 16;
-        private static readonly byte[] KeyBytes = KeyGenerator.MakeKeyBytes("password", "pass", 12);
+        private static readonly byte[] KeyBytes = TestKeys.Default;
         private Material referenceMaterial;
         private Material decryptMaterial;
         private Texture2D mipTexture;

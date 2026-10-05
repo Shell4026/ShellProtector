@@ -37,6 +37,7 @@ namespace Shell.Protector.Tests.Integration
             TestAssetScope.DestroyObjects(sceneObjects);
             TestAssetScope.DeleteGeneratedRoot();
             TestAssetScope.DeleteDefaultGeneratedRoot();
+            SaltRegistry.FileOverride = null;
         }
 
         [Test]
