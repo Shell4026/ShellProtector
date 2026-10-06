@@ -54,6 +54,7 @@ namespace Shell.Protector.Tests.Integration
             AssertEncryptedMaterial(encryptedMaterial);
             Assert.That(AssetDatabase.GetAssetPath(encryptedMaterial.shader).Replace('\\', '/'), Does.StartWith(LilToonShaders.Folder + "/"));
 
+            ApplyUserKey(encryptedMaterial, fixture.Protector);
             Color32[] actual = RenderMaterial(encryptedMaterial);
             AssertRenderedRgbClose(reference, actual, "lilToon");
         }
@@ -106,6 +107,7 @@ namespace Shell.Protector.Tests.Integration
             AssertEncryptedMaterial(encryptedMaterial);
             AssertPoiyomiShaderWasInjected(encryptedMaterial.shader);
 
+            ApplyUserKey(encryptedMaterial, fixture.Protector);
             Color32[] actual = RenderMaterial(encryptedMaterial);
             AssertRenderedRgbClose(reference, actual, "Poiyomi");
         }
@@ -328,6 +330,15 @@ namespace Shell.Protector.Tests.Integration
             key[0] = (byte)(key[0] ^ 0x5A);
             ApplyKeyBytes(tamperedProbe, key);
             return tamperedProbe;
+        }
+
+        // The encrypted material stores only the fixed key bytes. In game the OSC program sets the user key bytes
+        // through the animator, and in the editor ShellProtectorTester does, so the test does the same.
+        private static void ApplyUserKey(Material material, ShellProtector protector)
+        {
+            byte[] key = protector.GetKeyBytes();
+            for (int i = 16 - protector.GetKeySize(); i < 16; i++)
+                material.SetFloat(ShaderProperties.KeyPrefix + i, key[i]);
         }
 
         private static byte[] ReadKeyBytes(Material material)
