@@ -202,6 +202,7 @@ namespace Shell.Protector.Tests.Gpu
             configureCipher(decryptMaterial);
         }
 
+        // No Apply here: EncryptTexture must return textures that are already uploaded, as the build uses them directly.
         private static void FinalizeTexture(Texture2D texture)
         {
             if (texture == null)
@@ -209,7 +210,6 @@ namespace Shell.Protector.Tests.Gpu
 
             texture.filterMode = FilterMode.Point;
             texture.wrapMode = TextureWrapMode.Repeat;
-            texture.Apply(false, false);
         }
 
         private static Color32[] Render(Material material, Texture source, int pass, int width, int height)

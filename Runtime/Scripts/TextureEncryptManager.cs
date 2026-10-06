@@ -49,6 +49,7 @@ namespace Shell.Protector
             }
             if (small == false)
                 mip.Compress(false);
+            mip.Apply(false, false);
             return mip;
         }
 
@@ -139,7 +140,12 @@ namespace Shell.Protector
                 return new EncryptResult();
             }
 
-            return format.Encrypt(texture, key, encryptor);
+            EncryptResult result = format.Encrypt(texture, key, encryptor);
+            if (result.Texture1 != null)
+                result.Texture1.Apply(false, false);
+            if (result.Texture2 != null)
+                result.Texture2.Apply(false, false);
+            return result;
         }
 
         public static bool IsSupportedFormat(Material material)
