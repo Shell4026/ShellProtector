@@ -221,7 +221,8 @@ namespace Shell.Protector.Tests.Integration
         {
             string input = "float4 e = POI2D_SAMPLER_PAN(_EmissionMap3, _MainTex, poiUV(float2(1, 2), st), pan);";
             string output = EmissionShaderInjector.InjectPoiyomi(input);
-            Assert.That(output, Does.Contain("SHELL_EMISSION_SAMPLE(3, (POI_PAN_UV(poiUV(float2(1, 2), st), pan))"));
+            Assert.That(output, Does.Contain("SHELL_EMISSION_SAMPLE_OR(3, (POI_PAN_UV(poiUV(float2(1, 2), st), pan))"));
+            Assert.That(output, Does.Not.Contain("?"), "?: evaluates both sides, so unencrypted slots would decrypt too.");
             Assert.That(output, Does.Contain(input.Substring("float4 e = ".Length).TrimEnd(';')));
         }
 

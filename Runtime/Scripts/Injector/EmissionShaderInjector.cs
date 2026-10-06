@@ -34,7 +34,8 @@ namespace Shell.Protector
                 int slot = Array.IndexOf(EmissionEncryption.PoiyomiMaps, args[0]);
                 string uv = pan ? "POI_PAN_UV(" + args[2] + ", " + args[3] + ")" : args[2];
                 string original = code.Substring(match.Index, end - match.Index);
-                string replacement = $"(_ShellEmission{slot}Settings.x > 0.5 ? SHELL_EMISSION_SAMPLE({slot}, ({uv}), IsDecrypted()) : {original})";
+                // Not ?:, which evaluates both sides: the decryption would run for slots that aren't encrypted.
+                string replacement = $"SHELL_EMISSION_SAMPLE_OR({slot}, ({uv}), {original})";
                 code = code.Remove(match.Index, end - match.Index).Insert(match.Index, replacement);
             }
             return code;

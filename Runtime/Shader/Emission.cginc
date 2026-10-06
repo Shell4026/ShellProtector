@@ -196,3 +196,15 @@ float4 ShellEmissionSample(Texture2D tex, Texture2D blocks, float2 uv, float4 se
 }
 
 #define SHELL_EMISSION_SAMPLE(n, uv, unlocked) ShellEmissionSample(_ShellEmission##n, _ShellEmission##n##Blocks, uv, _ShellEmission##n##Settings, _ShellEmission##n##Wrap, n, unlocked)
+
+// For Poiyomi, where the sample replaces an expression. Both sides of ?: are evaluated, so a slot that isn't encrypted
+// would still decrypt; this branches instead and checks the key only for an encrypted slot.
+float4 ShellEmissionSampleOr(Texture2D tex, Texture2D blocks, float2 uv, float4 settings, float4 wrap, uint slot, float4 original)
+{
+    UNITY_BRANCH
+    if(settings.x < 0.5)
+        return original;
+    return ShellEmissionSample(tex, blocks, uv, settings, wrap, slot, IsDecrypted());
+}
+
+#define SHELL_EMISSION_SAMPLE_OR(n, uv, original) ShellEmissionSampleOr(_ShellEmission##n, _ShellEmission##n##Blocks, uv, _ShellEmission##n##Settings, _ShellEmission##n##Wrap, n, original)
