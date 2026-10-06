@@ -114,6 +114,61 @@ namespace Shell.Protector.Tests.Integration
             AssertAnimationMaterialWasRewritten(avatar, fixture.Material);
         }
 
+        // The face is a separate mesh whose shapes share names with the body's. Obfuscating the body must leave the
+        // face's eyelid indices and viseme names alone, and obfuscating the face must remap them to the same shapes.
+        [TestCase(false)]
+        [TestCase(true)]
+        public void ObfuscateBlendShape_RemapsDescriptorShapesOnlyForTheirOwnMesh(bool obfuscateFace)
+        {
+            const int shapeCount = 16;
+            string name = obfuscateFace ? "FaceObfuscated" : "FaceKept";
+            Fixture fixture = CreateFixture(name);
+            SkinnedMeshRenderer body = fixture.Avatar.transform.Find("Body").GetComponent<SkinnedMeshRenderer>();
+            body.sharedMesh = CreateShapesMesh(name + "/body.asset", shapeCount);
+
+            GameObject faceObject = new GameObject("Face");
+            faceObject.transform.SetParent(fixture.Avatar.transform, false);
+            SkinnedMeshRenderer face = faceObject.AddComponent<SkinnedMeshRenderer>();
+            face.sharedMesh = CreateShapesMesh(name + "/face.asset", shapeCount);
+            Mesh originalFaceMesh = face.sharedMesh;
+
+            int[] eyelids = { 2, 5, -1 };
+            VRCAvatarDescriptor descriptor = fixture.Avatar.GetComponent<VRCAvatarDescriptor>();
+            descriptor.VisemeSkinnedMesh = face;
+            descriptor.VisemeBlendShapes[0] = "Shape3";
+            descriptor.VisemeBlendShapes[1] = "Shape7";
+            descriptor.MouthOpenBlendShapeName = "Shape9";
+            var eyeSettings = descriptor.customEyeLookSettings;
+            eyeSettings.eyelidType = VRCAvatarDescriptor.EyelidType.Blendshapes;
+            eyeSettings.eyelidsSkinnedMesh = face;
+            eyeSettings.eyelidsBlendshapes = (int[])eyelids.Clone();
+            descriptor.customEyeLookSettings = eyeSettings;
+
+            // The face goes first, so the body's pass runs after the face's indices were already remapped.
+            var renderers = obfuscateFace ? new List<SkinnedMeshRenderer> { face, body } : new List<SkinnedMeshRenderer> { body };
+            SetSerializedField(fixture.Protector, "_obfuscationRenderers", renderers);
+
+            fixture.Protector.ObfuscateBlendShape(fixture.Avatar, false);
+
+            Assert.That(body.sharedMesh.GetBlendShapeName(0), Does.Not.StartWith("Shape"));
+            if (obfuscateFace)
+                Assert.That(face.sharedMesh, Is.Not.SameAs(originalFaceMesh));
+            else
+                Assert.That(face.sharedMesh, Is.SameAs(originalFaceMesh));
+
+            int[] remapped = descriptor.customEyeLookSettings.eyelidsBlendshapes;
+            Assert.That(remapped[2], Is.EqualTo(-1));
+            for (int i = 0; i < 2; ++i)
+            {
+                Assert.That(remapped[i], Is.InRange(0, shapeCount - 1));
+                Assert.That(GetShapeId(face.sharedMesh, remapped[i]), Is.EqualTo(eyelids[i]), "eyelid " + i);
+            }
+
+            Assert.That(GetShapeId(face.sharedMesh, face.sharedMesh.GetBlendShapeIndex(descriptor.VisemeBlendShapes[0])), Is.EqualTo(3));
+            Assert.That(GetShapeId(face.sharedMesh, face.sharedMesh.GetBlendShapeIndex(descriptor.VisemeBlendShapes[1])), Is.EqualTo(7));
+            Assert.That(GetShapeId(face.sharedMesh, face.sharedMesh.GetBlendShapeIndex(descriptor.MouthOpenBlendShapeName)), Is.EqualTo(9));
+        }
+
         [Test]
         public void DefaultAssetDir_UsesGeneratedRootAndFolderGuids()
         {
@@ -311,6 +366,32 @@ namespace Shell.Protector.Tests.Integration
             AnimationUtility.SetEditorCurve(clip, binding, AnimationCurve.Constant(0f, 1f, 100f));
             string path = TestAssetScope.CreateAsset(clip, name + "/blendShape.anim");
             return AssetDatabase.LoadAssetAtPath<AnimationClip>(path);
+        }
+
+        // Shape i is named "Shape{i}" and moves every vertex by i + 1 along y, so GetShapeId finds it after renaming and shuffling.
+        private static Mesh CreateShapesMesh(string path, int shapeCount)
+        {
+            Mesh mesh = TestAssetScope.CreateBlendShapeQuadMesh();
+            mesh.ClearBlendShapes();
+            Vector3[] deltaVertices = new Vector3[mesh.vertexCount];
+            Vector3[] deltaNormals = new Vector3[mesh.vertexCount];
+            Vector3[] deltaTangents = new Vector3[mesh.vertexCount];
+            for (int shape = 0; shape < shapeCount; ++shape)
+            {
+                for (int v = 0; v < deltaVertices.Length; ++v)
+                    deltaVertices[v] = new Vector3(0f, shape + 1, 0f);
+                mesh.AddBlendShapeFrame("Shape" + shape, 100f, deltaVertices, deltaNormals, deltaTangents);
+            }
+            string assetPath = TestAssetScope.CreateAsset(mesh, path);
+            return AssetDatabase.LoadAssetAtPath<Mesh>(assetPath);
+        }
+
+        private static int GetShapeId(Mesh mesh, int shapeIndex)
+        {
+            Assert.That(shapeIndex, Is.InRange(0, mesh.blendShapeCount - 1));
+            Vector3[] deltaVertices = new Vector3[mesh.vertexCount];
+            mesh.GetBlendShapeFrameVertices(shapeIndex, 0, deltaVertices, null, null);
+            return Mathf.RoundToInt(deltaVertices[0].y) - 1;
         }
 
         private static AnimatorController CreateBlendShapeController(string name, AnimationClip clip)

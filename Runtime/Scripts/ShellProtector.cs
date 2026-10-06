@@ -964,7 +964,7 @@ namespace Shell.Protector
                         continue;
                     obfuscator.ObfuscateBlendshapeInAnim(playableLayer, selectRenderer.gameObject, paths, _assetWriter);
                 }
-                obfuscator.ChangeObfuscatedBlendShapeInDescriptor(av3);
+                obfuscator.ChangeObfuscatedBlendShapeInDescriptor(av3, selectRenderer);
                 obfuscator.Clean();
             }
         }

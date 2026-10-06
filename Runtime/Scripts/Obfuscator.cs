@@ -44,9 +44,9 @@ namespace Shell.Protector
                 mmdShapes.Add(str);
             }
         }
+        // Resets the per-renderer state. Clone and PreserveMmd are options for the whole run and stay as they are.
         public void Clean()
         {
-            Clone = true;
             outputPaths = null;
             assetWriter = null;
             obfuscatedBlendShapeNames.Clear();
@@ -130,24 +130,34 @@ namespace Shell.Protector
             return obfuscatedMesh;
         }
 
-        public void ChangeObfuscatedBlendShapeInDescriptor(VRCAvatarDescriptor descriptor)
+        // Only the descriptor settings that point at the obfuscated renderer may be remapped:
+        // other renderers have their own shape order, and their indices must stay as they are.
+        public void ChangeObfuscatedBlendShapeInDescriptor(VRCAvatarDescriptor descriptor, SkinnedMeshRenderer renderer)
         {
-            for (int i = 0; i < descriptor.VisemeBlendShapes.Length; i++)
+            if (descriptor.VisemeSkinnedMesh == renderer)
             {
-                if (obfuscatedBlendShapeNames.ContainsKey(descriptor.VisemeBlendShapes[i]))
-                    descriptor.VisemeBlendShapes[i] = obfuscatedBlendShapeNames[descriptor.VisemeBlendShapes[i]];
-            }
-            for (int i = 0; i < descriptor.customEyeLookSettings.eyelidsBlendshapes.Length; i++)
-            {
-                int idx = descriptor.customEyeLookSettings.eyelidsBlendshapes[i];
-                descriptor.customEyeLookSettings.eyelidsBlendshapes[i] = obfuscatedBlendShapeIndex.FindIndex(0, obfuscatedBlendShapeIndex.Count,
-                    x =>
+                if (descriptor.VisemeBlendShapes != null)
+                {
+                    for (int i = 0; i < descriptor.VisemeBlendShapes.Length; i++)
                     {
-                        return x == idx;
+                        string viseme = descriptor.VisemeBlendShapes[i];
+                        if (viseme != null && obfuscatedBlendShapeNames.ContainsKey(viseme))
+                            descriptor.VisemeBlendShapes[i] = obfuscatedBlendShapeNames[viseme];
                     }
-                );
+                }
+                string mouthOpen = descriptor.MouthOpenBlendShapeName;
+                if (mouthOpen != null && obfuscatedBlendShapeNames.ContainsKey(mouthOpen))
+                    descriptor.MouthOpenBlendShapeName = obfuscatedBlendShapeNames[mouthOpen];
             }
-            
+
+            var eyeSettings = descriptor.customEyeLookSettings;
+            if (eyeSettings.eyelidsSkinnedMesh == renderer && eyeSettings.eyelidsBlendshapes != null)
+            {
+                // The new mesh holds the shapes in shuffled order, so shape idx moves to its position in the list.
+                // -1 (no shape) stays -1.
+                for (int i = 0; i < eyeSettings.eyelidsBlendshapes.Length; i++)
+                    eyeSettings.eyelidsBlendshapes[i] = obfuscatedBlendShapeIndex.IndexOf(eyeSettings.eyelidsBlendshapes[i]);
+            }
         }
 
         public void ObfuscateBlendshapeInAnim(AnimatorController anim, GameObject obj, OutputPaths paths, AssetWriter writer)
