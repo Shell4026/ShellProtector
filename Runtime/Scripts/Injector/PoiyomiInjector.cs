@@ -68,7 +68,8 @@ namespace Shell.Protector
             if(version >= 80)
             {
                 // The secrets go in front of every include: whichever include comes first in a pass is the one that counts.
-                string includeStr = Secrets.ToDefines() + string.Format("#include \"{0}\"", decodeDir);
+                string emissionDir = Path.Combine(Path.GetDirectoryName(decodeDir), "Emission.cginc").Replace('\\', '/');
+                string includeStr = Secrets.ToDefines() + string.Format("#include \"{0}\"\n#include \"{1}\"", decodeDir, emissionDir);
                 shaderData = Regex.Replace(shaderData, "UNITY_DECLARE_TEX2D\\(_MainTex\\);", declare);
 
                 shaderData = Regex.Replace(shaderData, "POI2D_SAMPLER_PAN\\((.*?), _MainTex", "POI2D_SAMPLER_PAN($1, _MipTex");
@@ -100,6 +101,8 @@ namespace Shell.Protector
                 }
                 if (outlineTex)
                     shaderData = Regex.Replace(shaderData, @"float4 col = .*?_OutlineTexture.*?\* float4(.*?);", "float4 col = float4(poiFragData.baseColor, poiFragData.alpha) * float4$1;");
+
+                shaderData = EmissionShaderInjector.InjectPoiyomi(shaderData);
 
             }
             else
@@ -156,7 +159,7 @@ namespace Shell.Protector
                 for (int i = 0; i < 16; ++i)
                     properties += ShaderProperties.KeyPrefix + i + " (\"key" + i + "\", float) = 0\n";
 
-                data = data.Insert(suffixIndex, properties);
+                data = data.Insert(suffixIndex, properties + EmissionEncryption.Properties(4));
             }
             else
             {

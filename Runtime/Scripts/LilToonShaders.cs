@@ -36,7 +36,7 @@ namespace Shell.Protector
         {
             Settings settings = LoadOrCreateSettings();
             string sourceDir = OutputPaths.Combine(runtimeDir, "liltoonProtector", "Shaders");
-            string protectorPath = OutputPaths.Combine(runtimeDir, "Shader", "Protector.cginc");
+            string shaderDir = OutputPaths.Combine(runtimeDir, "Shader");
 
             bool changed = false;
             foreach (string file in Directory.GetFiles(sourceDir))
@@ -45,7 +45,7 @@ namespace Shell.Protector
                 if (fileName.EndsWith(".meta", StringComparison.OrdinalIgnoreCase))
                     continue;
 
-                string text = Transform(fileName, File.ReadAllText(file), settings, protectorPath);
+                string text = Transform(fileName, File.ReadAllText(file), settings, shaderDir);
                 if (text == null)
                     return null;
                 changed |= WriteIfChanged(OutputPaths.Combine(Folder, fileName), text);
@@ -56,7 +56,7 @@ namespace Shell.Protector
             return AssetDatabase.LoadAssetAtPath<Shader>(OutputPaths.Combine(Folder, containerName + ".lilcontainer"));
         }
 
-        static string Transform(string fileName, string text, Settings settings, string protectorPath)
+        static string Transform(string fileName, string text, Settings settings, string shaderDir)
         {
             if (fileName == DataFile)
             {
@@ -70,14 +70,18 @@ namespace Shell.Protector
             }
             if (fileName == InsertFile)
             {
-                // The package includes Protector.cginc by a relative path that doesn't resolve from the copy.
-                var include = new Regex("#include \"[^\"]*Protector\\.cginc\"");
-                if (!include.IsMatch(text))
+                // The package includes Protector.cginc and Emission.cginc by relative paths that don't resolve from the copy.
+                var include = new Regex("#include \"[^\"]*/Shader/(\\w+\\.cginc)\"");
+                if (!Regex.IsMatch(text, "#include \"[^\"]*/Shader/Protector\\.cginc\""))
                 {
                     Debug.LogErrorFormat("[ShellProtector] No Protector.cginc include in {0}", fileName);
                     return null;
                 }
-                return include.Replace(text, m => settings.secrets.ToDefines() + "#include \"" + protectorPath + "\"", 1);
+                return include.Replace(text, m =>
+                {
+                    string path = "#include \"" + OutputPaths.Combine(shaderDir, m.Groups[1].Value) + "\"";
+                    return m.Groups[1].Value == "Protector.cginc" ? settings.secrets.ToDefines() + path : path;
+                });
             }
             return text;
         }

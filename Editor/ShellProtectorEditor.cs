@@ -282,8 +282,11 @@ namespace Shell.Protector
             else
                 Hint(Lang("Encrypting too many objects can cause lag when loading avatars in-game."));
 
-            if (GUILayout.Button(Lang("Material advanced settings")))
+            if (GUILayout.Button(new GUIContent(Lang("Material advanced settings"), Lang("Filter, fallback and emission encryption per material."))))
                 MaterialAdvancedSettings.ShowWindow(root);
+            int emissionMaps = root.CountEncryptedEmissionMaps(out int emissionMaterials);
+            if (emissionMaps > 0)
+                Hint(string.Format(Lang("Emission encryption: {0} maps in {1} materials"), emissionMaps, emissionMaterials));
             EndSection();
         }
 

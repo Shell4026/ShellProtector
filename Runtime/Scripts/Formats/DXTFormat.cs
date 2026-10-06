@@ -13,9 +13,9 @@ namespace Shell.Protector
 
             for (int i = 0; i <= miplv; ++i) {
                 start += end;
-                int w = texture_width / (int)(Mathf.Pow(2, i));
-                int h = texture_height / (int)(Mathf.Pow(2, i));
-                int block_count = (w / 4) * (h / 4);
+                int w = Math.Max(1, texture_width >> i);
+                int h = Math.Max(1, texture_height >> i);
+                int block_count = Math.Max(1, w / 4) * Math.Max(1, h / 4);
                 int len = block_count * 8;
                 if (dxt5) len *= 2;
                 end = len;
@@ -80,6 +80,16 @@ namespace Shell.Protector
             });
         }
 
+        protected int GetDXTMipCount(Texture2D texture) {
+            int count = 0;
+            for (int mip = 0; mip < texture.mipmapCount; mip++) {
+                int blocks = Math.Max(1, (texture.width >> mip) / 4) * Math.Max(1, (texture.height >> mip) / 4);
+                if (blocks < 2) break;
+                count++;
+            }
+            return Math.Max(1, count);
+        }
+
         public override void SetFormatKeywords(Material material) {
             material.DisableKeyword(ShaderProperties.Format0Keyword);
             material.DisableKeyword(ShaderProperties.Format1Keyword);
@@ -106,7 +116,7 @@ namespace Shell.Protector
                 throw new Exception($"{texture.name} : The texture height must be >= 4px");
             }
 
-            int mip_lv = GetCanMipmapLevel(texture.width / 4, texture.height / 4);
+            int mip_lv = GetDXTMipCount(texture);
             Texture2D dxt1 = HandleCrunchedFormat(texture, mip_lv, false);
             
             var result = new EncryptResult();
@@ -163,7 +173,7 @@ namespace Shell.Protector
                 throw new Exception($"{texture.name} : The texture height must be >= 4px");
             }
 
-            int mip_lv = GetCanMipmapLevel(texture.width / 4, texture.height / 4);
+            int mip_lv = GetDXTMipCount(texture);
             Texture2D dxt5 = HandleCrunchedFormat(texture, mip_lv, true);
             
             var result = new EncryptResult();

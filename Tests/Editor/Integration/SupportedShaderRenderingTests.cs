@@ -348,7 +348,7 @@ namespace Shell.Protector.Tests.Integration
             material.SetInteger(ShaderProperties.PasswordHash, unchecked((int)passwordHash));
         }
 
-        private static Color32[] RenderMaterial(Material material)
+        internal static Color32[] RenderMaterial(Material material)
         {
             GameObject subject = null;
             GameObject cameraObject = null;
@@ -428,7 +428,7 @@ namespace Shell.Protector.Tests.Integration
             }
         }
 
-        private static void AssertRenderedRgbClose(Color32[] expected, Color32[] actual, string label)
+        internal static void AssertRenderedRgbClose(Color32[] expected, Color32[] actual, string label)
         {
             Assert.That(actual.Length, Is.EqualTo(expected.Length));
 

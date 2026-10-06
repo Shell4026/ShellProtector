@@ -1,6 +1,10 @@
 //----------------------------------------------------------------------------------------------------------------------
 // Macro
 
+// Route both static and animated emission UVs through LIL_GET_EMITEX so the
+// installed lilToon retains its own emission blending, masks and AudioLink.
+#define LIL_FEATURE_ANIMATE_EMISSION_UV
+
 #define LIL_CUSTOM_V2F_MEMBER(id0,id1,id2,id3,id4,id5,id6,id7) \
 	int isDecrypted : TEXCOORD##id0;
 	

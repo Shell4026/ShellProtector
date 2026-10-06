@@ -5,34 +5,10 @@
 float4 DecodeBlockPixel(Texture2D tex0, SamplerState tex0Sampler, uint data, float2 uv, int m)
 {
     float4 col = tex0.SampleLevel(tex0Sampler, uv, m);
-	uint r = (data & 0x000000FF) >> 0;
-	uint g = (data & 0x0000FF00) >> 8;
-	uint b = (data & 0x00FF0000) >> 16;
-	uint a = (data & 0xFF000000) >> 24;
-	
-	uint color1 = (r | g << 8);
-	uint color2 = (b | a << 8);
-	
-	uint color1_r = (color1 & 0xF800) >> 11;
-	color1_r = color1_r << 3 | color1_r >> 2;
-	uint color1_g = (color1 & 0x7E0) >> 5;
-	color1_g = color1_g << 2 | color1_g >> 4;
-	uint color1_b= color1 & 0x1F;
-	color1_b = color1_b << 3 | color1_b >> 2;
-	
-	uint color2_r = (color2 & 0xF800) >> 11;
-	color2_r = color2_r << 3 | color2_r >> 2;
-	uint color2_g = (color2 & 0x7E0) >> 5;
-	color2_g = color2_g << 2 | color2_g >> 4;
-	uint color2_b= color2 & 0x1F;
-	color2_b = color2_b << 3 | color2_b >> 2;
-	
-	float3 col1 = float3(color1_r / 255.0, color1_g / 255.0, color1_b / 255.0);
-	float3 col2 = float3(color2_r / 255.0, color2_g / 255.0, color2_b / 255.0);
-	
-	float3 result;
-	result = lerp(col2, col1, color1 > color2 ? col.rgb : 0.5);
+	uint color1 = data & 0xFFFF;
+	uint color2 = data >> 16;
 
+	float3 result = ShellDXTColors(data, color1 > color2 ? col.rgb : 0.5);
 	return half4(GammaCorrection(result), col.a);
 }
 

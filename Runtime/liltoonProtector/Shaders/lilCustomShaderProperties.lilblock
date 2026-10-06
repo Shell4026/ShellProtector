@@ -25,3 +25,11 @@
         _Rounds ("Rounds", integer) = 0
         _PasswordHash ("PasswordHash", integer) = 0
 		_HashMagic ("HashMagic", integer) = 0
+        [HideInInspector] _ShellEmission0 ("Encrypted emission 0", 2D) = "black" {}
+        [HideInInspector] _ShellEmission0Blocks ("Encrypted emission blocks 0", 2D) = "black" {}
+        [HideInInspector] _ShellEmission0Settings ("Emission settings", Vector) = (0,0,0,0)
+        [HideInInspector] _ShellEmission0Wrap ("Emission wrap", Vector) = (0,0,0,0)
+        [HideInInspector] _ShellEmission1 ("Encrypted emission 1", 2D) = "black" {}
+        [HideInInspector] _ShellEmission1Blocks ("Encrypted emission blocks 1", 2D) = "black" {}
+        [HideInInspector] _ShellEmission1Settings ("Emission settings", Vector) = (0,0,0,0)
+        [HideInInspector] _ShellEmission1Wrap ("Emission wrap", Vector) = (0,0,0,0)

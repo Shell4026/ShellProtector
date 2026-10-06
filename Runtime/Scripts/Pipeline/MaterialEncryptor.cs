@@ -18,7 +18,7 @@ namespace Shell.Protector
             this.rounds = rounds;
         }
 
-        public Material CreateEncryptedMaterial(string folderGuid, string fileName, Material source, Shader shader, Texture2D fallback, Texture2D mip, AuxiliaryTextures auxiliary, ProcessedTexture texture, byte[] keyBytes, int fixedKeySize, IEncryptor encryptor, Injector injector)
+        public Material CreateEncryptedMaterial(string folderGuid, string fileName, Material source, Shader shader, Texture2D fallback, Texture2D mip, AuxiliaryTextures auxiliary, ProcessedTexture texture, byte[] keyBytes, int fixedKeySize, IEncryptor encryptor, Injector injector, ShaderSecrets secrets, int emissionMask = 0)
         {
             Material result = new Material(source.shader);
             result.CopyPropertiesFromMaterial(source);
@@ -65,6 +65,7 @@ namespace Shell.Protector
 
             injector.SetKeywords(result, auxiliary.LimTexture != null);
             TextureEncryptManager.SetFormatKeywords(result, originalTex);
+            EmissionEncryption.Apply(source, result, keyBytes, encryptor, secrets, writer, folderGuid, emissionMask);
             writer.CreateAssetInFolder(result, folderGuid, fileName);
             writer.SaveAndRefresh();
             return result;

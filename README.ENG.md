@@ -31,9 +31,21 @@ Source code of OSC: https://github.com/Shell4026/ShellProtectorOSC
 
 ## Features
 - Texture Encryption
+- Opt-in emission-map encryption for slots selected in Material advanced settings. Selected maps emit no light until the correct key is supplied.
 - OSC programs for descryption
 - Blendshape obfuscation
 - Fallback: the ability to make non-friends see a small texture instead of encryption noise
+
+### Emission encryption
+Emission encryption is **off by default**. In Material advanced settings, check the desired **Encrypt emission slots**: Poiyomi Emission 0–3 or lilToon Emission 1–2. Selections are saved per material; Reset clears them. Unselected maps remain unchanged.
+
+Selected emission maps may differ from the main map in size and format. Shader UV transforms, colors, masks and blending remain in use. Emission masks and gradient textures themselves are not encrypted.
+
+Poiyomi shares the main texture's filtering and wrapping settings, matching its original shader; lilToon uses each emission map's settings. Mip bias is preserved.
+
+DXT1/DXT5 reuse the main texture encoder and retain their compressed format. Each output includes the compressed texture plus RGBA32 encrypted block colors at one quarter of its width and height: approximately 1.5× DXT1 or 1.25× DXT5 base-level memory. As in the existing DXT path, RGB endpoints are encrypted; selectors and DXT5 alpha are retained. RGB24/RGBA32 inputs use RGBA32 encrypted storage.
+
+Inputs require power-of-two dimensions: at least 8×4 for DXT, or two pixels for RGB formats. Mips too small to hold a pair of cipher blocks are clamped to the preceding mip. Point/Bilinear/Trilinear filtering is supported; ChaCha decrypts 4×4 texels at once, so the four bilinear taps usually share one decryption. Per selected map, bilinear adds up to four decryptions per pixel, and trilinear up to eight. Anisotropic filtering is not supported.
   
 ## Usage
 

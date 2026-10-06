@@ -18,7 +18,7 @@ namespace Shell.Protector
     }
 
     public abstract class BaseTextureFormat : ITextureFormat {
-        protected uint[] ConvertKeyToUInt(byte[] key) {
+        protected internal static uint[] ConvertKeyToUInt(byte[] key) {
             uint[] key_uint = new uint[4];
             key_uint[0] = (uint)(key[0] | (key[1] << 8) | (key[2] << 16) | (key[3] << 24));
             key_uint[1] = (uint)(key[4] | (key[5] << 8) | (key[6] << 16) | (key[7] << 24));
@@ -29,7 +29,7 @@ namespace Shell.Protector
 
         // Last key word for one encryption unit. The mip level goes in the top 8 bits (unit indices stay below 2^24),
         // otherwise the same index on every mip level would reuse one ChaCha keystream.
-        protected static uint GetUnitKey(byte[] key, uint idx, int mip) {
+        protected internal static uint GetUnitKey(byte[] key, uint idx, int mip) {
             return (uint)(key[12] | (key[13] << 8) | (key[14] << 16) | (key[15] << 24)) ^ idx ^ ((uint)mip << 24);
         }
 
@@ -44,8 +44,8 @@ namespace Shell.Protector
         // (one keystream word per pixel). The shader then derives a single keystream for every bilinear tap
         // inside the block instead of one per pixel. XXTEA keeps the per-pixel layout: sharing a key there
         // saves nothing because each chunk still needs its own decryption.
-        // DXT uses the same layout on its endpoint texture, where one texel is one DXT block.
-        protected void EncryptBlocks(Color32[] pixels, int width, int height, int mip, byte[] key, Chacha20 chacha, bool alpha) {
+        // DXT uses the same layout on its endpoint texture, where one texel is one DXT block, and so do emission maps.
+        protected internal static void EncryptBlocks(Color32[] pixels, int width, int height, int mip, byte[] key, Chacha20 chacha, bool alpha) {
             int blocksPerRow = (width + 3) / 4;
             int blockRows = (height + 3) / 4;
             uint alphaMask = alpha ? 0xFFFFFFFFu : 0x00FFFFFFu;

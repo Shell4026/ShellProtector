@@ -80,6 +80,8 @@ namespace Shell.Protector
             public int Fallback = -1;
             [FormerlySerializedAs("emissionEnc")]
             public bool EmissionEnc;
+            // Explicit opt-in per shader slot. Legacy EmissionEnc is not migrated.
+            public int EmissionMask = 0;
         }
         [Serializable]
         public class MaterialOptionPair
@@ -204,8 +206,24 @@ namespace Shell.Protector
                     MaterialOptions[pair.Material] = pair.Option;
             }
         }
+        // Selected emission maps of the active materials, read from the saved options so the inspector needs no sync.
+        public int CountEncryptedEmissionMaps(out int materialCount)
+        {
+            int maps = 0;
+            materialCount = 0;
+            foreach (var pair in _matOptionSaved)
+            {
+                if (pair.Material == null || pair.Option == null || !pair.Option.Active || pair.Option.EmissionMask == 0)
+                    continue;
+                materialCount++;
+                for (int mask = pair.Option.EmissionMask; mask != 0; mask &= mask - 1)
+                    maps++;
+            }
+            return maps;
+        }
         public void SaveMatOption()
         {
+            _matOptionSaved.Clear();
             foreach (var pair in MaterialOptions)
             {
                 _matOptionSaved.Add(new MaterialOptionPair { Material = pair.Key, Option = pair.Value });
@@ -500,6 +518,8 @@ namespace Shell.Protector
 
                 //////////////////////Inject shader///////////////////////
                 AuxiliaryTextures otherTex = GetLimOutlineTextures(mat);
+                if (!EmissionEncryption.SupportsEmission(encryptedShader))
+                    encryptedShader = null;
                 if (encryptedShader == null)
                 {
                     try
@@ -539,7 +559,7 @@ namespace Shell.Protector
                 if (mipTex == null)
                     Debug.LogWarningFormat("mip_{0} is not exsist", maxSize);
 
-                GenerateEncryptedMaterial(_outputPaths.EncryptedMaterialName(mat), mat, encryptedShader, fallback, mipTex, otherTex, processedTexture, keyBytes, encryptor);
+                GenerateEncryptedMaterial(_outputPaths.EncryptedMaterialName(mat), mat, encryptedShader, fallback, mipTex, otherTex, processedTexture, keyBytes, encryptor, secrets);
             } // Material loop
             EditorUtility.ClearProgressBar();
 
@@ -625,6 +645,7 @@ namespace Shell.Protector
 
                 foreach (var name in mat.GetTexturePropertyNames())
                 {
+                    if (EmissionEncryption.IsEmissionMap(mat, name)) continue;
                     if (mat.GetTexture(name) == null)
                         continue;
                     if (!(mat.GetTexture(name) is Texture2D))
@@ -714,6 +735,9 @@ namespace Shell.Protector
                     Material duplicatedMaterial = null;
                     foreach (string name in sourceMaterial.GetTexturePropertyNames())
                     {
+                        // Emission is opt-in, even if an unselected slot shares
+                        // a texture encrypted as another material's main map.
+                        if (EmissionEncryption.IsEmissionMap(sourceMaterial, name)) continue;
                         Texture2D texture = sourceMaterial.GetTexture(name) as Texture2D;
                         if (texture == null || !ProcessedTextures.TryGetValue(texture, out ProcessedTexture processedTexture))
                             continue;
@@ -1368,10 +1392,11 @@ namespace Shell.Protector
 
             return fallback;
         }
-        Material GenerateEncryptedMaterial(string fileName, Material mat, Shader encryptedShader, Texture2D fallback, Texture2D mip, AuxiliaryTextures otherTex, ProcessedTexture processedTexture, byte[] keyBytes, IEncryptor encryptor)
+        Material GenerateEncryptedMaterial(string fileName, Material mat, Shader encryptedShader, Texture2D fallback, Texture2D mip, AuxiliaryTextures otherTex, ProcessedTexture processedTexture, byte[] keyBytes, IEncryptor encryptor, ShaderSecrets secrets)
         {
             MaterialEncryptor materialEncryptor = new MaterialEncryptor(_assetWriter, _turnOnAllSafetyFallback, _algorithm, _rounds);
-            Material newMat = materialEncryptor.CreateEncryptedMaterial(GetOutputPaths().Folders.MatGuid, fileName, mat, encryptedShader, fallback, mip, otherTex, processedTexture, keyBytes, 16 - _keySize, encryptor, _injector);
+            int emissionMask = MaterialOptions.TryGetValue(mat, out var option) ? option.EmissionMask : 0;
+            Material newMat = materialEncryptor.CreateEncryptedMaterial(GetOutputPaths().Folders.MatGuid, fileName, mat, encryptedShader, fallback, mip, otherTex, processedTexture, keyBytes, 16 - _keySize, encryptor, _injector, secrets, emissionMask);
             Debug.LogFormat("{0} : create encrypted material : {1}", mat.name, AssetDatabase.GetAssetPath(newMat));
 
             if (!EncryptedMaterials.ContainsKey(mat))

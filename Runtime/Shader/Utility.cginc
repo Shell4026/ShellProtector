@@ -13,6 +13,21 @@ float3 GammaCorrection(float3 rgb)
 	return result;
 }
 
+// Shared by main-map and emission DXT decoders. Packed RGB565 endpoints
+// are decrypted separately from the compressed texture's palette selectors.
+float3 ShellRGB565(uint color)
+{
+    uint r = (color >> 11) & 31u;
+    uint g = (color >> 5) & 63u;
+    uint b = color & 31u;
+    return float3((r << 3) | (r >> 2), (g << 2) | (g >> 4), (b << 3) | (b >> 2)) / 255.0;
+}
+
+float3 ShellDXTColors(uint endpoints, float3 selector)
+{
+    return lerp(ShellRGB565(endpoints >> 16), ShellRGB565(endpoints & 65535u), selector);
+}
+
 float2 GetUV(int idx, int m, int woffset = 0, int hoffset = 0)
 {
 	int w = idx % mw[m + woffset];
