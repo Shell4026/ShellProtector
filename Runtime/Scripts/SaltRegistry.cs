@@ -38,6 +38,7 @@ namespace Shell.Protector
             }
         }
 
+
         public static void Register(string salt, string file)
         {
             if (!UserKey.IsValidSalt(salt))

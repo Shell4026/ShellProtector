@@ -25,7 +25,7 @@ namespace Shell.Protector
         class Asset
         {
             public string name;
-            public string browser_download_url;
+            public string downloadURL;
         }
 #pragma warning restore 0649
 
@@ -78,7 +78,7 @@ namespace Shell.Protector
                 if (string.IsNullOrEmpty(path))
                     return;
 
-                StartDownload(zip.browser_download_url, path, release.tag_name);
+                StartDownload(zip.downloadURL, path, release.tag_name);
             }
         }
 
