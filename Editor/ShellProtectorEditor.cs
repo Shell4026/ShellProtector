@@ -63,7 +63,6 @@ namespace Shell.Protector
         [NonSerialized] GUIStyle titleStyle;
         [NonSerialized] GUIStyle versionStyle;
         [NonSerialized] GUIStyle sectionStyle;
-        [NonSerialized] GUIStyle foldoutStyle;
         [NonSerialized] GUIStyle warningStyle;
 
         private string Lang(string word)
@@ -167,9 +166,9 @@ namespace Shell.Protector
             if (titleStyle != null)
                 return;
             titleStyle = new GUIStyle(EditorStyles.boldLabel) { fontSize = 19, fixedHeight = 0 };
-            versionStyle = new GUIStyle(EditorStyles.miniLabel) { alignment = TextAnchor.LowerLeft };
+            // A fixed height keeps the version on the title's baseline without stretching the header row.
+            versionStyle = new GUIStyle(EditorStyles.miniLabel) { alignment = TextAnchor.LowerLeft, fixedHeight = titleStyle.CalcSize(new GUIContent("ShellProtector")).y };
             sectionStyle = new GUIStyle(EditorStyles.boldLabel) { fontSize = 16, fixedHeight = 0 };
-            foldoutStyle = new GUIStyle(EditorStyles.foldout) { fontStyle = FontStyle.Bold, fontSize = 16, fixedHeight = 0 };
             warningStyle = new GUIStyle(EditorStyles.boldLabel) { wordWrap = true, alignment = TextAnchor.MiddleLeft };
         }
 
@@ -185,6 +184,29 @@ namespace Shell.Protector
         static void EndSection()
         {
             EditorGUILayout.Space(SectionSpacing);
+        }
+
+        // EditorGUILayout.Foldout keeps a single-line rect whatever the font size, so a large title would miss its clicks.
+        // This draws the standard arrow next to a label of any style and toggles on a click anywhere in the row.
+        static bool Foldout(bool expanded, string title, GUIStyle style)
+        {
+            Rect row = GUILayoutUtility.GetRect(new GUIContent(title), style, GUILayout.ExpandWidth(true));
+            const float arrowWidth = 14;
+            float lineHeight = EditorGUIUtility.singleLineHeight;
+            Rect arrow = new Rect(row.x, row.y + (row.height - lineHeight) * 0.5f, arrowWidth, lineHeight);
+            expanded = EditorGUI.Foldout(arrow, expanded, GUIContent.none, true);
+
+            Rect label = row;
+            label.xMin += arrowWidth;
+            GUI.Label(label, title, style);
+
+            Event e = Event.current;
+            if (e.type == EventType.MouseDown && e.button == 0 && row.Contains(e.mousePosition))
+            {
+                expanded = !expanded;
+                e.Use();
+            }
+            return expanded;
         }
 
         static void Hint(string text)
@@ -214,7 +236,7 @@ namespace Shell.Protector
         {
             EditorGUILayout.BeginHorizontal();
             GUILayout.Label("ShellProtector", titleStyle);
-            GUILayout.Label("v" + currentVersion, versionStyle, GUILayout.ExpandHeight(true));
+            GUILayout.Label("v" + currentVersion, versionStyle);
             GUILayout.FlexibleSpace();
             int index = Mathf.Clamp(languageIndex.intValue, 0, languages.Length - 1);
             index = EditorGUILayout.Popup(index, languages, GUILayout.Width(90));
@@ -388,7 +410,7 @@ namespace Shell.Protector
 
         void DrawAdvancedOptions()
         {
-            advancedOption = EditorGUILayout.Foldout(advancedOption, Lang("Advanced options"), true, foldoutStyle);
+            advancedOption = Foldout(advancedOption, Lang("Advanced options"), sectionStyle);
             if (!advancedOption)
             {
                 EndSection();
@@ -457,7 +479,7 @@ namespace Shell.Protector
 
         void DrawDebug()
         {
-            debug = EditorGUILayout.Foldout(debug, Lang("Debug"), true);
+            debug = Foldout(debug, Lang("Debug"), EditorStyles.label);
             if (!debug)
                 return;
 
