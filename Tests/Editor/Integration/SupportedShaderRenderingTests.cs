@@ -52,7 +52,7 @@ namespace Shell.Protector.Tests.Integration
 
             Material encryptedMaterial = GetBodyMaterial(encryptedAvatar);
             AssertEncryptedMaterial(encryptedMaterial);
-            Assert.That(AssetDatabase.GetAssetPath(encryptedMaterial.shader).Replace('\\', '/'), Does.Contain("liltoonProtector/Shaders"));
+            Assert.That(AssetDatabase.GetAssetPath(encryptedMaterial.shader).Replace('\\', '/'), Does.StartWith(LilToonShaders.Folder + "/"));
 
             Color32[] actual = RenderMaterial(encryptedMaterial);
             AssertRenderedRgbClose(reference, actual, "lilToon");
@@ -70,7 +70,7 @@ namespace Shell.Protector.Tests.Integration
 
             Material encryptedMaterial = GetBodyMaterial(encryptedAvatar);
             AssertEncryptedMaterial(encryptedMaterial);
-            Assert.That(AssetDatabase.GetAssetPath(encryptedMaterial.shader).Replace('\\', '/'), Does.Contain("liltoonProtector/Shaders"));
+            Assert.That(AssetDatabase.GetAssetPath(encryptedMaterial.shader).Replace('\\', '/'), Does.StartWith(LilToonShaders.Folder + "/"));
 
             AssertTamperedKeyRendersCorruptedOutput(encryptedMaterial, reference, "lilToon");
         }
@@ -281,6 +281,7 @@ namespace Shell.Protector.Tests.Integration
             string shaderData = File.ReadAllText(path);
             Assert.That(shaderData, Does.Contain("//ShellProtect"));
             Assert.That(shaderData, Does.Contain("Protector.cginc"));
+            Assert.That(shaderData, Does.Contain("#define _SHELL_PROTECTOR_SECRETS"));
             Assert.That(shaderData, Does.Contain(ShaderProperties.EncryptTexture0));
             Assert.That(shaderData, Does.Contain(ShaderProperties.MipTexture));
         }

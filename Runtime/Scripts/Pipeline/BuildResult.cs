@@ -10,6 +10,8 @@ namespace Shell.Protector
         public List<Texture2D> Fallbacks;
         public List<int> FallbackOptions;
         public byte[] Nonce;
+        // What Encrypted was encrypted with (see ShaderSecrets).
+        public ShaderSecrets Secrets;
     }
 
     public struct AuxiliaryTextures
@@ -28,6 +30,9 @@ namespace Shell.Protector
         public HashSet<GameObject> Meshes { get; } = new HashSet<GameObject>();
         public Dictionary<Material, Material> EncryptedMaterials { get; } = new Dictionary<Material, Material>();
         public Dictionary<Texture2D, ProcessedTexture> ProcessedTextures { get; } = new Dictionary<Texture2D, ProcessedTexture>();
+        // Extra encryptions of a processed texture for materials whose shaders bake other secrets, such as a lilToon and
+        // a Poiyomi material sharing a main texture. Keyed by the texture and ShaderSecrets.ToDefines.
+        public Dictionary<(Texture2D, string), EncryptResult> OtherSecretsTextures { get; } = new Dictionary<(Texture2D, string), EncryptResult>();
 
         public void Clear()
         {
@@ -37,6 +42,7 @@ namespace Shell.Protector
             Meshes.Clear();
             EncryptedMaterials.Clear();
             ProcessedTextures.Clear();
+            OtherSecretsTextures.Clear();
         }
     }
 }

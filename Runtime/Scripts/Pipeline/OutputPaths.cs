@@ -41,7 +41,7 @@ namespace Shell.Protector
         public string MipTexture(int size) => Combine(Tex, "mip_" + size + ".asset");
         public string MipTextureName(int size) => "mip_" + size + ".asset";
         public string EncryptedTexture(Texture2D texture, int index) => Combine(Tex, BaseName(texture) + "_encrypt" + (index == 0 ? "" : index.ToString()) + ".asset");
-        public string EncryptedTextureName(Texture2D texture, int index) => BaseName(texture) + "_encrypt" + (index == 0 ? "" : index.ToString()) + ".asset";
+        public string EncryptedTextureName(Texture2D texture, int index, int variant = 0) => BaseName(texture) + "_encrypt" + (index == 0 ? "" : index.ToString()) + (variant == 0 ? "" : "_" + variant) + ".asset";
         public string FallbackTexture(Texture2D texture) => Combine(Tex, BaseName(texture) + "_fallback.asset");
         public string FallbackTextureName(Texture2D texture) => BaseName(texture) + "_fallback.asset";
         public string EncryptedMaterial(Material material) => Combine(Mat, BaseName(material) + "_encrypted.mat");

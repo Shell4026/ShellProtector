@@ -116,6 +116,14 @@ namespace Shell.Protector
             return GetFormat(material.mainTexture as Texture2D);
         }
 
+        // For a shader that bakes in secrets: they change the key and the ChaCha constants the texture is encrypted with.
+        public static EncryptResult EncryptTexture(Texture2D texture, byte[] key, IEncryptor encryptor, ShaderSecrets secrets)
+        {
+            if (encryptor is Chacha20 chacha)
+                chacha.Constants = secrets.ChachaConstants;
+            return EncryptTexture(texture, secrets.MaskKey(key), encryptor);
+        }
+
         public static EncryptResult EncryptTexture(Texture2D texture, byte[] key, IEncryptor encryptor)
         {
             if (texture.width % 2 != 0 || texture.height % 2 != 0)

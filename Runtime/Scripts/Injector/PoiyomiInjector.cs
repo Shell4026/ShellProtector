@@ -67,13 +67,14 @@ namespace Shell.Protector
             int version = AssetManager.GetInstance().GetShaderType(shader);
             if(version >= 80)
             {
-                string includeStr = string.Format("#include \"{0}\"", decodeDir);
+                // The secrets go in front of every include: whichever include comes first in a pass is the one that counts.
+                string includeStr = Secrets.ToDefines() + string.Format("#include \"{0}\"", decodeDir);
                 shaderData = Regex.Replace(shaderData, "UNITY_DECLARE_TEX2D\\(_MainTex\\);", declare);
 
                 shaderData = Regex.Replace(shaderData, "POI2D_SAMPLER_PAN\\((.*?), _MainTex", "POI2D_SAMPLER_PAN($1, _MipTex");
                 shaderData = Regex.Replace(shaderData, "UNITY_SAMPLE_TEX2D_SAMPLER_LOD\\((.*?), _MainTex", "UNITY_SAMPLE_TEX2D_SAMPLER_LOD($1, _MipTex");
                 shaderData = Regex.Replace(shaderData, "UNITY_SAMPLE_TEX2D_SAMPLER\\((.*?), _MainTex", "UNITY_SAMPLE_TEX2D_SAMPLER($1, _MipTex");
-                shaderData = Regex.Replace(shaderData, "float4 frag\\(", "#include \"" + decodeDir + "\"\n\t\t\tfloat4 frag(");
+                shaderData = Regex.Replace(shaderData, "float4 frag\\(", includeStr + "\n\t\t\tfloat4 frag(");
                 shaderData = Regex.Replace(shaderData, "struct VertexOut[\r\n]+[ \t]*\\{", string.Format("{0}\r\n{1}", includeStr, vertexOut));
                 shaderData = InjectVertexDecryptionState(shaderData);
                 string shaderCode = ShaderCodeNoFilter;

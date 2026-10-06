@@ -43,6 +43,8 @@ namespace Shell.Protector
         protected GameObject Target;
         protected Texture2D MainTexture;
         protected IEncryptor Encryptor;
+        // Compiled into the injected shader. The main texture must be encrypted with the same ones.
+        protected ShaderSecrets Secrets = ShaderSecrets.None;
 
         protected struct Decoder
         {
@@ -57,7 +59,7 @@ namespace Shell.Protector
             public string Chacha;
         }
 
-        public void Init(GameObject target, Texture2D mainTexture, byte[] key, int userKeyLength, int filter, string assetDir, IEncryptor encryptor)
+        public void Init(GameObject target, Texture2D mainTexture, byte[] key, int userKeyLength, int filter, string assetDir, IEncryptor encryptor, ShaderSecrets secrets)
         {
             if (key.Length != 16)
             {
@@ -74,6 +76,7 @@ namespace Shell.Protector
             AssetDir = assetDir;
             UserKeyLength = userKeyLength;
             Encryptor = encryptor;
+            Secrets = secrets;
         }
 
         public abstract bool CanHandle(Shader shader);

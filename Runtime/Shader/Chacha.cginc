@@ -27,10 +27,10 @@ void Chacha20QuarterRound(inout uint state[16], int a, int b, int c, int d)
 
 void ChaCha8KeyStream16(const uint key[4], out uint stream[16])
 {
-    uint x0  = 0x61707865u;
-    uint x1  = 0x3320646eu;
-    uint x2  = 0x79622d32u;
-    uint x3  = 0x6b206574u;
+    uint x0  = _SHELL_PROTECTOR_CHACHA_C0;
+    uint x1  = _SHELL_PROTECTOR_CHACHA_C1;
+    uint x2  = _SHELL_PROTECTOR_CHACHA_C2;
+    uint x3  = _SHELL_PROTECTOR_CHACHA_C3;
 
     uint x4  = key[0];
     uint x5  = key[1];
@@ -63,10 +63,10 @@ void ChaCha8KeyStream16(const uint key[4], out uint stream[16])
         ChaChaQuarterRound(x3, x4, x9,  x14);
     }
 
-    stream[0]  = x0  + 0x61707865u;
-    stream[1]  = x1  + 0x3320646eu;
-    stream[2]  = x2  + 0x79622d32u;
-    stream[3]  = x3  + 0x6b206574u;
+    stream[0]  = x0  + _SHELL_PROTECTOR_CHACHA_C0;
+    stream[1]  = x1  + _SHELL_PROTECTOR_CHACHA_C1;
+    stream[2]  = x2  + _SHELL_PROTECTOR_CHACHA_C2;
+    stream[3]  = x3  + _SHELL_PROTECTOR_CHACHA_C3;
     stream[4]  = x4  + key[0];
     stream[5]  = x5  + key[1];
     stream[6]  = x6  + key[2];

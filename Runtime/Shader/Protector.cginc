@@ -31,6 +31,19 @@ uint _Woffset;
 uint _Hoffset;
 uint _HashMagic;
 
+// Per-shader secrets (ShaderSecrets.ToDefines): a mask XORed into the key words and the ChaCha constants. Generated
+// shaders define them before including this file, so they are compiled in rather than stored in the material.
+#ifndef _SHELL_PROTECTOR_SECRETS
+    #define _SHELL_PROTECTOR_KEY_MASK0 0u
+    #define _SHELL_PROTECTOR_KEY_MASK1 0u
+    #define _SHELL_PROTECTOR_KEY_MASK2 0u
+    #define _SHELL_PROTECTOR_KEY_MASK3 0u
+    #define _SHELL_PROTECTOR_CHACHA_C0 0x61707865u
+    #define _SHELL_PROTECTOR_CHACHA_C1 0x3320646eu
+    #define _SHELL_PROTECTOR_CHACHA_C2 0x79622d32u
+    #define _SHELL_PROTECTOR_CHACHA_C3 0x6b206574u
+#endif
+
 #include "Utility.cginc"
 
 // Ciphers
@@ -64,10 +77,10 @@ void DecryptData(inout uint data[_SHELL_PROTECTOR_DATA_LENGTH], Texture2D tex0, 
 	// Mip level in the top 8 bits (indices stay below 2^24) so mip levels never share a keystream.
 	const uint key[4] = 
 	{
-		((uint)round(_Key0) | ((uint)round(_Key1) << 8) | ((uint)round(_Key2) << 16) | ((uint)round(_Key3) << 24)),
-		((uint)round(_Key4) | ((uint)round(_Key5) << 8) | ((uint)round(_Key6) << 16) | ((uint)round(_Key7) << 24)),
-		((uint)round(_Key8) | ((uint)round(_Key9) << 8) | ((uint)round(_Key10) << 16) | ((uint)round(_Key11) << 24)),
-		((uint)round(_Key12) | ((uint)round(_Key13) << 8) | ((uint)round(_Key14) << 16) | ((uint)round(_Key15) << 24)) ^ (uint)((idx >> _SHELL_PROTECTOR_INDEX_ALIGNMENT) << _SHELL_PROTECTOR_INDEX_ALIGNMENT) ^ ((uint)m << 24)
+		_SHELL_PROTECTOR_KEY_MASK0 ^ ((uint)round(_Key0) | ((uint)round(_Key1) << 8) | ((uint)round(_Key2) << 16) | ((uint)round(_Key3) << 24)),
+		_SHELL_PROTECTOR_KEY_MASK1 ^ ((uint)round(_Key4) | ((uint)round(_Key5) << 8) | ((uint)round(_Key6) << 16) | ((uint)round(_Key7) << 24)),
+		_SHELL_PROTECTOR_KEY_MASK2 ^ ((uint)round(_Key8) | ((uint)round(_Key9) << 8) | ((uint)round(_Key10) << 16) | ((uint)round(_Key11) << 24)),
+		_SHELL_PROTECTOR_KEY_MASK3 ^ ((uint)round(_Key12) | ((uint)round(_Key13) << 8) | ((uint)round(_Key14) << 16) | ((uint)round(_Key15) << 24)) ^ (uint)((idx >> _SHELL_PROTECTOR_INDEX_ALIGNMENT) << _SHELL_PROTECTOR_INDEX_ALIGNMENT) ^ ((uint)m << 24)
 	};
 #ifdef _SHELL_PROTECTOR_DXT
     GetData(tex1, tex0Sampler, data, uv, m);

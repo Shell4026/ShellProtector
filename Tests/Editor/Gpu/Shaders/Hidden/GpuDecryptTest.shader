@@ -142,5 +142,86 @@ Shader "Hidden/GpuDecryptTest"
             }
             ENDCG
         }
+        // DecryptBox with TestKeys.Secrets compiled in, the way generated shaders bake theirs.
+        Pass
+        {
+            Name "DecryptBoxSecrets"
+            CGPROGRAM
+            #pragma target 5.0
+            #pragma vertex vert_img
+            #pragma fragment frag
+            #pragma shader_feature_local _SHELL_PROTECTOR_XXTEA
+            #pragma shader_feature_local _SHELL_PROTECTOR_CHACHA
+            #pragma shader_feature_local _SHELL_PROTECTOR_FORMAT0
+            #pragma shader_feature_local _SHELL_PROTECTOR_FORMAT1
+            #include "UnityCG.cginc"
+
+            Texture2D _EncryptTex0;
+            Texture2D _EncryptTex1;
+            Texture2D _MipTex;
+            SamplerState point_repeat_sampler;
+            half4 _EncryptTex0_TexelSize;
+            int _PasswordHash;
+
+            #ifndef _SHELL_PROTECTOR_SECRETS
+            #define _SHELL_PROTECTOR_SECRETS
+            #define _SHELL_PROTECTOR_KEY_MASK0 0x9e3779b9u
+            #define _SHELL_PROTECTOR_KEY_MASK1 0x7f4a7c15u
+            #define _SHELL_PROTECTOR_KEY_MASK2 0x94d049bbu
+            #define _SHELL_PROTECTOR_KEY_MASK3 0x2545f491u
+            #define _SHELL_PROTECTOR_CHACHA_C0 0x1b873593u
+            #define _SHELL_PROTECTOR_CHACHA_C1 0xcc9e2d51u
+            #define _SHELL_PROTECTOR_CHACHA_C2 0x85ebca6bu
+            #define _SHELL_PROTECTOR_CHACHA_C3 0xc2b2ae35u
+            #endif
+            #include "../../../../../Runtime/Shader/Protector.cginc"
+
+            half4 frag(v2f_img i) : SV_Target
+            {
+                return DecryptTextureBox(_EncryptTex0, _EncryptTex1, point_repeat_sampler, _EncryptTex0_TexelSize, _MipTex, point_repeat_sampler, i.uv);
+            }
+            ENDCG
+        }
+
+        // DecryptBilinear with TestKeys.Secrets compiled in, the way generated shaders bake theirs.
+        Pass
+        {
+            Name "DecryptBilinearSecrets"
+            CGPROGRAM
+            #pragma target 5.0
+            #pragma vertex vert_img
+            #pragma fragment frag
+            #pragma shader_feature_local _SHELL_PROTECTOR_XXTEA
+            #pragma shader_feature_local _SHELL_PROTECTOR_CHACHA
+            #pragma shader_feature_local _SHELL_PROTECTOR_FORMAT0
+            #pragma shader_feature_local _SHELL_PROTECTOR_FORMAT1
+            #include "UnityCG.cginc"
+
+            Texture2D _EncryptTex0;
+            Texture2D _EncryptTex1;
+            Texture2D _MipTex;
+            SamplerState point_repeat_sampler;
+            half4 _EncryptTex0_TexelSize;
+            int _PasswordHash;
+
+            #ifndef _SHELL_PROTECTOR_SECRETS
+            #define _SHELL_PROTECTOR_SECRETS
+            #define _SHELL_PROTECTOR_KEY_MASK0 0x9e3779b9u
+            #define _SHELL_PROTECTOR_KEY_MASK1 0x7f4a7c15u
+            #define _SHELL_PROTECTOR_KEY_MASK2 0x94d049bbu
+            #define _SHELL_PROTECTOR_KEY_MASK3 0x2545f491u
+            #define _SHELL_PROTECTOR_CHACHA_C0 0x1b873593u
+            #define _SHELL_PROTECTOR_CHACHA_C1 0xcc9e2d51u
+            #define _SHELL_PROTECTOR_CHACHA_C2 0x85ebca6bu
+            #define _SHELL_PROTECTOR_CHACHA_C3 0xc2b2ae35u
+            #endif
+            #include "../../../../../Runtime/Shader/Protector.cginc"
+
+            half4 frag(v2f_img i) : SV_Target
+            {
+                return DecryptTextureBilinear(_EncryptTex0, _EncryptTex1, point_repeat_sampler, _EncryptTex0_TexelSize, _MipTex, point_repeat_sampler, i.uv);
+            }
+            ENDCG
+        }
     }
 }

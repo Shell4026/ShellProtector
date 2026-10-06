@@ -1,6 +1,9 @@
 #if UNITY_EDITOR
 using System;
+using System.IO;
+using System.Linq;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 
 namespace Shell.Protector.Tests.Gpu
@@ -79,6 +82,40 @@ namespace Shell.Protector.Tests.Gpu
             AssertDecryptsToOriginalGpuSample(format, alpha, false, chacha, material => ConfigureChacha(material, chacha), 1);
         }
 
+        // Generated shaders compile in a key mask and ChaCha constants (ShaderSecrets); the texture is encrypted with the same.
+        [TestCase(TextureFormat.RGB24, false, false)]
+        [TestCase(TextureFormat.RGB24, false, true)]
+        [TestCase(TextureFormat.RGBA32, true, false)]
+        [TestCase(TextureFormat.RGBA32, true, true)]
+        [TestCase(TextureFormat.DXT1, false, false)]
+        [TestCase(TextureFormat.DXT1, false, true)]
+        [TestCase(TextureFormat.DXT5, true, false)]
+        [TestCase(TextureFormat.DXT5, true, true)]
+        public void ChachaEncryptedTexture_WithSecrets_DecryptsToOriginalGpuSample(TextureFormat format, bool alpha, bool bilinear)
+        {
+            Chacha20 chacha = CreateChacha();
+            AssertDecryptsToOriginalGpuSample(format, alpha, bilinear, chacha, material => ConfigureChacha(material, chacha), secrets: TestKeys.Secrets);
+        }
+
+        [TestCase(TextureFormat.RGBA32, true)]
+        [TestCase(TextureFormat.DXT5, true)]
+        public void XxteaEncryptedTexture_WithSecrets_DecryptsToOriginalGpuSample(TextureFormat format, bool alpha)
+        {
+            XXTEA xxtea = new XXTEA { Rounds = 20 };
+            AssertDecryptsToOriginalGpuSample(format, alpha, true, xxtea, material => material.SetInteger("_Rounds", 20), secrets: TestKeys.Secrets);
+        }
+
+        [Test]
+        public void SecretsPasses_CompileInTestSecrets()
+        {
+            string path = AssetDatabase.GetAssetPath(Shader.Find("Hidden/GpuDecryptTest"));
+            string shader = string.Join("\n", File.ReadAllLines(path).Select(line => line.Trim())) + "\n";
+
+            int index = shader.IndexOf(TestKeys.Secrets.ToDefines(), StringComparison.Ordinal);
+            Assert.That(index, Is.GreaterThanOrEqualTo(0));
+            Assert.That(shader.IndexOf(TestKeys.Secrets.ToDefines(), index + 1, StringComparison.Ordinal), Is.GreaterThan(index));
+        }
+
         private static Chacha20 CreateChacha()
         {
             Chacha20 chacha = new Chacha20();
@@ -95,13 +132,15 @@ namespace Shell.Protector.Tests.Gpu
             material.SetInteger("_Nonce2", unchecked((int)nonce[2]));
         }
 
-        private void AssertDecryptsToOriginalGpuSample(TextureFormat format, bool alpha, bool bilinear, IEncryptor encryptor, Action<Material> configureCipher, int mip = 0)
+        private void AssertDecryptsToOriginalGpuSample(TextureFormat format, bool alpha, bool bilinear, IEncryptor encryptor, Action<Material> configureCipher, int mip = 0, ShaderSecrets secrets = null)
         {
             Texture2D original = TestAssetScope.CreatePatternTexture(Size, Size, format, alpha);
             original.filterMode = FilterMode.Point;
             original.wrapMode = TextureWrapMode.Repeat;
 
-            EncryptResult encrypted = TextureEncryptManager.EncryptTexture(original, KeyBytes, encryptor);
+            EncryptResult encrypted = secrets == null
+                ? TextureEncryptManager.EncryptTexture(original, KeyBytes, encryptor)
+                : TextureEncryptManager.EncryptTexture(original, KeyBytes, encryptor, secrets);
             FinalizeTexture(encrypted.Texture1);
             FinalizeTexture(encrypted.Texture2);
 
@@ -110,7 +149,8 @@ namespace Shell.Protector.Tests.Gpu
 
             int size = Size >> mip;
             Color32[] reference = Render(referenceMaterial, original, mip == 0 ? 0 : 3, size, size);
-            Color32[] decrypted = Render(decryptMaterial, Texture2D.blackTexture, bilinear ? 2 : 1, size, size);
+            int pass = (bilinear ? 2 : 1) + (secrets == null ? 0 : 3);
+            Color32[] decrypted = Render(decryptMaterial, Texture2D.blackTexture, pass, size, size);
 
             AssertPixelsEqual(reference, decrypted, format, encryptor.Keyword, bilinear);
         }

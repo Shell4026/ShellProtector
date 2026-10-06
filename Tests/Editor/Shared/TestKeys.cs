@@ -16,6 +16,11 @@ namespace Shell.Protector.Tests
         // An arbitrary full key for texture tests: "pass" from the fixed password, then 12 user key bytes.
         public static byte[] Default => KeyGenerator.MakeKeyBytes("password", FromHex("a72e839d8da3b9806b18c877"));
 
+        // Arbitrary secrets that the *Secrets passes of GpuDecryptTest.shader compile in (ShaderSecrets.ToDefines).
+        public static ShaderSecrets Secrets => new ShaderSecrets(
+            new[] { 0x9e3779b9u, 0x7f4a7c15u, 0x94d049bbu, 0x2545f491u },
+            new[] { 0x1b873593u, 0xcc9e2d51u, 0x85ebca6bu, 0xc2b2ae35u });
+
         public static byte[] FromHex(string hex)
         {
             byte[] bytes = new byte[hex.Length / 2];

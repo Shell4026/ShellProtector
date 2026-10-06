@@ -102,6 +102,7 @@ namespace Shell.Protector
         HashSet<GameObject> Meshes => _buildResult.Meshes;
         Dictionary<Material, Material> EncryptedMaterials => _buildResult.EncryptedMaterials;
         Dictionary<Texture2D, ProcessedTexture> ProcessedTextures => _buildResult.ProcessedTextures;
+        Dictionary<(Texture2D, string), EncryptResult> OtherSecretsTextures => _buildResult.OtherSecretsTextures;
 
         [FormerlySerializedAs("rounds")]
         [SerializeField] uint _rounds = 20;
@@ -338,6 +339,7 @@ namespace Shell.Protector
             Meshes.Clear();
             EncryptedMaterials.Clear();
             ProcessedTextures.Clear();
+            OtherSecretsTextures.Clear();
 
             SyncMatOption();
 
@@ -474,7 +476,9 @@ namespace Shell.Protector
                 Debug.LogFormat("{0} : Start encrypt...", mat.name);
 
                 Texture2D mainTexture = (Texture2D)mat.mainTexture;
-                _injector.Init(_descriptor.gameObject, mainTexture, keyBytes, _keySize, materialFilter, resourceDir, encryptor);
+                ShaderSecrets secrets = SelectShaderSecrets(mat);
+                Shader encryptedShader = _shaderManager.IsLilToon(mat.shader) ? null : IsEncryptedBefore(mat.shader, secrets);
+                _injector.Init(_descriptor.gameObject, mainTexture, keyBytes, _keySize, materialFilter, resourceDir, encryptor, secrets);
 
                 int mipRefSize = Math.Max(mat.mainTexture.width, mat.mainTexture.height);
                 if (!mips.ContainsKey(mipRefSize))
@@ -491,7 +495,7 @@ namespace Shell.Protector
                 string encryptedShaderFolderGuid = _outputPaths.EnsureShaderFolder(_assetWriter, mat);
                 string encryptedShaderPath = _assetWriter.ResolveFolderPath(encryptedShaderFolderGuid);
 
-                var processedTextureResult = GenerateEncryptedTexture(_outputPaths, mat, encryptor, keyBytes);
+                var processedTextureResult = GenerateEncryptedTexture(_outputPaths, mat, encryptor, keyBytes, secrets);
                 if (!processedTextureResult.HasValue)
                     continue;
                 ProcessedTexture processedTexture = processedTextureResult.Value;
@@ -501,7 +505,6 @@ namespace Shell.Protector
 
                 //////////////////////Inject shader///////////////////////
                 AuxiliaryTextures otherTex = GetLimOutlineTextures(mat);
-                Shader encryptedShader = IsEncryptedBefore(mat.shader);
                 if (encryptedShader == null)
                 {
                     try
@@ -523,7 +526,7 @@ namespace Shell.Protector
                             Debug.LogErrorFormat("{0}: Injection failed", mat.name);
                             continue;
                         }
-                        _history.Save(mat.shader);
+                        _history.Save(mat.shader, secrets);
                     }
                     catch (UnityException e)
                     {
@@ -1071,7 +1074,17 @@ namespace Shell.Protector
             MaterialOptions.Clear();
         }
 
-        public Shader IsEncryptedBefore(Shader shader)
+        // A Poiyomi copy bakes the secrets of its main texture, so materials sharing a texture share one encryption of it.
+        // lilToon materials all use the project's shader (LilToonShaders).
+        ShaderSecrets SelectShaderSecrets(Material mat)
+        {
+            if (_shaderManager.IsLilToon(mat.shader))
+                return LilToonShaders.GetSecrets();
+
+            return _history.GetTextureSecrets((Texture2D)mat.mainTexture);
+        }
+
+        public Shader IsEncryptedBefore(Shader shader, ShaderSecrets secrets = null)
         {
             if (_history == null)
             {
@@ -1086,7 +1099,7 @@ namespace Shell.Protector
                 }
             }
             _history.LoadData();
-            return _history.IsEncryptedBefore(shader);
+            return _history.IsEncryptedBefore(shader, secrets);
         }
 
         public static int GetRequiredSwitchCount(int keyLength, int syncSize)
@@ -1194,7 +1207,7 @@ namespace Shell.Protector
             }
             return mip;
         }
-        ProcessedTexture? GenerateEncryptedTexture(OutputPaths paths, Material mat, IEncryptor encryptor, byte[] keyBytes)
+        ProcessedTexture? GenerateEncryptedTexture(OutputPaths paths, Material mat, IEncryptor encryptor, byte[] keyBytes, ShaderSecrets secrets)
         {
             Texture2D mainTexture = (Texture2D)mat.mainTexture;
 
@@ -1234,12 +1247,15 @@ namespace Shell.Protector
                 }
             }
 
+            if (processed && !secrets.Matches(processedTexture.Secrets))
+                return EncryptForOtherSecrets(paths, mainTexture, processedTexture, encryptor, keyBytes, secrets);
+
             if (!processed)
             {
                 EncryptResult encryptResult;
                 try
                 {
-                    encryptResult = TextureEncryptManager.EncryptTexture(mainTexture, keyBytes, encryptor);
+                    encryptResult = TextureEncryptManager.EncryptTexture(mainTexture, keyBytes, encryptor, secrets);
                 }
                 catch (ArgumentException e)
                 {
@@ -1251,10 +1267,39 @@ namespace Shell.Protector
                     _assetWriter.CreateAssetInFolder(encryptResult.Texture2, paths.Folders.TexGuid, texName2);
 
                 processedTexture.Encrypted = encryptResult;
+                processedTexture.Secrets = secrets;
 
                 ProcessedTextures.Add(mainTexture, processedTexture);
             }
 
+            return processedTexture;
+        }
+
+        // The nonce and fallbacks stay those of the processed texture; only the encrypted textures differ.
+        ProcessedTexture? EncryptForOtherSecrets(OutputPaths paths, Texture2D mainTexture, ProcessedTexture processedTexture, IEncryptor encryptor, byte[] keyBytes, ShaderSecrets secrets)
+        {
+            var key = (mainTexture, secrets.ToDefines());
+            if (!OtherSecretsTextures.TryGetValue(key, out EncryptResult encryptResult))
+            {
+                try
+                {
+                    encryptResult = TextureEncryptManager.EncryptTexture(mainTexture, keyBytes, encryptor, secrets);
+                }
+                catch (ArgumentException e)
+                {
+                    Debug.LogErrorFormat("{0} : ArgumentException - {1}", mainTexture.name, e.Message);
+                    return null;
+                }
+
+                int variant = OtherSecretsTextures.Keys.Count(k => k.Item1 == mainTexture) + 1;
+                _assetWriter.CreateAssetInFolder(encryptResult.Texture1, paths.Folders.TexGuid, paths.EncryptedTextureName(mainTexture, 0, variant));
+                if (encryptResult.Texture2 != null)
+                    _assetWriter.CreateAssetInFolder(encryptResult.Texture2, paths.Folders.TexGuid, paths.EncryptedTextureName(mainTexture, 2, variant));
+                OtherSecretsTextures.Add(key, encryptResult);
+            }
+
+            processedTexture.Encrypted = encryptResult;
+            processedTexture.Secrets = secrets;
             return processedTexture;
         }
         Texture2D GenerateFallbackTexture(string fileName, MatOption option, Texture2D mainTexture, ref ProcessedTexture processedTexture)
