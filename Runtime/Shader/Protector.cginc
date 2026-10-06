@@ -94,7 +94,7 @@ float4 DecryptTexture(Texture2D tex0, Texture2D tex1, SamplerState tex0Sampler, 
 {
 	uint data[_SHELL_PROTECTOR_DATA_LENGTH];
 	DecryptData(data, tex0, tex1, tex0Sampler, uv, m);
-    return GetPixel(tex0, tex0Sampler, data, uv, m);
+    return GetPixel(tex0, tex1, tex0Sampler, data, uv, m);
 }
 
 float4 DecryptTextureBox(Texture2D tex0, Texture2D tex1, SamplerState texSampler, float4 texSize, Texture2D mipTex, SamplerState mipSamp, float2 uv)
@@ -125,7 +125,8 @@ float4 DecryptTextureBilinear(Texture2D tex0, Texture2D tex1, SamplerState texSa
 
 #if defined(_SHELL_PROTECTOR_DXT) || defined(_SHELL_PROTECTOR_BLOCK_STREAM)
 	{
-		// One decryption covers a whole unit (DXT: 2 blocks = 8x4 texels, ChaCha RGB/RGBA: 4x4 pixels).
+		// One decryption covers a whole unit (ChaCha DXT: 4x4 blocks = 16x16 texels, ChaCha RGB/RGBA: 4x4 pixels,
+		// XXTEA DXT: 2 blocks = 8x4 texels).
 		// Decrypt again only for the taps that land in another unit, so a warp only pays for the crossings
 		// its lanes actually hit (at most 4, same as decrypting every tap).
 		const int unit00 = GetBlockIndex(uv00, m[mip]) >> _SHELL_PROTECTOR_INDEX_ALIGNMENT;
@@ -167,10 +168,10 @@ float4 DecryptTextureBilinear(Texture2D tex0, Texture2D tex1, SamplerState texSa
 			word11 = SelectWord(data, k11);
 		}
 
-		const float4 c00 = GetBlockPixel(tex0, texSampler, word00, uv00, m[mip]);
-		const float4 c10 = GetBlockPixel(tex0, texSampler, word10, uv10, m[mip]);
-		const float4 c01 = GetBlockPixel(tex0, texSampler, word01, uv01, m[mip]);
-		const float4 c11 = GetBlockPixel(tex0, texSampler, word11, uv11, m[mip]);
+		const float4 c00 = GetBlockPixel(tex0, tex1, texSampler, word00, uv00, m[mip]);
+		const float4 c10 = GetBlockPixel(tex0, tex1, texSampler, word10, uv10, m[mip]);
+		const float4 c01 = GetBlockPixel(tex0, tex1, texSampler, word01, uv01, m[mip]);
+		const float4 c11 = GetBlockPixel(tex0, tex1, texSampler, word11, uv11, m[mip]);
 		const float2 f = frac(uvBilinear * originalTexSize.zw);
 		const float4 c0 = lerp(c00, c10, f.x);
 		const float4 c1 = lerp(c01, c11, f.x);

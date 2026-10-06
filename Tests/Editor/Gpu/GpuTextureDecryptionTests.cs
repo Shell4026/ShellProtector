@@ -82,6 +82,20 @@ namespace Shell.Protector.Tests.Gpu
             AssertDecryptsToOriginalGpuSample(format, alpha, false, chacha, material => ConfigureChacha(material, chacha), 1);
         }
 
+        // Several units on a non-square texture, so unit indices and their row stride are checked too
+        // (a 16x16 DXT texture is a single ChaCha unit).
+        [TestCase(TextureFormat.RGB24, false, false)]
+        [TestCase(TextureFormat.RGBA32, true, true)]
+        [TestCase(TextureFormat.DXT1, false, false)]
+        [TestCase(TextureFormat.DXT1, false, true)]
+        [TestCase(TextureFormat.DXT5, true, false)]
+        [TestCase(TextureFormat.DXT5, true, true)]
+        public void ChachaEncryptedTexture_SeveralUnits_DecryptsToOriginalGpuSample(TextureFormat format, bool alpha, bool bilinear)
+        {
+            Chacha20 chacha = CreateChacha();
+            AssertDecryptsToOriginalGpuSample(format, alpha, bilinear, chacha, material => ConfigureChacha(material, chacha), width: 64, height: 32);
+        }
+
         // Generated shaders compile in a key mask and ChaCha constants (ShaderSecrets); the texture is encrypted with the same.
         [TestCase(TextureFormat.RGB24, false, false)]
         [TestCase(TextureFormat.RGB24, false, true)]
@@ -132,9 +146,9 @@ namespace Shell.Protector.Tests.Gpu
             material.SetInteger("_Nonce2", unchecked((int)nonce[2]));
         }
 
-        private void AssertDecryptsToOriginalGpuSample(TextureFormat format, bool alpha, bool bilinear, IEncryptor encryptor, Action<Material> configureCipher, int mip = 0, ShaderSecrets secrets = null)
+        private void AssertDecryptsToOriginalGpuSample(TextureFormat format, bool alpha, bool bilinear, IEncryptor encryptor, Action<Material> configureCipher, int mip = 0, ShaderSecrets secrets = null, int width = Size, int height = Size)
         {
-            Texture2D original = TestAssetScope.CreatePatternTexture(Size, Size, format, alpha);
+            Texture2D original = TestAssetScope.CreatePatternTexture(width, height, format, alpha);
             original.filterMode = FilterMode.Point;
             original.wrapMode = TextureWrapMode.Repeat;
 
@@ -147,10 +161,11 @@ namespace Shell.Protector.Tests.Gpu
             ConfigureReferenceMaterial(original, mip);
             ConfigureDecryptMaterial(original, encrypted, encryptor, configureCipher, mip);
 
-            int size = Size >> mip;
-            Color32[] reference = Render(referenceMaterial, original, mip == 0 ? 0 : 3, size, size);
+            int targetWidth = width >> mip;
+            int targetHeight = height >> mip;
+            Color32[] reference = Render(referenceMaterial, original, mip == 0 ? 0 : 3, targetWidth, targetHeight);
             int pass = (bilinear ? 2 : 1) + (secrets == null ? 0 : 3);
-            Color32[] decrypted = Render(decryptMaterial, Texture2D.blackTexture, pass, size, size);
+            Color32[] decrypted = Render(decryptMaterial, Texture2D.blackTexture, pass, targetWidth, targetHeight);
 
             AssertPixelsEqual(reference, decrypted, format, encryptor.Keyword, bilinear);
         }

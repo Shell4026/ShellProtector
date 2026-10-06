@@ -42,6 +42,44 @@ namespace Shell.Protector
             return result;
         }
 
+        // Moves the endpoint word of every DXT block (at `endpoint` within each `blockSize`-byte block) into its
+        // Texture2 texel, encrypted. ChaCha: one keystream block covers 4x4 DXT blocks (16x16 texels), one word per
+        // block, so the shader decrypts once for the whole area. XXTEA: two horizontally adjacent blocks per unit.
+        protected void EncryptEndpoints(byte[] tex_data, Color32[] pixel, int blockSize, int endpoint, int blocksPerRow, int mip, byte[] key, IEncryptor algorithm) {
+            int blockCount = tex_data.Length / blockSize;
+
+            if (algorithm is Chacha20 chacha) {
+                for (int b = 0; b < blockCount; ++b) {
+                    int i = b * blockSize + endpoint;
+                    pixel[b] = new Color32(tex_data[i + 0], tex_data[i + 1], tex_data[i + 2], tex_data[i + 3]);
+                }
+                EncryptBlocks(pixel, blocksPerRow, pixel.Length / blocksPerRow, mip, key, chacha, true);
+                return;
+            }
+
+            // Units are independent and write disjoint texels, so they run in parallel with their own key array.
+            Parallel.For(0, blockCount / 2, unit => {
+                int b = unit * 2;
+                var key_uint = ConvertKeyToUInt(key);
+                key_uint[3] = GetUnitKey(key, (uint)b, mip);
+
+                uint[] data = new uint[2];
+                for (int j = 0; j < 2; ++j) {
+                    int i = (b + j) * blockSize + endpoint;
+                    data[j] = (uint)(tex_data[i + 0] + (tex_data[i + 1] << 8) + (tex_data[i + 2] << 16) + (tex_data[i + 3] << 24));
+                }
+
+                uint[] data_enc = algorithm.Encrypt(data, key_uint);
+
+                for (int j = 0; j < 2; ++j) {
+                    pixel[b + j].r = (byte)((data_enc[j] & 0x000000FF) >> 0);
+                    pixel[b + j].g = (byte)((data_enc[j] & 0x0000FF00) >> 8);
+                    pixel[b + j].b = (byte)((data_enc[j] & 0x00FF0000) >> 16);
+                    pixel[b + j].a = (byte)((data_enc[j] & 0xFF000000) >> 24);
+                }
+            });
+        }
+
         public override void SetFormatKeywords(Material material) {
             material.DisableKeyword(ShaderProperties.Format0Keyword);
             material.DisableKeyword(ShaderProperties.Format1Keyword);
@@ -90,25 +128,7 @@ namespace Shell.Protector
                 var tex_data = GetArrayDXT(raw_data, dxt1.width, dxt1.height, false, m);
                 var pixel = result.Texture2.GetPixels32(m);
 
-                // Units are independent and write disjoint texels, so they run in parallel with their own key array.
-                Parallel.For(0, tex_data.Length / 16, unit => {
-                    int i = unit * 16;
-                    var key_uint = ConvertKeyToUInt(key);
-                    key_uint[3] = GetUnitKey(key, (uint)(i / 8), m);
-
-                    uint[] data = new uint[2];
-                    data[0] = (uint)(tex_data[i + 0] + (tex_data[i + 1] << 8) + (tex_data[i + 2] << 16) + (tex_data[i + 3] << 24));
-                    data[1] = (uint)(tex_data[(i + 8) + 0] + (tex_data[(i + 8) + 1] << 8) + (tex_data[(i + 8) + 2] << 16) + (tex_data[(i + 8) + 3] << 24));
-
-                    uint[] data_enc = algorithm.Encrypt(data, key_uint);
-
-                    for (int j = 0; j < 2; ++j) {
-                        pixel[i / 8 + j].r = (byte)((data_enc[j] & 0x000000FF) >> 0);
-                        pixel[i / 8 + j].g = (byte)((data_enc[j] & 0x0000FF00) >> 8);
-                        pixel[i / 8 + j].b = (byte)((data_enc[j] & 0x00FF0000) >> 16);
-                        pixel[i / 8 + j].a = (byte)((data_enc[j] & 0xFF000000) >> 24);
-                    }
-                });
+                EncryptEndpoints(tex_data, pixel, 8, 0, Mathf.Max(1, result.Texture2.width >> m), m, key, algorithm);
                 for (int i = 0; i < tex_data.Length; i += 8) {
                     tex_data[i + 0] = 255;
                     tex_data[i + 1] = 255;
@@ -166,25 +186,7 @@ namespace Shell.Protector
                 var tex_data = GetArrayDXT(raw_data, texture.width, texture.height, true, m);
                 var pixel = result.Texture2.GetPixels32(m);
 
-                // Units are independent and write disjoint texels, so they run in parallel with their own key array.
-                Parallel.For(0, tex_data.Length / 32, unit => {
-                    int i = unit * 32;
-                    var key_uint = ConvertKeyToUInt(key);
-                    key_uint[3] = GetUnitKey(key, (uint)(i / 16), m);
-
-                    uint[] data = new uint[2];
-                    data[0] = (uint)(tex_data[i + 8] + (tex_data[i + 9] << 8) + (tex_data[i + 10] << 16) + (tex_data[i + 11] << 24));
-                    data[1] = (uint)(tex_data[i + 16 + 8] + (tex_data[i + 16 + 9] << 8) + (tex_data[i + 16 + 10] << 16) + (tex_data[i + 16 + 11] << 24));
-
-                    uint[] data_enc = algorithm.Encrypt(data, key_uint);
-
-                    for (int j = 0; j < 2; ++j) {
-                        pixel[i / 16 + j].r = (byte)((data_enc[j] & 0x000000FF) >> 0);
-                        pixel[i / 16 + j].g = (byte)((data_enc[j] & 0x0000FF00) >> 8);
-                        pixel[i / 16 + j].b = (byte)((data_enc[j] & 0x00FF0000) >> 16);
-                        pixel[i / 16 + j].a = (byte)((data_enc[j] & 0xFF000000) >> 24);
-                    }
-                });
+                EncryptEndpoints(tex_data, pixel, 16, 8, Mathf.Max(1, result.Texture2.width >> m), m, key, algorithm);
                 for (int i = 0; i < tex_data.Length; i += 16) {
                     tex_data[i + 8] = 255;
                     tex_data[i + 9] = 255;

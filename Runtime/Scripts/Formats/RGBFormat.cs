@@ -1,5 +1,4 @@
 using System;
-using System.Threading.Tasks;
 using UnityEngine;
 
 #if UNITY_EDITOR
@@ -13,52 +12,6 @@ namespace Shell.Protector
             result.filterMode = FilterMode.Point;
             result.anisoLevel = 0;
             return result;
-        }
-
-        // ChaCha is a stream cipher, so one 64-byte keystream block can cover a whole 4x4 pixel block
-        // (one keystream word per pixel). The shader then derives a single keystream for every bilinear tap
-        // inside the block instead of one per pixel. XXTEA keeps the per-pixel layout: sharing a key there
-        // saves nothing because each chunk still needs its own decryption.
-        protected void EncryptBlocks(Color32[] pixels, int width, int height, int mip, byte[] key, Chacha20 chacha, bool alpha) {
-            int blocksPerRow = (width + 3) / 4;
-            int blockRows = (height + 3) / 4;
-            uint alphaMask = alpha ? 0xFFFFFFFFu : 0x00FFFFFFu;
-
-            // Blocks are independent and write disjoint pixels, so rows of blocks run in parallel.
-            Parallel.For(0, blockRows, by => {
-                var key_uint = ConvertKeyToUInt(key);
-                Span<uint> data = stackalloc uint[16];
-
-                for (int bx = 0; bx < blocksPerRow; ++bx) {
-                    key_uint[3] = GetUnitKey(key, (uint)(by * blocksPerRow + bx), mip);
-
-                    for (int j = 0; j < 16; ++j) {
-                        int x = bx * 4 + (j & 3);
-                        int y = by * 4 + (j >> 2);
-                        if (x >= width || y >= height) {
-                            data[j] = 0;
-                            continue;
-                        }
-                        Color32 p = pixels[y * width + x];
-                        data[j] = (uint)(p.r | (p.g << 8) | (p.b << 16) | (p.a << 24)) & alphaMask;
-                    }
-
-                    chacha.XorKeyStream(data, key_uint);
-
-                    for (int j = 0; j < 16; ++j) {
-                        int x = bx * 4 + (j & 3);
-                        int y = by * 4 + (j >> 2);
-                        if (x >= width || y >= height)
-                            continue;
-                        int i = y * width + x;
-                        pixels[i].r = (byte)((data[j] & 0x000000FF) >> 0);
-                        pixels[i].g = (byte)((data[j] & 0x0000FF00) >> 8);
-                        pixels[i].b = (byte)((data[j] & 0x00FF0000) >> 16);
-                        if (alpha)
-                            pixels[i].a = (byte)((data[j] & 0xFF000000) >> 24);
-                    }
-                }
-            });
         }
     }
 

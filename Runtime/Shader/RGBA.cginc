@@ -29,7 +29,7 @@ void GetData(Texture2D tex1, SamplerState tex0Sampler, inout uint data[16], floa
 		data[i] = 0;
 }
 
-float4 GetBlockPixel(Texture2D tex0, SamplerState tex0Sampler, uint keystream, float2 uv, int m)
+float4 GetBlockPixel(Texture2D tex0, Texture2D tex1, SamplerState tex0Sampler, uint keystream, float2 uv, int m)
 {
 	const float2 size = float2(mw[m + _Woffset], mh[m + _Hoffset]);
 	const float4 pixel = tex0.SampleLevel(tex0Sampler, (GetPixelCoord(uv, m) + 0.5) / size, m);
@@ -46,9 +46,9 @@ float4 GetBlockPixel(Texture2D tex0, SamplerState tex0Sampler, uint keystream, f
 	return float4(GammaCorrection(decrypt.rgb), decrypt.a);
 }
 
-float4 GetPixel(Texture2D tex0, SamplerState tex0Sampler, in uint data[16], float2 uv, int m)
+float4 GetPixel(Texture2D tex0, Texture2D tex1, SamplerState tex0Sampler, in uint data[16], float2 uv, int m)
 {
-	return GetBlockPixel(tex0, tex0Sampler, SelectWord(data, GetBlockLocalIndex(uv, m)), uv, m);
+	return GetBlockPixel(tex0, tex1, tex0Sampler, SelectWord(data, GetBlockLocalIndex(uv, m)), uv, m);
 }
 
 #else
@@ -75,7 +75,7 @@ void GetData(Texture2D tex1, SamplerState tex0Sampler, inout uint data[2], float
 	data[1] = ((uint)round(pixels[1].r * 255.0f) | ((uint)round(pixels[1].g * 255.0f) << 8) | ((uint)round(pixels[1].b * 255.0f) << 16) | ((uint)round(pixels[1].a * 255.0f) << 24));
 }
 
-float4 GetPixel(Texture2D tex0, SamplerState tex0Sampler, inout uint data[2], float2 uv, int m) {
+float4 GetPixel(Texture2D tex0, Texture2D tex1, SamplerState tex0Sampler, inout uint data[2], float2 uv, int m) {
 	int idx = GetIndex(uv, m);
 	half r = ((data[idx & 1] & 0x000000FF) >>  0)/255.0f;
 	half g = ((data[idx & 1] & 0x0000FF00) >>  8)/255.0f;
