@@ -32,7 +32,8 @@ namespace Shell.Protector
         // 1: ChaCha 4x4 block keystream for RGB/RGBA, mip level mixed into every key.
         // 2: per-shader key mask and ChaCha constants (ShaderSecrets) compiled into the shaders.
         // 3: ChaCha DXT units cover 4x4 blocks (16x16 texels), one keystream word per block.
-        public const int CurrentFormatVersion = 3;
+        // 4: ChaCha reduced from 8 to 6 rounds.
+        public const int CurrentFormatVersion = 4;
 
         // No initializer on purpose: histories saved before this field existed must deserialize as 0.
         [SerializeField]

@@ -1,5 +1,5 @@
 #pragma once
-static const uint CHACHA20_ROUNDS = 8;
+static const uint CHACHA_ROUNDS = 6;
 uint _Nonce0;
 uint _Nonce1;
 uint _Nonce2;
@@ -25,7 +25,7 @@ void Chacha20QuarterRound(inout uint state[16], int a, int b, int c, int d)
 	state[c] += state[d]; state[b] = Rotl32(state[b] ^ state[c], 7);
 }
 
-void ChaCha8KeyStream16(const uint key[4], out uint stream[16])
+void ChaChaKeyStream16(const uint key[4], out uint stream[16])
 {
     uint x0  = _SHELL_PROTECTOR_CHACHA_C0;
     uint x1  = _SHELL_PROTECTOR_CHACHA_C1;
@@ -48,7 +48,7 @@ void ChaCha8KeyStream16(const uint key[4], out uint stream[16])
     uint x15 = _Nonce2;
 
     [unroll]
-    for (uint round = 0u; round < CHACHA20_ROUNDS; round += 2u)
+    for (uint round = 0u; round < CHACHA_ROUNDS; round += 2u)
     {
         // Column round
         ChaChaQuarterRound(x0, x4, x8,  x12);
@@ -81,23 +81,23 @@ void ChaCha8KeyStream16(const uint key[4], out uint stream[16])
     stream[15] = x15 + _Nonce2;
 }
 
-uint3 ChaCha8KeyStream3(const uint key[4])
+uint3 ChaChaKeyStream3(const uint key[4])
 {
     uint stream[16];
-    ChaCha8KeyStream16(key, stream);
+    ChaChaKeyStream16(key, stream);
     return uint3(stream[0], stream[1], stream[2]);
 }
 
 void Decrypt(inout uint data[2], const uint key[4])
 {
-	uint3 stream = ChaCha8KeyStream3(key);
+	uint3 stream = ChaChaKeyStream3(key);
     data[0] ^= stream.x;
     data[1] ^= stream.y;
 }
 
 void Decrypt(inout uint data[3], const uint key[4])
 {
-    uint3 stream = ChaCha8KeyStream3(key);
+    uint3 stream = ChaChaKeyStream3(key);
 
     data[0] ^= stream.x;
     data[1] ^= stream.y;
@@ -108,7 +108,7 @@ void Decrypt(inout uint data[3], const uint key[4])
 void Decrypt(inout uint data[16], const uint key[4])
 {
     uint stream[16];
-    ChaCha8KeyStream16(key, stream);
+    ChaChaKeyStream16(key, stream);
 
     [unroll]
     for (int i = 0; i < 16; ++i)

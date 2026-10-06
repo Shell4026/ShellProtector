@@ -5,7 +5,7 @@ namespace Shell.Protector
 {
     public class Chacha20 : IEncryptor
     {
-        const int Rounds = 8;
+        const int Rounds = 6;
 
         public static uint[] StandardConstants => new uint[] { 0x61707865, 0x3320646e, 0x79622d32, 0x6b206574 };
 

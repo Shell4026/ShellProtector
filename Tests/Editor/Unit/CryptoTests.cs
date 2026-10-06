@@ -82,7 +82,7 @@ namespace Shell.Protector.Tests.Unit
 
             uint[] encrypted = chacha.Encrypt(data, key);
 
-            Assert.That(encrypted, Is.EqualTo(new[] { 0xed4198d8u, 0x7ca6601fu, 0xde134dedu, 0x76b88629u }));
+            Assert.That(encrypted, Is.EqualTo(new[] { 0xad06e9b6u, 0x8650e282u, 0x5ce77f39u, 0x43821c1eu }));
             Assert.That(chacha.Decrypt(encrypted, key), Is.EqualTo(data));
         }
 
