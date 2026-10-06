@@ -41,7 +41,7 @@ OSC 소스 코드: https://github.com/Shell4026/ShellProtectorOSC
 
 ## 사용법
 1. 아바타를 우클릭해 'Shell Protector'를 눌러 컴포넌트를 추가합니다.
-2. 비밀번호를 설정해주고 암호화 할 메테리얼이나 게임오브젝트를 지정해줍니다.
+2. 비밀번호를 설정해주고 암호화 할 메테리얼이나 게임오브젝트를 지정해줍니다. 얼굴이 있는 Body 오브젝트는 자동으로 추가됩니다.
 
 (모듈러 사용시 아래 과정(3,4)은 필요 없습니다.)
 
@@ -50,7 +50,9 @@ OSC 소스 코드: https://github.com/Shell4026/ShellProtectorOSC
 5. 아바타를 업로드 합니다.
 
 ### 자신의 비밀번호가 4자리 이상인 경우 (OSC)
-1. Release에 있는 ShellProtectorOSC.zip을 다운 후 압축을 풀고 ShellProtectorOSC.exe를 실행시킵니다. (최초 한 번만 실행하면 됩니다. 리셋 아바타나 파라미터 멀티플렉싱을 사용한다면 계속 켜두세요.)
+**ShellProtector 2.8부터는 ShellProtectorOSC 1.7 이상이 필요합니다. 이전 버전의 OSC로는 암호화를 풀 수 없으니 반드시 최신 버전을 받아주세요.**
+
+1. Release에 있는 ShellProtectorOSC.zip을 다운 후 압축을 풀고 ShellProtectorOSC.exe를 실행시킵니다. (동기화 속도가 2 이상이면 키가 아바타에 저장되어 최초 한 번만 실행하면 됩니다. 동기화 속도가 1(파라미터 멀티플렉싱)이거나 리셋 아바타를 사용한다면 계속 켜두세요.)
 2. 업로드 한 아바타로 바꾼 후 OSC프로그램에서 사용자 비밀번호를 입력합니다.
 3. 2.5.0이후부터 Parameter-multiplexing를 필수로 체크해야 합니다.
 4. 만약 비밀번호가 바뀌어도 아바타의 외형에 변화가 없다면 VRChat에서 액션 메뉴 - Options - OSC - Reset Config를 눌러보세요.

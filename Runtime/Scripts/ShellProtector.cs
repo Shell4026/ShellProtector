@@ -37,7 +37,6 @@ namespace Shell.Protector
         Injector _injector;
         readonly AssetManager _shaderManager = AssetManager.GetInstance();
         readonly AssetWriter _assetWriter = new AssetWriter();
-        bool _initialized;
         string _packageAssetDir;
         OutputPaths _outputPaths;
 
@@ -179,31 +178,22 @@ namespace Shell.Protector
             return paths;
         }
 
+        // VRChat avatars keep the face on the "Body" mesh, so it is encrypted and obfuscated by default.
         public void Init()
         {
-            if (_initialized)
+            if (_descriptor == null)
                 return;
 
-            HashSet<SkinnedMeshRenderer> rendererSet = new HashSet<SkinnedMeshRenderer>();
-            Transform child = _descriptor.transform.Find("Body");
-            if (child != null)
-            {
-                SkinnedMeshRenderer renderer = child.GetComponent<SkinnedMeshRenderer>();
-                if (renderer != null)
-                {
-                    Mesh mesh = renderer.sharedMesh;
-                    if (mesh != null)
-                    {
-                        rendererSet.Add(renderer);
-                    }
+            Transform body = _descriptor.transform.Find("Body");
+            if (body == null)
+                return;
 
-                }
-            }
-            foreach (var renderer in rendererSet)
-            {
+            if (!_gameObjectList.Contains(body.gameObject))
+                _gameObjectList.Add(body.gameObject);
+
+            SkinnedMeshRenderer renderer = body.GetComponent<SkinnedMeshRenderer>();
+            if (renderer != null && renderer.sharedMesh != null && !_obfuscationRenderers.Contains(renderer))
                 _obfuscationRenderers.Add(renderer);
-            }
-            _initialized = true;
         }
 
         public void SyncMatOption()
@@ -228,6 +218,9 @@ namespace Shell.Protector
         void Reset()
         {
             EnsureParameterSalt();
+            if (_descriptor == null)
+                _descriptor = GetComponentInParent<VRCAvatarDescriptor>(true);
+            Init();
         }
 
         // Returns true if a new salt was generated.
@@ -368,6 +361,8 @@ namespace Shell.Protector
             }
 
             _descriptor.gameObject.SetActive(true);
+            // The fixed key bytes are stored in the encrypted materials, so nobody has to remember them and each build picks new ones.
+            _fixedPassword = KeyGenerator.GenerateRandomString(16 - _keySize);
             Debug.Log("Key bytes: " + string.Join(", ", GetKeyBytes()));
 
             var materials = new List<Material>();

@@ -14,6 +14,7 @@ namespace Shell.Protector
 
         static VersionManager instance;
         const string githubUrl = "https://github.com/Shell4026/ShellProtector";
+        public const string ReleasesUrl = githubUrl + "/releases";
         const string versionUri = githubUrl + "/raw/main/version.json";
 
         public static VersionManager GetInstance()

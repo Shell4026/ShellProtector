@@ -25,6 +25,7 @@ namespace Shell.Protector
                 return;
             }
 
+            // The materials already hold the fixed key bytes of their build, which change on every build, so only the user key bytes are set.
             byte[] passwordBytes = Protector.GetKeyBytes();
 
             var renderers = transform.root.GetComponentsInChildren<MeshRenderer>(true);
@@ -44,7 +45,7 @@ namespace Shell.Protector
                             continue;
                         if (mat.name.Contains("_encrypted") || mat.name.Contains("_duplicated"))
                         {
-                            for (int i = 0; i < 16; ++i)
+                            for (int i = 16 - UserKeyLength; i < 16; ++i)
                                 mat.SetInt(ShaderProperties.KeyPrefix + i, passwordBytes[i]);
                         }
                     }
@@ -67,7 +68,7 @@ namespace Shell.Protector
                             continue;
                         if (mat.name.Contains("_encrypted") || mat.name.Contains("_duplicated"))
                         {
-                            for (int i = 0; i < 16; ++i)
+                            for (int i = 16 - UserKeyLength; i < 16; ++i)
                                 mat.SetInt(ShaderProperties.KeyPrefix + i, passwordBytes[i]);
                         }
                     }

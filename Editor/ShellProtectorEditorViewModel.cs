@@ -40,7 +40,7 @@ namespace Shell.Protector
             FreeParameter = HasParameterAsset ? 256 - parameters.CalcTotalCost() : -1;
 
             int lockSize = 1;
-            int switchCount = ShellProtector.GetRequiredSwitchCount(keySize.intValue, syncSize.intValue);
+            int switchCount = keySize.intValue > 0 ? ShellProtector.GetRequiredSwitchCount(keySize.intValue, syncSize.intValue) : 0;
             UsedParameter = switchCount + lockSize + syncSize.intValue * 8;
         }
     }

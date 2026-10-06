@@ -38,7 +38,7 @@ Source code of OSC: https://github.com/Shell4026/ShellProtectorOSC
 ## Usage
 
 1. Right-click on your avatar and select "Shell Protector" to add the component.
-2. Set a password and specify the Material or GameObject to encrypt.
+2. Set a password and specify the Material or GameObject to encrypt. The Body object, which holds the face, is added automatically.
 
 (The steps(3,4) below are not required when using Modular avatar)
 
@@ -47,7 +47,9 @@ Source code of OSC: https://github.com/Shell4026/ShellProtectorOSC
 5. Upload the avatar.
 
 ### If your password is more than 4 digits (OSC)
-1. Download ShellProtectorOSC.zip from the release, unzip it, and run ShellProtectorOSC.exe. (You only need to run it once the first time. If you use a reset avatar, keep it on.)
+**ShellProtector 2.8 or later requires ShellProtectorOSC 1.7 or later. Older OSC versions can't unlock the avatar, so always use the latest version.**
+
+1. Download ShellProtectorOSC.zip from the release, unzip it, and run ShellProtectorOSC.exe. (If the sync speed is 2 or higher, the key is saved in the avatar, so you only need to run it once. If the sync speed is 1 (parameter multiplexing) or you use a reset avatar, keep it on.)
 2. Replace your uploaded avatar and enter your user password in the OSC program.
 3. Starting with version 2.5.0, you must enable 'Parameter-multiplexing'.
 4. If changing the password doesn't change the appearance of your avatar, try going to the Action menu - Options - OSC - Reset Config in VRChat.

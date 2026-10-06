@@ -1,10 +1,10 @@
 #if UNITY_EDITOR
+using System;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 using UnityEditor;
 using UnityEditorInternal;
-using System;
-using System.IO;
 using VRC.SDK3.Avatars.Components;
 
 namespace Shell.Protector
@@ -13,6 +13,23 @@ namespace Shell.Protector
     [CanEditMultipleObjects]
     public class ShellProtectorEditor : Editor
     {
+        static readonly string[] languages = { "English", "한국어", "日本語" };
+        static readonly string[] languageCodes = { "eng", "kor", "jp" };
+        static readonly int[] syncSizes = { 1, 2, 4 };
+        static readonly GUIContent[] syncSizeLabels = { new GUIContent("1"), new GUIContent("2"), new GUIContent("4") };
+        static readonly string[] keyLengthTexts =
+        {
+            "0 (Minimal security)",
+            "4 (Low security)",
+            "8 (Middle security)",
+            "12 (Hight security)",
+            "16 (Unbreakable security)"
+        };
+
+        // Foldout states are kept for the editor session, across every ShellProtector inspector.
+        static bool advancedOption;
+        static bool debug;
+
         ShellProtector root = null;
         readonly LanguageManager lang = LanguageManager.GetInstance();
 
@@ -21,10 +38,12 @@ namespace Shell.Protector
         ReorderableList textureList;
         ReorderableList obfuscationList;
 
-        SerializedProperty rounds;
+        SerializedProperty descriptor;
+        SerializedProperty languageIndex;
+        SerializedProperty language;
+        SerializedProperty userPassword;
         SerializedProperty filter;
         SerializedProperty fallback;
-        SerializedProperty algorithm;
         SerializedProperty keySize;
         SerializedProperty keySizeIdx;
         SerializedProperty syncSize;
@@ -33,19 +52,19 @@ namespace Shell.Protector
         SerializedProperty bPreserveMMD;
         SerializedProperty turnOnAllSafetyFallback;
         ShellProtectorEditorViewModel viewModel;
-        bool debug = false;
-        bool option = true;
-        bool obfuscatorOption = true;
         bool forceProgress = false;
-        bool fallbackOption = true;
+        bool showPassword = false;
 
-        readonly string[] languages = new string[3];
-        readonly string[] keyLengthLabels = new string[5];
-
+        string currentVersion = "";
         List<string> shaders = new List<string>();
         readonly List<Texture2D> debugTextures = new List<Texture2D>();
 
-        bool showPassword = false;
+        // Not serialized: Unity keeps an editor's serializable fields across script reloads, so the styles would never be rebuilt.
+        [NonSerialized] GUIStyle titleStyle;
+        [NonSerialized] GUIStyle versionStyle;
+        [NonSerialized] GUIStyle sectionStyle;
+        [NonSerialized] GUIStyle foldoutStyle;
+        [NonSerialized] GUIStyle warningStyle;
 
         private string Lang(string word)
         {
@@ -58,21 +77,9 @@ namespace Shell.Protector
         {
             root = target as ShellProtector;
 
-            gameobjectList = new ReorderableList(serializedObject, serializedObject.FindProperty("_gameObjectList"), true, true, true, true);
-            gameobjectList.drawHeaderCallback = rect => EditorGUI.LabelField(rect, Lang("Object list"));
-            gameobjectList.drawElementCallback = (rect, index, is_active, is_focused) =>
-            {
-                SerializedProperty element = gameobjectList.serializedProperty.GetArrayElementAtIndex(index);
-                EditorGUI.PropertyField(new Rect(rect.x, rect.y, rect.width, EditorGUIUtility.singleLineHeight), element, GUIContent.none);
-            };
-
-            materialList = new ReorderableList(serializedObject, serializedObject.FindProperty("_materialList"), true, true, true, true);
-            materialList.drawHeaderCallback = rect => EditorGUI.LabelField(rect, Lang("Material List"));
-            materialList.drawElementCallback = (rect, index, is_active, is_focused) =>
-            {
-                SerializedProperty element = materialList.serializedProperty.GetArrayElementAtIndex(index);
-                EditorGUI.PropertyField(new Rect(rect.x, rect.y, rect.width, EditorGUIUtility.singleLineHeight), element, GUIContent.none);
-            };
+            gameobjectList = CreateList("_gameObjectList", "Object list");
+            materialList = CreateList("_materialList", "Material List");
+            obfuscationList = CreateList("_obfuscationRenderers", "Obfuscated meshes");
 
             textureList = new ReorderableList(debugTextures, typeof(Texture2D), true, true, true, true);
             textureList.drawHeaderCallback = rect => EditorGUI.LabelField(rect, Lang("Texture List"));
@@ -81,19 +88,13 @@ namespace Shell.Protector
                 debugTextures[index] = EditorGUI.ObjectField(new Rect(rect.x, rect.y, rect.width, EditorGUIUtility.singleLineHeight), debugTextures[index], typeof(Texture2D), false) as Texture2D;
             };
 
-            obfuscationList = new ReorderableList(serializedObject, serializedObject.FindProperty("_obfuscationRenderers"), true, true, true, true);
-            obfuscationList.drawHeaderCallback = rect => EditorGUI.LabelField(rect, Lang("BlendShape obfuscation"));
-            obfuscationList.drawElementCallback = (rect, index, is_active, is_focused) =>
-            {
-                SerializedProperty element = obfuscationList.serializedProperty.GetArrayElementAtIndex(index);
-                EditorGUI.PropertyField(new Rect(rect.x, rect.y, rect.width, EditorGUIUtility.singleLineHeight), element, GUIContent.none);
-            };
-
             #region SerializedObject
-            rounds = serializedObject.FindProperty("_rounds");
+            descriptor = serializedObject.FindProperty("_descriptor");
+            languageIndex = serializedObject.FindProperty("_languageIndex");
+            language = serializedObject.FindProperty("_language");
+            userPassword = serializedObject.FindProperty("_userPassword");
             filter = serializedObject.FindProperty("_filter");
             fallback = serializedObject.FindProperty("_fallback");
-            algorithm = serializedObject.FindProperty("_algorithm");
             keySize = serializedObject.FindProperty("_keySize");
             keySizeIdx = serializedObject.FindProperty("_keySizeIndex");
             syncSize = serializedObject.FindProperty("_syncSize");
@@ -104,366 +105,428 @@ namespace Shell.Protector
             #endregion
             viewModel = new ShellProtectorEditorViewModel(root, keySize, syncSize, gameobjectList, materialList);
 
-            languages[0] = "English";
-            languages[1] = "한국어";
-            languages[2] = "日本語";
-
-            keyLengthLabels[0] = Lang("0 (Minimal security)");
-            keyLengthLabels[1] = Lang("4 (Low security)");
-            keyLengthLabels[2] = Lang("8 (Middle security)");
-            keyLengthLabels[3] = Lang("12 (Hight security)");
-            keyLengthLabels[4] = Lang("16 (Unbreakable security)");
-
-            // Save the salt on the scene component so NDMF builds, which run on a copy, reuse it.
             foreach (var t in targets)
-                (t as ShellProtector)?.EnsureParameterSalt();
+            {
+                var protector = t as ShellProtector;
+                if (protector == null)
+                    continue;
+                FindAvatar(protector);
+                // Save the salt on the scene component so NDMF builds, which run on a copy, reuse it.
+                protector.EnsureParameterSalt();
+            }
+            serializedObject.Update();
+            MigrateAlgorithm();
 
             VersionManager.GetInstance().Refresh();
+            currentVersion = VersionManager.GetInstance().GetVersion();
 
             shaders = AssetManager.GetInstance().CheckShader();
             AssetManager.GetInstance().CheckModular();
         }
 
+        ReorderableList CreateList(string propertyName, string header)
+        {
+            var list = new ReorderableList(serializedObject, serializedObject.FindProperty(propertyName), true, true, true, true);
+            list.drawHeaderCallback = rect => EditorGUI.LabelField(rect, Lang(header));
+            list.drawElementCallback = (rect, index, is_active, is_focused) =>
+            {
+                SerializedProperty element = list.serializedProperty.GetArrayElementAtIndex(index);
+                EditorGUI.PropertyField(new Rect(rect.x, rect.y + 1, rect.width, EditorGUIUtility.singleLineHeight), element, GUIContent.none);
+            };
+            return list;
+        }
+
+        // A component added outside the avatar gets its avatar (and the Body target) once it is moved under one.
+        static void FindAvatar(ShellProtector protector)
+        {
+            if (protector.Descriptor != null)
+                return;
+            var avatar = protector.GetComponentInParent<VRCAvatarDescriptor>(true);
+            if (avatar == null)
+                return;
+
+            protector.Descriptor = avatar;
+            protector.Init();
+            if (PrefabUtility.IsPartOfPrefabInstance(protector))
+                PrefabUtility.RecordPrefabInstancePropertyModifications(protector);
+            EditorUtility.SetDirty(protector);
+        }
+
+        // XXTEA is deprecated and can't be selected anymore, so components that still use it move to ChaCha.
+        void MigrateAlgorithm()
+        {
+            SerializedProperty algorithm = serializedObject.FindProperty("_algorithm");
+            if (!algorithm.hasMultipleDifferentValues && algorithm.intValue == (int)ShellProtectorAlgorithm.Chacha)
+                return;
+            algorithm.intValue = (int)ShellProtectorAlgorithm.Chacha;
+            serializedObject.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        void InitStyles()
+        {
+            if (titleStyle != null)
+                return;
+            titleStyle = new GUIStyle(EditorStyles.boldLabel) { fontSize = 19, fixedHeight = 0 };
+            versionStyle = new GUIStyle(EditorStyles.miniLabel) { alignment = TextAnchor.LowerLeft };
+            sectionStyle = new GUIStyle(EditorStyles.boldLabel) { fontSize = 16, fixedHeight = 0 };
+            foldoutStyle = new GUIStyle(EditorStyles.foldout) { fontStyle = FontStyle.Bold, fontSize = 16, fixedHeight = 0 };
+            warningStyle = new GUIStyle(EditorStyles.boldLabel) { wordWrap = true, alignment = TextAnchor.MiddleLeft };
+        }
+
+        // Sections are told apart by their headers and the space between them, not by boxes.
+        const float SectionSpacing = 20;
+
+        void BeginSection(string title)
+        {
+            GUILayout.Label(title, sectionStyle);
+            EditorGUILayout.Space(4);
+        }
+
+        static void EndSection()
+        {
+            EditorGUILayout.Space(SectionSpacing);
+        }
+
+        static void Hint(string text)
+        {
+            GUILayout.Label(text, EditorStyles.wordWrappedMiniLabel);
+        }
+
         public override void OnInspectorGUI()
         {
             root = target as ShellProtector;
-
-            root.Descriptor = EditorGUILayout.ObjectField(root.Descriptor, typeof(VRCAvatarDescriptor), true) as VRCAvatarDescriptor;
-            GUILayout.BeginHorizontal();
-            GUILayout.Label(Lang("Current version: ") + VersionManager.GetInstance().GetVersion());
-            GUILayout.FlexibleSpace();
-            GUILayout.Label(Lang("Lastest version: ") + VersionManager.GetInstance().GetGithubVersion(), EditorStyles.boldLabel);
-            GUILayout.EndHorizontal();
-            GUILayout.BeginHorizontal();
-            GUILayout.Label(Lang("OSC program: "));
-            if (EditorGUILayout.LinkButton(Lang("Releases page")))
-                Application.OpenURL(OscDownloader.ReleasesUrl);
-            GUILayout.FlexibleSpace();
-            using (new EditorGUI.DisabledScope(OscDownloader.IsBusy))
-            {
-                if (GUILayout.Button(Lang("Download latest OSC"), GUILayout.Width(180)))
-                    OscDownloader.DownloadLatest(root.Language);
-            }
-            GUILayout.EndHorizontal();
-            EditorGUILayout.HelpBox(Lang("ShellProtector 2.8 or later requires ShellProtectorOSC 1.7 or later."), MessageType.Info);
-            EditorGUILayout.Separator();
-
-            GUILayout.BeginHorizontal();
-            GUILayout.Label(Lang("Languages: "));
-            GUILayout.FlexibleSpace();
-
-            root.LanguageIndex = EditorGUILayout.Popup(root.LanguageIndex, languages, GUILayout.Width(100));
-
-            keyLengthLabels[0] = Lang("0 (Minimal security)");
-            keyLengthLabels[1] = Lang("4 (Low security)");
-            keyLengthLabels[2] = Lang("8 (Middle security)");
-            keyLengthLabels[3] = Lang("12 (Hight security)");
-            keyLengthLabels[4] = Lang("16 (Unbreakable security)");
-
-            switch (root.LanguageIndex)
-            {
-                case 0:
-                    root.Language = "eng";
-                    break;
-                case 1:
-                    root.Language = "kor";
-                    break;
-                case 2:
-                    root.Language = "jp";
-                    break;
-                default:
-                    root.Language = "eng";
-                    break;
-            }
-
-            GUILayout.EndHorizontal();
-
-            GUILayout.Label(Lang("Decteced shaders:") + string.Join(", ", shaders), EditorStyles.boldLabel);
-#if MODULAR
-            GUILayout.Label(Lang("ModularAvatar: true"), EditorStyles.boldLabel);
-#else
-            GUILayout.Label(Lang("ModularAvatar: false"), EditorStyles.boldLabel);
-#endif
-            GUILayout.Space(20);
-
-            GUILayout.Label(Lang("Password"), EditorStyles.boldLabel);
-
-            if (keySize.intValue < 16)
-            {
-                int length = 16 - keySize.intValue;
-                GUILayout.BeginHorizontal();
-                root.FixedPassword = GUILayout.TextField(root.FixedPassword, length, GUILayout.Width(100));
-                if (GUILayout.Button(Lang("Generate")))
-                    root.FixedPassword = KeyGenerator.GenerateRandomString(length);
-                GUILayout.FlexibleSpace();
-                GUILayout.Label(Lang("A password that you don't need to memorize. (max:") + length + ")", EditorStyles.wordWrappedLabel);
-                GUILayout.EndHorizontal();
-            }
-            if (keySize.intValue > 0)
-            {
-                GUILayout.BeginHorizontal();
-                if(!showPassword)
-                    root.UserPassword = GUILayout.PasswordField(root.UserPassword, '*', keySize.intValue, GUILayout.Width(100));
-                else
-                    root.UserPassword = GUILayout.TextField(root.UserPassword, keySize.intValue, GUILayout.Width(100));
-                if (GUILayout.Button(Lang("Show")))
-                    showPassword = !showPassword;
-                GUILayout.FlexibleSpace();
-                GUILayout.Label(Lang("This password should be memorized. (max:") + keySize.intValue + ")", EditorStyles.wordWrappedLabel);
-                GUILayout.EndHorizontal();
-            }
+            InitStyles();
             serializedObject.Update();
-            viewModel.Refresh();
 
-            GUIStyle redStyle = new GUIStyle(GUI.skin.label);
-            redStyle.normal.textColor = Color.red;
-            redStyle.wordWrap = true;
+            DrawHeader();
+            DrawTargets();
+            DrawObfuscation();
+            DrawPassword();
+            DrawOsc();
+            DrawAdvancedOptions();
+            DrawEncrypt();
+            DrawDebug();
 
-            if (!viewModel.HasParameterAsset)
-                GUILayout.Label(Lang("Cannot find VRCExpressionParameters in your avatar!"), redStyle);
+            serializedObject.ApplyModifiedProperties();
+        }
+
+        void DrawHeader()
+        {
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.Label("ShellProtector", titleStyle);
+            GUILayout.Label("v" + currentVersion, versionStyle, GUILayout.ExpandHeight(true));
+            GUILayout.FlexibleSpace();
+            int index = Mathf.Clamp(languageIndex.intValue, 0, languages.Length - 1);
+            index = EditorGUILayout.Popup(index, languages, GUILayout.Width(90));
+            if (languageIndex.intValue != index)
+                languageIndex.intValue = index;
+            if (language.stringValue != languageCodes[index])
+                language.stringValue = languageCodes[index];
+            EditorGUILayout.EndHorizontal();
+
+            string latestVersion = VersionManager.GetInstance().GetGithubVersion();
+            if (IsNewerVersion(latestVersion, currentVersion))
+            {
+                EditorGUILayout.BeginHorizontal(EditorStyles.helpBox);
+                GUILayout.Label(Lang("A new version is available: ") + latestVersion, EditorStyles.wordWrappedLabel);
+                if (GUILayout.Button(Lang("Releases page"), GUILayout.Width(110)))
+                    Application.OpenURL(VersionManager.ReleasesUrl);
+                EditorGUILayout.EndHorizontal();
+            }
+
+            EditorGUI.BeginChangeCheck();
+            EditorGUILayout.PropertyField(descriptor, new GUIContent(Lang("Avatar")));
+            if (EditorGUI.EndChangeCheck())
+            {
+                // The new avatar's Body becomes a target, as when the component is added.
+                serializedObject.ApplyModifiedProperties();
+                Undo.RecordObjects(targets, "Change ShellProtector avatar");
+                foreach (var t in targets)
+                    (t as ShellProtector)?.Init();
+                serializedObject.Update();
+            }
+            if (descriptor.objectReferenceValue == null && !descriptor.hasMultipleDifferentValues)
+                EditorGUILayout.HelpBox(Lang("Assign the avatar to encrypt."), MessageType.Error);
+
+            if (shaders.Count == 0)
+                EditorGUILayout.HelpBox(Lang("No supported shader (lilToon, Poiyomi) was found in the project."), MessageType.Warning);
             else
             {
-                GUILayout.Label(Lang("Free parameter:") + viewModel.FreeParameter, EditorStyles.wordWrappedLabel);
+                var detected = new List<string>(shaders);
+#if MODULAR
+                detected.Add("Modular Avatar");
+#endif
+                Hint(Lang("Detected: ") + string.Join(", ", detected));
             }
-            GUILayout.Label(Lang("Parameters to be used:") + viewModel.UsedParameter, EditorStyles.wordWrappedLabel);
+            EditorGUILayout.Space(SectionSpacing);
+        }
 
+        void DrawTargets()
+        {
+            BeginSection(Lang("Encryption targets"));
             gameobjectList.DoLayoutList();
             materialList.DoLayoutList();
-            GUILayout.Label(Lang("Encrypting too many objects can cause lag when loading avatars in-game."));
-            if(GUILayout.Button(Lang("Material advanced settings")))
+
+            if (!viewModel.HasTargets)
             {
+                EditorGUILayout.HelpBox(Lang("Add the objects or materials to encrypt."), MessageType.Warning);
+                if (root.Descriptor != null && root.Descriptor.transform.Find("Body") != null && GUILayout.Button(Lang("Add Body")))
+                {
+                    serializedObject.ApplyModifiedProperties();
+                    Undo.RecordObjects(targets, "Add Body to ShellProtector");
+                    foreach (var t in targets)
+                        (t as ShellProtector)?.Init();
+                    serializedObject.Update();
+                }
+            }
+            else
+                Hint(Lang("Encrypting too many objects can cause lag when loading avatars in-game."));
+
+            if (GUILayout.Button(Lang("Material advanced settings")))
                 MaterialAdvancedSettings.ShowWindow(root);
-            }
+            EndSection();
+        }
 
-            #region Options
-            option = EditorGUILayout.Foldout(option, Lang("Options"));
-            if(option)
+        void DrawObfuscation()
+        {
+            BeginSection(Lang("BlendShape obfuscation"));
+            obfuscationList.DoLayoutList();
+            bPreserveMMD.boolValue = EditorGUILayout.Toggle(Lang("Preserve MMD BlendShapes"), bPreserveMMD.boolValue);
+            EndSection();
+        }
+
+        void DrawPassword()
+        {
+            BeginSection(Lang("Password"));
+
+            var keyLengthLabels = new string[keyLengthTexts.Length];
+            for (int i = 0; i < keyLengthTexts.Length; i++)
+                keyLengthLabels[i] = Lang(keyLengthTexts[i]);
+            int sizeIndex = Mathf.Clamp(keySizeIdx.intValue, 0, keyLengthTexts.Length - 1);
+            sizeIndex = EditorGUILayout.Popup(Lang("Max password length"), sizeIndex, keyLengthLabels);
+            if (keySizeIdx.intValue != sizeIndex)
+                keySizeIdx.intValue = sizeIndex;
+            if (keySize.intValue != sizeIndex * 4)
+                keySize.intValue = sizeIndex * 4;
+
+            if (keySize.intValue > 0)
             {
-                GUILayout.Label(Lang("Max password length"), EditorStyles.boldLabel);
-                keySizeIdx.intValue = EditorGUILayout.Popup(keySizeIdx.intValue, keyLengthLabels, GUILayout.Width(150));
-                GUILayout.Space(10);
+                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.PrefixLabel(Lang("User password"));
+                if (showPassword)
+                    userPassword.stringValue = GUILayout.TextField(userPassword.stringValue, keySize.intValue, EditorStyles.textField);
+                else
+                    userPassword.stringValue = GUILayout.PasswordField(userPassword.stringValue, '*', keySize.intValue, EditorStyles.textField);
+                showPassword = GUILayout.Toggle(showPassword, Lang("Show"), GUI.skin.button, GUILayout.Width(80));
+                EditorGUILayout.EndHorizontal();
 
-                switch (keySizeIdx.intValue)
-                {
-                    case 0:
-                        keySize.intValue = 0;
-                        break;
-                    case 1:
-                        keySize.intValue = 4;
-                        break;
-                    case 2:
-                        keySize.intValue = 8;
-                        break;
-                    case 3:
-                        keySize.intValue = 12;
-                        break;
-                    case 4:
-                        keySize.intValue = 16;
-                        break;
-                }
-
-                var syncSize_value = syncSize.intValue;
-                int syncSize_index = 0;
-                int[] syncSizeCandidates = { 1, 2, 4 };
-                string[] selectableValues = { "1", "2", "4" };
-                for (int i = 0; i < syncSizeCandidates.Length; i++)
-                    if (syncSizeCandidates[i] == syncSize_value)
-                        syncSize_index = i;
-
-                if(keySize.intValue > 0)
-                {
-                    GUILayout.Label(Lang("Sync speed"), EditorStyles.boldLabel);
-                    syncSize_index = EditorGUILayout.Popup(syncSize_index, selectableValues, GUILayout.Width(100));
-                    syncSize.intValue = syncSizeCandidates[syncSize_index];
-                    GUILayout.Label(Lang("Number of key bytes synced at once. At 2 or higher the key syncs faster and is saved in the avatar, so the OSC program only has to run once, but more parameters are used."), EditorStyles.wordWrappedLabel);
-                    GUILayout.Space(10);
-                }
-
-                GUILayout.Label(Lang("Encrytion algorithm"), EditorStyles.boldLabel);
-                GUILayout.Label(algorithm.intValue == 0 ? "XXTEA" : "Chacha8");
-
-                // XXTEA is deprecated: it can't be selected anymore, but existing setups keep building with it until switched.
-                if (algorithm.intValue == 0)
-                {
-                    EditorGUILayout.HelpBox(Lang("XXTEA is deprecated. Switch to Chacha8."), MessageType.Warning);
-                    if (GUILayout.Button(Lang("Switch to Chacha8"), GUILayout.Width(160)))
-                        algorithm.intValue = 1;
-
-                    GUILayout.Label(Lang("Rounds"), EditorStyles.boldLabel);
-                    GUILayout.BeginHorizontal();
-#if UNITY_2022
-                    rounds.uintValue = (uint)Mathf.RoundToInt(GUILayout.HorizontalSlider(rounds.uintValue, 6, 32, GUILayout.Width(100)));
-                    rounds.uintValue = (uint)EditorGUILayout.IntField("", (int)rounds.uintValue, GUILayout.Width(50));
-                    rounds.uintValue = Math.Clamp(rounds.uintValue, 6, 32);
-#else
-                    rounds.intValue = Mathf.RoundToInt(GUILayout.HorizontalSlider(rounds.intValue, 6, 32, GUILayout.Width(100)));
-                    rounds.intValue = EditorGUILayout.IntField("", (int)rounds.intValue, GUILayout.Width(50));
-                    rounds.intValue = Mathf.Clamp(rounds.intValue, 6, 32);
-#endif
-                    GUILayout.FlexibleSpace();
-                    GUILayout.EndHorizontal();
-                    GUILayout.Label(Lang("Number of encryption iterations. Higher values provide better security, but at the expense of performance."), EditorStyles.wordWrappedLabel);
-                }
-                GUILayout.Space(10);
-
-                GUILayout.Label(Lang("Default texture filter"), EditorStyles.boldLabel);
-                filter.intValue = EditorGUILayout.Popup(filter.intValue, ShellProtector.FilterStrings, GUILayout.Width(100));
-                GUILayout.Label(Lang("Setting it to 'Point' may result in aliasing, but performance is better."), EditorStyles.wordWrappedLabel);
-
-                //GUILayout.Label(Lang("Initial animation speed"), EditorStyles.boldLabel);
-                //GUILayout.BeginHorizontal();
-                //animation_speed.floatValue = GUILayout.HorizontalSlider(animation_speed.floatValue, 2.0f, 5.0f, GUILayout.Width(100));
-                //animation_speed.floatValue = EditorGUILayout.FloatField("", animation_speed.floatValue, GUILayout.Width(50));
-                //animation_speed.floatValue = Math.Clamp(animation_speed.floatValue, 2.0f, 5.0f);
-                //GUILayout.FlexibleSpace();
-                //GUILayout.Label(Lang("Avatar first load animation speed"), EditorStyles.wordWrappedLabel);
-                //GUILayout.EndHorizontal();
-
-                GUILayout.Space(10);
-
-                GUILayout.BeginHorizontal();
-                GUILayout.Label(Lang("Delete folders that already exists when at creation time"), EditorStyles.boldLabel);
-                deleteFolders.boolValue = EditorGUILayout.Toggle(deleteFolders.boolValue);
-                GUILayout.FlexibleSpace();
-                GUILayout.EndHorizontal();
-
-                GUILayout.Space(10);
-
-                GUILayout.BeginHorizontal();
-                GUILayout.Label(Lang("Small mip texture"), EditorStyles.boldLabel);
-                bUseSmallMipTexture.boolValue = EditorGUILayout.Toggle(bUseSmallMipTexture.boolValue);
-                GUILayout.FlexibleSpace();
-                GUILayout.EndHorizontal();
-                GUILayout.Label(Lang("It uses a smaller mipTexture to reduce memory usage and improve performance. It may look slightly different from the original when viewed from the side."), EditorStyles.wordWrappedLabel);
-
-                GUILayout.Space(10);
+                EditorGUILayout.Space(4);
+                int syncIndex = Math.Max(0, Array.IndexOf(syncSizes, syncSize.intValue));
+                var syncLabel = new GUIContent(Lang("Sync speed"), Lang("Number of key bytes synced at once. At 2 or higher the key syncs faster and is saved in the avatar, so the OSC program only has to run once, but more parameters are used."));
+                syncIndex = EditorGUILayout.Popup(syncLabel, syncIndex, syncSizeLabels);
+                if (syncSize.intValue != syncSizes[syncIndex])
+                    syncSize.intValue = syncSizes[syncIndex];
+                if (syncSize.intValue >= 2)
+                    Hint(Lang("The key is saved in the avatar, so the OSC program only has to run once. Uses more parameters."));
+                else
+                    Hint(Lang("The OSC program must keep running while you play. Uses the fewest parameters."));
             }
-
-            obfuscatorOption = EditorGUILayout.Foldout(obfuscatorOption, Lang("Obfustactor Options"));
-            if(obfuscatorOption)
-            {
-                obfuscationList.DoLayoutList();
-
-                GUILayout.BeginHorizontal();
-                GUILayout.Label(Lang("Preserve MMD BlendShapes"), EditorStyles.boldLabel);
-                bPreserveMMD.boolValue = EditorGUILayout.Toggle(bPreserveMMD.boolValue);
-                GUILayout.FlexibleSpace();
-                GUILayout.EndHorizontal();
-
-                GUILayout.Space(10);
-            }
-
-            fallbackOption = EditorGUILayout.Foldout(fallbackOption, Lang("Fallback Options"));
-            if (fallbackOption)
-            {
-                GUILayout.Label(Lang("Opponents with Safety option turned on will see degraded textures instead of noise."));
-
-                GUILayout.BeginHorizontal();
-                GUILayout.Label(Lang("Change all Safety Fallback settings of shader to Unlit."), EditorStyles.boldLabel);
-                turnOnAllSafetyFallback.boolValue = EditorGUILayout.Toggle(turnOnAllSafetyFallback.boolValue);
-                GUILayout.FlexibleSpace();
-                GUILayout.EndHorizontal();
-
-                GUILayout.Label(Lang("Default fallback texture"), EditorStyles.boldLabel);
-                fallback.intValue = EditorGUILayout.Popup(fallback.intValue, ShellProtector.FallbackStrings, GUILayout.Width(100));
-            }
-#endregion
 
             viewModel.Refresh();
-            if (!viewModel.HasEnoughParameterSpace)
+            if (!viewModel.HasParameterAsset)
+                EditorGUILayout.HelpBox(Lang("Cannot find VRCExpressionParameters in your avatar!"), MessageType.Error);
+            else
             {
-                GUILayout.Label(Lang("Not enough parameter space!"), redStyle);
-                GUILayout.BeginHorizontal();
-                GUILayout.Label(Lang("Force progress"));
-                forceProgress = EditorGUILayout.Toggle(forceProgress);
-                GUILayout.FlexibleSpace();
-                GUILayout.EndHorizontal();
-                GUI.enabled = forceProgress;
-            }
-            if (!viewModel.HasTargets)
-                GUI.enabled = false;
-
-
-#if MODULAR
-            if (GUILayout.Button(Lang("Manual Encrypt! (for testing)")))
-#else
-            if (GUILayout.Button(Lang("Encrypt!")))
-#endif
-                root.Encrypt(bUseSmallMipTexture.boolValue, false);
-            GUI.enabled = true;
-
-#if MODULAR
-            GUIStyle modularStyle = new GUIStyle(GUI.skin.label);
-            modularStyle.normal.textColor = Color.green;
-            modularStyle.wordWrap = true;
-            GUILayout.Label(Lang("Modular avatars exist. It is automatically encrypted on upload."), modularStyle);
-#endif
-
-            if (GUILayout.Button(Lang("Delete previously encrypted files") + String.Format("({0})", root.GetEncryptedFoldersCount())))
-            {
-                root.CleanEncrypted();
-            }
-
-            debug = EditorGUILayout.Foldout(debug, Lang("Debug"));
-            if(debug)
-            {
-                GUILayout.Space(10);
-                if (GUILayout.Button(Lang("XXTEA test")))
-                    Test.XXTEATest(root.GetKeyBytes());
-                if (GUILayout.Button(Lang("Chacha8 test")))
-                    Test.ChachaTest(root.GetKeyBytes());
-                GUILayout.Space(10);
-
-                textureList.DoLayoutList();
-                GUILayout.BeginHorizontal();
-                if (GUILayout.Button(Lang("Encrypt")))
+                string usage = string.Format(Lang("Parameters: {0} bits used, {1} bits free"), viewModel.UsedParameter, viewModel.FreeParameter);
+                if (viewModel.HasEnoughParameterSpace)
+                    Hint(usage);
+                else
                 {
-                    Texture2D last = null;
-                    for (int i = 0; i < debugTextures.Count; i++)
-                    {
-                        Texture2D texture = debugTextures[i];
-                        if (texture == null)
-                            continue;
-
-                        TextureSettings.SetRWEnableTexture(texture);
-
-                        var result = TextureEncryptManager.EncryptTexture(texture, root.GetKeyBytes(), new XXTEA());
-                        if (result.Texture1 == null)
-                            continue;
-
-                        last = result.Texture1;
-
-                        var writer = new AssetWriter();
-                        var outputPaths = new OutputPaths(root.AssetDir, root.Descriptor.gameObject);
-                        outputPaths.PrepareFolders(writer, false);
-
-                        writer.CreateAssetInFolder(result.Texture1, outputPaths.Folders.TexGuid, outputPaths.EncryptedTextureName(texture, 0));
-                        if (result.Texture2 != null)
-                        {
-                            File.WriteAllBytes(writer.UniquePathInFolder(outputPaths.Folders.TexGuid, OutputPaths.Sanitize(texture.name) + "_encrypt.png"), result.Texture2.EncodeToPNG());
-                            writer.CreateAssetInFolder(result.Texture2, outputPaths.Folders.TexGuid, outputPaths.EncryptedTextureName(texture, 2));
-                        }
-                        AssetDatabase.SaveAssets();
-
-                        AssetDatabase.Refresh();
-                    }
-                    if(last != null)
-                        Selection.activeObject = last;
+                    EditorGUILayout.HelpBox(Lang("Not enough parameter space!") + "\n" + usage, MessageType.Error);
+                    forceProgress = EditorGUILayout.ToggleLeft(Lang("Force progress"), forceProgress);
                 }
-
-                GUILayout.EndHorizontal();
             }
+
+            EndSection();
+        }
+
+        // Only the user password goes through the OSC program, and older OSC versions derive different keys.
+        void DrawOsc()
+        {
+            if (keySize.intValue <= 0)
+                return;
+
+            BeginSection(Lang("OSC program"));
+
+            EditorGUILayout.BeginHorizontal(EditorStyles.helpBox);
+            GUILayout.Label(EditorGUIUtility.IconContent("console.warnicon"), GUILayout.Width(36), GUILayout.Height(36));
+            GUILayout.Label(Lang("This version requires ShellProtectorOSC 1.7 or later. Older OSC versions can't unlock the avatar, so make sure to update the OSC program to the latest version."), warningStyle);
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.BeginHorizontal();
+            using (new EditorGUI.DisabledScope(OscDownloader.IsBusy))
+            {
+                Color background = GUI.backgroundColor;
+                GUI.backgroundColor = new Color(1f, 0.8f, 0.4f);
+                if (GUILayout.Button(Lang("Download latest OSC"), GUILayout.Height(26)))
+                    OscDownloader.DownloadLatest(root.Language);
+                GUI.backgroundColor = background;
+            }
+            if (GUILayout.Button(Lang("Releases page"), GUILayout.Width(110), GUILayout.Height(26)))
+                Application.OpenURL(OscDownloader.ReleasesUrl);
+            EditorGUILayout.EndHorizontal();
+            if (syncSize.intValue >= 2)
+                Hint(Lang("Run ShellProtectorOSC once while playing VRChat and enter the user password. The key stays saved in the avatar after that."));
+            else
+                Hint(Lang("Keep ShellProtectorOSC running while playing VRChat and enter the user password. Set the sync speed to 2 or higher to run it only once."));
+
+            EndSection();
+        }
+
+        void DrawAdvancedOptions()
+        {
+            advancedOption = EditorGUILayout.Foldout(advancedOption, Lang("Advanced options"), true, foldoutStyle);
+            if (!advancedOption)
+            {
+                EndSection();
+                return;
+            }
+            EditorGUILayout.Space(4);
+
+            GUILayout.Label(Lang("Texture"), EditorStyles.boldLabel);
+            var filterLabel = new GUIContent(Lang("Default texture filter"), Lang("Setting it to 'Point' may result in aliasing, but performance is better."));
+            filter.intValue = EditorGUILayout.Popup(filterLabel, filter.intValue, ToContents(ShellProtector.FilterStrings));
+            var mipLabel = new GUIContent(Lang("Small mip texture"), Lang("It uses a smaller mipTexture to reduce memory usage and improve performance. It may look slightly different from the original when viewed from the side."));
+            bUseSmallMipTexture.boolValue = EditorGUILayout.Toggle(mipLabel, bUseSmallMipTexture.boolValue);
+
+            EditorGUILayout.Space(10);
+            GUILayout.Label(Lang("Fallback Options"), EditorStyles.boldLabel);
+            Hint(Lang("Opponents with Safety option turned on will see degraded textures instead of noise."));
+            var unlitLabel = new GUIContent(Lang("Unlit safety fallback"), Lang("Change all Safety Fallback settings of shader to Unlit."));
+            turnOnAllSafetyFallback.boolValue = EditorGUILayout.Toggle(unlitLabel, turnOnAllSafetyFallback.boolValue);
+            fallback.intValue = EditorGUILayout.Popup(new GUIContent(Lang("Default fallback texture")), fallback.intValue, ToContents(ShellProtector.FallbackStrings));
+
+
+            EditorGUILayout.Space(10);
+            GUILayout.Label(Lang("Output"), EditorStyles.boldLabel);
+            var deleteLabel = new GUIContent(Lang("Clean the output folder"), Lang("Delete folders that already exists when at creation time"));
+            deleteFolders.boolValue = EditorGUILayout.Toggle(deleteLabel, deleteFolders.boolValue);
+            if (GUILayout.Button(Lang("Delete previously encrypted files") + String.Format(" ({0})", root.GetEncryptedFoldersCount())))
+            {
+                serializedObject.ApplyModifiedProperties();
+                root.CleanEncrypted();
+                GUIUtility.ExitGUI();
+            }
+            EndSection();
+        }
+
+        bool CanEncrypt()
+        {
+            bool parameterReady = viewModel.HasEnoughParameterSpace || (viewModel.HasParameterAsset && forceProgress);
+            return root.Descriptor != null && viewModel.HasTargets && parameterReady;
+        }
+
+        // With Modular Avatar the avatar is encrypted on upload, so manual encryption is only a test tool under Debug.
+        void DrawEncrypt()
+        {
+#if MODULAR
+            EditorGUILayout.HelpBox(Lang("Modular avatars exist. It is automatically encrypted on upload."), MessageType.Info);
+#else
+            using (new EditorGUI.DisabledScope(!CanEncrypt()))
+            {
+                Color background = GUI.backgroundColor;
+                GUI.backgroundColor = new Color(0.55f, 0.85f, 0.6f);
+                bool pressed = GUILayout.Button(Lang("Encrypt!"), GUILayout.Height(32));
+                GUI.backgroundColor = background;
+                if (pressed)
+                    Encrypt();
+            }
+#endif
+            EditorGUILayout.Space(SectionSpacing);
+        }
+
+        void Encrypt()
+        {
             serializedObject.ApplyModifiedProperties();
+            root.Encrypt(bUseSmallMipTexture.boolValue, false);
+            GUIUtility.ExitGUI();
+        }
+
+        void DrawDebug()
+        {
+            debug = EditorGUILayout.Foldout(debug, Lang("Debug"), true);
+            if (!debug)
+                return;
+
+#if MODULAR
+            using (new EditorGUI.DisabledScope(!CanEncrypt()))
+            {
+                if (GUILayout.Button(Lang("Manual Encrypt! (for testing)")))
+                    Encrypt();
+            }
+#endif
+            if (GUILayout.Button(Lang("Chacha8 test")))
+                Test.ChachaTest(root.GetKeyBytes());
+            GUILayout.Space(10);
+
+            textureList.DoLayoutList();
+            if (GUILayout.Button(Lang("Encrypt")))
+            {
+                Texture2D last = null;
+                for (int i = 0; i < debugTextures.Count; i++)
+                {
+                    Texture2D texture = debugTextures[i];
+                    if (texture == null)
+                        continue;
+
+                    TextureSettings.SetRWEnableTexture(texture);
+
+                    var result = TextureEncryptManager.EncryptTexture(texture, root.GetKeyBytes(), new XXTEA());
+                    if (result.Texture1 == null)
+                        continue;
+
+                    last = result.Texture1;
+
+                    var writer = new AssetWriter();
+                    var outputPaths = new OutputPaths(root.AssetDir, root.Descriptor.gameObject);
+                    outputPaths.PrepareFolders(writer, false);
+
+                    writer.CreateAssetInFolder(result.Texture1, outputPaths.Folders.TexGuid, outputPaths.EncryptedTextureName(texture, 0));
+                    if (result.Texture2 != null)
+                    {
+                        File.WriteAllBytes(writer.UniquePathInFolder(outputPaths.Folders.TexGuid, OutputPaths.Sanitize(texture.name) + "_encrypt.png"), result.Texture2.EncodeToPNG());
+                        writer.CreateAssetInFolder(result.Texture2, outputPaths.Folders.TexGuid, outputPaths.EncryptedTextureName(texture, 2));
+                    }
+                    AssetDatabase.SaveAssets();
+
+                    AssetDatabase.Refresh();
+                }
+                if (last != null)
+                    Selection.activeObject = last;
+            }
+        }
+
+        static GUIContent[] ToContents(string[] texts)
+        {
+            var contents = new GUIContent[texts.Length];
+            for (int i = 0; i < texts.Length; i++)
+                contents[i] = new GUIContent(texts[i]);
+            return contents;
+        }
+
+        static bool IsNewerVersion(string latest, string current)
+        {
+            return Version.TryParse(latest, out Version latestParsed) &&
+                   Version.TryParse(current, out Version currentParsed) &&
+                   latestParsed > currentParsed;
         }
 
         [MenuItem("GameObject/ShellProtector")]
         static void AddShellProtector()
         {
-            LanguageManager lang = LanguageManager.GetInstance();
-
-            GameObject gameobject = Selection.activeTransform.gameObject;
-            var av3 = gameobject.GetComponent<VRCAvatarDescriptor>();
-            if(av3 == null)
+            GameObject gameobject = Selection.activeTransform != null ? Selection.activeTransform.gameObject : null;
+            var av3 = gameobject != null ? gameobject.GetComponent<VRCAvatarDescriptor>() : null;
+            if (av3 == null)
             {
                 ErrorWindow.ShowWindow("Can't find avatar decriptor!", Color.white);
                 return;
@@ -473,9 +536,11 @@ namespace Shell.Protector
             obj.name = "ShellProtector";
             obj.transform.parent = gameobject.transform;
 
+            // Reset() finds the avatar and adds Body; this covers the case where it didn't run.
             var shellProtector = obj.AddComponent<ShellProtector>();
             shellProtector.Descriptor = av3;
             shellProtector.Init();
+            Undo.RegisterCreatedObjectUndo(obj, "Add ShellProtector");
 
             Selection.activeObject = obj;
         }
