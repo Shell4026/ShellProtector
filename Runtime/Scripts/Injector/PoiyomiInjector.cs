@@ -84,7 +84,8 @@ namespace Shell.Protector
                 else if (Filter == 1)
                     shaderCode = ShaderCodeBilinear;
 
-                shaderData = Regex.Replace(shaderData, "float4 mainTexture = .*?;", string.Format("bool isDecrypted = i.isDecrypted == 1;\r\n{0}", shaderCode));
+                // Emission.cginc reuses the vertex stage's result instead of hashing the key again per pixel.
+                shaderData = Regex.Replace(shaderData, "float4 mainTexture = .*?;", string.Format("bool isDecrypted = i.isDecrypted == 1;\r\n_ShellDecryptedState = isDecrypted ? 1 : 0;\r\n{0}", shaderCode));
                 if (hasLimTexture)
                 {
                     if(version == 80)

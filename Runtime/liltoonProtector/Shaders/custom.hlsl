@@ -31,7 +31,10 @@
 		fd.col = DecryptTextureBilinear(_EncryptTex0, _EncryptTex1, sampler_EncryptTex0, _EncryptTex0_TexelSize, _MipTex, sampler_MipTex, fd.uvMain);
 #endif
 
+// _ShellDecryptedState: Emission.cginc reuses the vertex stage's result instead of hashing the key again per pixel. A 0/1
+// value lets the compiler drop its fallback.
 #define OVERRIDE_MAIN\
+	_ShellDecryptedState = input.isDecrypted != 0 ? 1 : 0;\
 	LIL_GET_MAIN_TEX\
 	UNITY_BRANCH\
 	if(input.isDecrypted == 0)\

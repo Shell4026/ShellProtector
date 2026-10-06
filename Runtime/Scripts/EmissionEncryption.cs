@@ -145,10 +145,10 @@ namespace Shell.Protector
                     writer.CreateAssetInFolder(encrypted.Texture1, folderGuid, source.name + map + "_encrypted.asset");
                     target.SetTexture(TextureProperty(slot), encrypted.Texture1);
                     if (encrypted.Texture2 != null)
-                    {
                         writer.CreateAssetInFolder(encrypted.Texture2, folderGuid, source.name + map + "_blocks.asset");
-                        target.SetTexture(BlocksProperty(slot), encrypted.Texture2);
-                    }
+                    // Emission.cginc reads the encrypted words from the Blocks slot: the endpoint texture for DXT, the
+                    // texture itself for RGBA, so the shader fetches from one texture instead of choosing per fetch.
+                    target.SetTexture(BlocksProperty(slot), encrypted.Texture2 != null ? encrypted.Texture2 : encrypted.Texture1);
                     // Poiyomi shares the main texture's sampler with emission;
                     // lilToon uses the emission map's own sampler.
                     Texture sampler = poiyomi && source.mainTexture != null ? source.mainTexture : texture;

@@ -7,7 +7,7 @@ float4 ShellSample_EmissionMap(float2 uv)
 {
     UNITY_BRANCH
     if(_ShellEmission0Settings.x > 0.5)
-        return SHELL_EMISSION_SAMPLE(0, uv, IsDecrypted());
+        return SHELL_EMISSION_SAMPLE(0, uv, ShellIsDecrypted());
     return LIL_SAMPLE_2D(_EmissionMap, sampler_EmissionMap, uv);
 }
 #endif
@@ -17,7 +17,7 @@ float4 ShellSample_Emission2ndMap(float2 uv)
 {
     UNITY_BRANCH
     if(_ShellEmission1Settings.x > 0.5)
-        return SHELL_EMISSION_SAMPLE(1, uv, IsDecrypted());
+        return SHELL_EMISSION_SAMPLE(1, uv, ShellIsDecrypted());
     return LIL_SAMPLE_2D(_Emission2ndMap, sampler_Emission2ndMap, uv);
 }
 #endif
