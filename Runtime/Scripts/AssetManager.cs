@@ -70,7 +70,7 @@ namespace Shell.Protector
                     return supportedVersions["Poiyomi 9.1"];
                 if (str.Contains("Poiyomi 9.0"))
                     return supportedVersions["Poiyomi 9.0"];
-                if(str.Contains("Poiymoi 8.0"))
+                if(str.Contains("Poiyomi 8.0"))
                     return supportedVersions["Poiyomi 8.0"];
                 if(str.Contains("Poiyomi 8.1"))
                     return supportedVersions["Poiyomi 8.1"];
