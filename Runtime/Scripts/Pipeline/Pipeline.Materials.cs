@@ -11,6 +11,8 @@ namespace Shell.Protector
     public sealed partial class Pipeline
     {
         readonly Dictionary<(int, int, bool), Texture2D> mipTextures = new Dictionary<(int, int, bool), Texture2D>();
+        // The secrets each Poiyomi main texture got first in this build (SelectShaderSecrets).
+        readonly Dictionary<Texture2D, ShaderSecrets> textureSecrets = new Dictionary<Texture2D, ShaderSecrets>();
 
         void EncryptMaterials()
         {
@@ -135,12 +137,20 @@ namespace Shell.Protector
 
         // A Poiyomi copy bakes the secrets of its main texture, so materials sharing a texture share one encryption of it.
         // lilToon materials all use the project's shader (LilToonShaders).
+        // The history is asked once per texture and build. Other secrets for a later material sharing the texture would
+        // make its copy need a second encryption of the texture (EncryptForOtherSecrets).
         ShaderSecrets SelectShaderSecrets(Material mat)
         {
             if (shaderManager.IsLilToon(mat.shader))
                 return LilToonShaders.GetSecrets();
 
-            return history.GetTextureSecrets((Texture2D)mat.mainTexture);
+            var texture = (Texture2D)mat.mainTexture;
+            if (!textureSecrets.TryGetValue(texture, out ShaderSecrets secrets))
+            {
+                secrets = history.GetTextureSecrets(texture);
+                textureSecrets.Add(texture, secrets);
+            }
+            return secrets;
         }
 
         // Reuses the Poiyomi copy injected by an earlier build if it bakes the same secrets; lilToon always takes the project's copy.
