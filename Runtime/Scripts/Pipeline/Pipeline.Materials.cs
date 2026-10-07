@@ -154,8 +154,6 @@ namespace Shell.Protector
             {
                 string shaderDir = writer.ResolveFolderPath(paths.EnsureShaderFolder(writer, mat));
                 encryptedShader = injector.Inject(mat, OutputPaths.Combine(settings.RuntimeDir, "Shader/Protector.cginc"), shaderDir, encryptedTexture, auxiliary);
-                Selection.activeObject = encryptedShader;
-                EditorApplication.ExecuteMenuItem("Assets/Reimport");
                 if (encryptedShader == null)
                 {
                     Debug.LogErrorFormat("{0}: Injection failed", mat.name);
@@ -213,10 +211,7 @@ namespace Shell.Protector
             if (mip == null)
                 Debug.LogErrorFormat("{0} : Can't generate mip tex{1}.", fileName, size);
             else
-            {
                 writer.CreateAssetInFolder(mip, paths.Folders.TexGuid, fileName);
-                writer.SaveAndRefresh();
-            }
             mipTextures[size] = mip;
             return mip;
         }
@@ -326,7 +321,6 @@ namespace Shell.Protector
                 if (fallback == null)
                     return null;
                 writer.CreateAssetInFolder(fallback, paths.Folders.TexGuid, fileName);
-                writer.SaveAndRefresh();
             }
 
             processedTexture.Fallbacks.Add(fallback);

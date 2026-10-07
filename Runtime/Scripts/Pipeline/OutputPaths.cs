@@ -76,7 +76,6 @@ namespace Shell.Protector
                 writer.DeleteAsset(Shader);
                 writer.DeleteAsset(Tex);
                 writer.DeleteAsset(Mesh);
-                writer.SaveAndRefresh();
             }
 
             Folders = new OutputFolders(
@@ -88,7 +87,6 @@ namespace Shell.Protector
                 writer.EnsureFolderAndGetGuid(Anim),
                 writer.EnsureFolderAndGetGuid(Mesh)
             );
-            writer.SaveAndRefresh();
             shaderFolderGuids.Clear();
             return Folders;
         }

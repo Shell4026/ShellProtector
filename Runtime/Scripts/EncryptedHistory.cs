@@ -114,7 +114,6 @@ namespace Shell.Protector
             }
 
             EditorUtility.SetDirty(this);
-            AssetDatabase.SaveAssets();
         }
 
         // With secrets, the copy is returned only if it bakes in those; otherwise it has to be injected again.

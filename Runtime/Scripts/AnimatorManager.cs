@@ -36,6 +36,9 @@ namespace Shell.Protector
                 if (targetPaths.ContainsKey(sourcePath))
                     continue;
 
+                // CopyAsset copies the file, so unsaved changes have to be written first.
+                AssetDatabase.SaveAssetIfDirty(animator);
+
                 if (!writer.CopyAssetToFolder(sourcePath, paths.Folders.AnimGuid, paths.ControllerName(animator), out string targetPath))
                 {
                     Debug.LogErrorFormat("Failed to copy a animator: {0}", animator.name);
@@ -44,9 +47,6 @@ namespace Shell.Protector
 
                 targetPaths.Add(sourcePath, targetPath);
             }
-
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
 
             var duplicatedAnimators = new AnimatorController[animators.Length];
             for (int i = 0; i < sourcePaths.Length; ++i)
@@ -85,8 +85,6 @@ namespace Shell.Protector
                     AddKeyCurve(clip, obj, n, filename.Contains("_"));
                 }
             }
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
         }
 
         static void AddKeyCurve(AnimationClip clip, GameObject obj, int keyIndex, bool secondKeyClip)
@@ -539,13 +537,13 @@ namespace Shell.Protector
                         }
                         else
                         {
+                            // The clip may be one this build created and changed since, such as an obfuscated copy.
+                            AssetDatabase.SaveAssetIfDirty(clip);
                             if (!writer.CopyAssetToFolder(path, paths.Folders.AnimGuid, paths.AnimationClipName(clip, "_encrypted"), out string copyPath))
                             {
                                 Debug.LogError("Copy error: " + copyPath);
                                 return null;
                             }
-                            AssetDatabase.SaveAssets();
-                            AssetDatabase.Refresh();
                             var newClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(copyPath);
                             encryptedClip.Add(clip, newClip);
                             clip = newClip;
@@ -591,8 +589,6 @@ namespace Shell.Protector
                     continue;
                 SearchStateMachine(stateMachine, original, encrypted, clone, paths, writer);
             }
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
         }
     }
 }

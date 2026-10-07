@@ -126,7 +126,6 @@ namespace Shell.Protector
             Debug.LogFormat("Obfuscator blendshapes : {0}", string.Join(", ", obfuscatedBlendShapeNames.Select(kv => $"{kv.Key}: {kv.Value}")));
 
             writer.CreateAssetInFolder(obfuscatedMesh, paths.Folders.MeshGuid, paths.MeshAssetName(mesh));
-            AssetDatabase.Refresh();
             return obfuscatedMesh;
         }
 
@@ -264,8 +263,6 @@ namespace Shell.Protector
                 {
                     newClip = Instantiate(clip);
                     assetWriter.CreateAssetInFolder(newClip, outputPaths.Folders.AnimGuid, outputPaths.AnimationClipName(clip, "_obfuscated"));
-                    AssetDatabase.SaveAssets();
-                    AssetDatabase.Refresh();
                     obfuscatedClip.Add(clip, newClip);
                 }
             }

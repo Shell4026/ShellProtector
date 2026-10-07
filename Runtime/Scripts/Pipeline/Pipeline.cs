@@ -11,7 +11,8 @@ using Debug = UnityEngine.Debug;
 namespace Shell.Protector
 {
     // One encryption of an avatar. Run encrypts the materials (Pipeline.Materials.cs), adds the key parameters, and then
-    // rewrites the rest of the avatar (Pipeline.Avatar.cs).
+    // rewrites the rest of the avatar (Pipeline.Avatar.cs). Assets are saved once at the end: everything is created
+    // through the AssetDatabase, which imports it right away, so nothing in between needs a save or a refresh.
     public sealed partial class Pipeline
     {
         readonly BuildRequest request;

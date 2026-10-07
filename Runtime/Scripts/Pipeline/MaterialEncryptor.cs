@@ -67,7 +67,6 @@ namespace Shell.Protector
             TextureEncryptManager.SetFormatKeywords(result, originalTex);
             EmissionEncryption.Apply(source, result, keyBytes, encryptor, secrets, writer, folderGuid, emissionMask);
             writer.CreateAssetInFolder(result, folderGuid, fileName);
-            writer.SaveAndRefresh();
             return result;
         }
     }

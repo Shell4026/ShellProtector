@@ -1,7 +1,10 @@
 #if UNITY_EDITOR
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
@@ -17,6 +20,8 @@ namespace Shell.Protector
         const string SettingsFile = "ShellProtectorSecrets.json";
         const string DataFile = "lilCustomShaderDatas.lilblock";
         const string InsertFile = "custom_insert.hlsl";
+        // Hash of the package's .cginc files that the copy includes by path (see GetShader).
+        const string IncludesFile = "ShellProtectorIncludes.txt";
 
         [Serializable]
         class Settings
@@ -38,7 +43,7 @@ namespace Shell.Protector
             string sourceDir = OutputPaths.Combine(runtimeDir, "liltoonProtector", "Shaders");
             string shaderDir = OutputPaths.Combine(runtimeDir, "Shader");
 
-            bool changed = false;
+            var changed = new HashSet<string>();
             foreach (string file in Directory.GetFiles(sourceDir))
             {
                 string fileName = Path.GetFileName(file);
@@ -48,10 +53,25 @@ namespace Shell.Protector
                 string text = Transform(fileName, File.ReadAllText(file), settings, shaderDir);
                 if (text == null)
                     return null;
-                changed |= WriteIfChanged(OutputPaths.Combine(Folder, fileName), text);
+                if (WriteIfChanged(OutputPaths.Combine(Folder, fileName), text))
+                    changed.Add(fileName);
             }
-            if (changed)
+            // The containers are generated from the blocks and include the package's .cginc files by path, and the lilToon importer
+            // doesn't track either. So when anything but a container changes, the containers that weren't rewritten are imported again.
+            if (WriteIfChanged(OutputPaths.Combine(Folder, IncludesFile), HashIncludes(shaderDir)))
+                changed.Add(IncludesFile);
+            if (changed.Count > 0)
+            {
                 AssetDatabase.Refresh();
+                if (changed.Any(f => !f.EndsWith(".lilcontainer", StringComparison.OrdinalIgnoreCase)))
+                {
+                    foreach (string container in Directory.GetFiles(Folder, "*.lilcontainer"))
+                    {
+                        if (!changed.Contains(Path.GetFileName(container)))
+                            AssetDatabase.ImportAsset(OutputPaths.Normalize(container), ImportAssetOptions.ForceUpdate);
+                    }
+                }
+            }
 
             return AssetDatabase.LoadAssetAtPath<Shader>(OutputPaths.Combine(Folder, containerName + ".lilcontainer"));
         }
@@ -84,6 +104,22 @@ namespace Shell.Protector
                 });
             }
             return text;
+        }
+
+        static string HashIncludes(string shaderDir)
+        {
+            using (SHA256 sha = SHA256.Create())
+            {
+                foreach (string file in Directory.GetFiles(shaderDir, "*.cginc").OrderBy(f => f, StringComparer.Ordinal))
+                {
+                    byte[] name = Encoding.UTF8.GetBytes(Path.GetFileName(file));
+                    byte[] data = File.ReadAllBytes(file);
+                    sha.TransformBlock(name, 0, name.Length, null, 0);
+                    sha.TransformBlock(data, 0, data.Length, null, 0);
+                }
+                sha.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+                return BitConverter.ToString(sha.Hash).Replace("-", "").ToLowerInvariant();
+            }
         }
 
         static bool WriteIfChanged(string path, string text)

@@ -141,8 +141,6 @@ namespace Shell.Protector
             var duplicatedMaterials = new Dictionary<Material, Material>();
             ReplaceProcessedTexturesWithFallbacks(Avatar.GetComponentsInChildren<MeshRenderer>(true), duplicatedMaterials);
             ReplaceProcessedTexturesWithFallbacks(Avatar.GetComponentsInChildren<SkinnedMeshRenderer>(true), duplicatedMaterials);
-            if (duplicatedMaterials.Count > 0)
-                writer.SaveAndRefresh();
         }
 
         void ReplaceProcessedTexturesWithFallbacks<T>(IEnumerable<T> renderers, Dictionary<Material, Material> duplicatedMaterials) where T : Renderer
@@ -256,9 +254,6 @@ namespace Shell.Protector
             string animationDir = writer.ResolveFolderPath(paths.Folders.AnimGuid);
             AnimatorManager.CreateKeyAnimations(OutputPaths.Combine(settings.RuntimeDir, "Animations"), paths, writer, Result.meshes.ToArray());
             AnimatorManager.AddKeyLayer(fx, animationDir, settings.KeySize, settings.SyncSize, 3.0f, settings.UserKey);
-
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
         }
 
         public void ObfuscateBlendShapes(bool clone)
