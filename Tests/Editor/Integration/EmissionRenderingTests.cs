@@ -248,6 +248,27 @@ namespace Shell.Protector.Tests.Integration
             Assert.That(EmissionEncryption.SlotKey(key, 0), Is.Not.EqualTo(slotKey));
         }
 
+        // Materials that share a main texture also share its nonce and secrets. The domain keeps the keystreams of their
+        // maps in the same slot apart, which would otherwise XOR to the XOR of the two images.
+        [TestCase(false)]
+        [TestCase(true)]
+        public void Domain_SeparatesKeystreamsOfTheSameSlot(bool xxtea)
+        {
+            Texture2D source = Pattern(16, 16, true);
+            byte[] key = Enumerable.Range(1, 16).Select(i => (byte)i).ToArray();
+            IEncryptor cipher = xxtea ? (IEncryptor)new XXTEA() : new Chacha20();
+            Texture2D first = EmissionEncryption.Encrypt(source, key, cipher, 0, 1).Texture1;
+            Texture2D second = EmissionEncryption.Encrypt(source, key, cipher, 0, 2).Texture1;
+            objects.Add(first);
+            objects.Add(second);
+
+            uint[] expected = source.GetPixels32(0).Select(Pack).ToArray();
+            uint[] secondWords = second.GetPixels32(0).Select(Pack).ToArray();
+            Assert.That(first.GetPixels32(0).Select(Pack).ToArray(), Is.Not.EqualTo(secondWords));
+            Assert.That(DecryptWords(secondWords, 16, 0, EmissionEncryption.SlotKey(key, 0, 2), cipher), Is.EqualTo(expected));
+            Assert.That(EmissionEncryption.NewDomain(), Is.LessThan(1u << 24), "The domain is stored in a float.");
+        }
+
         static uint Pack(Color32 c) => (uint)(c.r | c.g << 8 | c.b << 16 | c.a << 24);
 
         // Reference decryption of the RGBA32 layout that Emission.cginc reads: ChaCha encrypts 4x4 texels with one

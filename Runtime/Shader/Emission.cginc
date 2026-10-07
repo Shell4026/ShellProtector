@@ -4,8 +4,9 @@
 // 3 = DXT5. Format and dimensions are independent of the main texture.
 // The encrypted words are the texels of a data texture in the Blocks slot: the encrypted RGBA texture (the same one as the
 // main slot), or the endpoint texture (one texel per DXT block). It uses the main RGBA32 layout (EmissionEncryption): ChaCha
-// encrypts 4x4 data texels with one keystream block, XXTEA encrypts pairs of texels. The slot is mixed into key word 0 and
-// the mip level into key word 3. Every size is a power of two.
+// encrypts 4x4 data texels with one keystream block, XXTEA encrypts pairs of texels. The slot is mixed into key word 0, the
+// map's random domain (Wrap.w, see EmissionEncryption.NewDomain) into key word 1 and the mip level into key word 3. Every
+// size is a power of two.
 #define SHELL_EMISSION_SLOT(n) Texture2D _ShellEmission##n; Texture2D _ShellEmission##n##Blocks; float4 _ShellEmission##n##Settings; float4 _ShellEmission##n##Wrap;
 SHELL_EMISSION_SLOT(0)
 SHELL_EMISSION_SLOT(1)
@@ -74,7 +75,7 @@ uint ShellEmissionUnit(int2 d, int width, out int k)
 }
 
 // ChaCha leaves the keystream in words (ShellEmissionWord XORs each texel), XXTEA the decrypted pair.
-void ShellEmissionDecryptUnit(Texture2D data, uint unit, int width, int mip, uint slot, out uint words[SHELL_EMISSION_DATA_LENGTH])
+void ShellEmissionDecryptUnit(Texture2D data, uint unit, int width, int mip, uint slot, uint domain, out uint words[SHELL_EMISSION_DATA_LENGTH])
 {
 #ifdef _SHELL_PROTECTOR_CHACHA
     const uint first = unit;
@@ -89,7 +90,7 @@ void ShellEmissionDecryptUnit(Texture2D data, uint unit, int width, int mip, uin
 #endif
     const uint key[4] = {
         _SHELL_PROTECTOR_KEY_MASK0 ^ ((uint)round(_Key0) | ((uint)round(_Key1) << 8) | ((uint)round(_Key2) << 16) | ((uint)round(_Key3) << 24)) ^ (0x53450000u + slot),
-        _SHELL_PROTECTOR_KEY_MASK1 ^ ((uint)round(_Key4) | ((uint)round(_Key5) << 8) | ((uint)round(_Key6) << 16) | ((uint)round(_Key7) << 24)),
+        _SHELL_PROTECTOR_KEY_MASK1 ^ ((uint)round(_Key4) | ((uint)round(_Key5) << 8) | ((uint)round(_Key6) << 16) | ((uint)round(_Key7) << 24)) ^ domain,
         _SHELL_PROTECTOR_KEY_MASK2 ^ ((uint)round(_Key8) | ((uint)round(_Key9) << 8) | ((uint)round(_Key10) << 16) | ((uint)round(_Key11) << 24)),
         _SHELL_PROTECTOR_KEY_MASK3 ^ ((uint)round(_Key12) | ((uint)round(_Key13) << 8) | ((uint)round(_Key14) << 16) | ((uint)round(_Key15) << 24)) ^ first ^ ((uint)mip << 24)
     };
@@ -137,6 +138,7 @@ float4 ShellEmissionLevel(Texture2D tex, Texture2D data, float2 uv, int2 dimensi
 {
     const int2 size = max(dimensions >> mip, 1);
     const bool compressed = settings.x > 1.5;
+    const uint domain = (uint)round(wrap.w);
     const bool bilinear = settings.w > 0.5;
     const int width = compressed ? max(1, size.x >> 2) : size.x;
     const float2 position = uv * size - (bilinear ? 0.5 : 0.0);
@@ -159,7 +161,7 @@ float4 ShellEmissionLevel(Texture2D tex, Texture2D data, float2 uv, int2 dimensi
 
     // Same as DecryptTextureBilinear: decrypt again only for the taps that land in another unit.
     uint words[SHELL_EMISSION_DATA_LENGTH];
-    ShellEmissionDecryptUnit(data, unit00, width, mip, slot, words);
+    ShellEmissionDecryptUnit(data, unit00, width, mip, slot, domain, words);
     const uint word00 = ShellEmissionWord(data, d00, mip, words, k00);
     uint word10 = ShellEmissionWord(data, d10, mip, words, k10);
     uint word01 = ShellEmissionWord(data, d01, mip, words, k01);
@@ -168,7 +170,7 @@ float4 ShellEmissionLevel(Texture2D tex, Texture2D data, float2 uv, int2 dimensi
     [branch]
     if(unit10 != unit00)
     {
-        ShellEmissionDecryptUnit(data, unit10, width, mip, slot, words);
+        ShellEmissionDecryptUnit(data, unit10, width, mip, slot, domain, words);
         word10 = ShellEmissionWord(data, d10, mip, words, k10);
         if(unit11 == unit10)
             word11 = ShellEmissionWord(data, d11, mip, words, k11);
@@ -176,7 +178,7 @@ float4 ShellEmissionLevel(Texture2D tex, Texture2D data, float2 uv, int2 dimensi
     [branch]
     if(unit01 != unit00)
     {
-        ShellEmissionDecryptUnit(data, unit01, width, mip, slot, words);
+        ShellEmissionDecryptUnit(data, unit01, width, mip, slot, domain, words);
         word01 = ShellEmissionWord(data, d01, mip, words, k01);
         if(unit11 == unit01)
             word11 = ShellEmissionWord(data, d11, mip, words, k11);
@@ -184,7 +186,7 @@ float4 ShellEmissionLevel(Texture2D tex, Texture2D data, float2 uv, int2 dimensi
     [branch]
     if(unit11 != unit00 && unit11 != unit10 && unit11 != unit01)
     {
-        ShellEmissionDecryptUnit(data, unit11, width, mip, slot, words);
+        ShellEmissionDecryptUnit(data, unit11, width, mip, slot, domain, words);
         word11 = ShellEmissionWord(data, d11, mip, words, k11);
     }
 

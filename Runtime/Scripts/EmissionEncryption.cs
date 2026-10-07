@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using System;
+using System.Security.Cryptography;
 using UnityEditor;
 using UnityEngine;
 
@@ -36,15 +37,27 @@ namespace Shell.Protector
             return material.HasProperty(SettingsProperty(0)) && Array.IndexOf(maps, property) >= 0;
         }
 
-        public static byte[] SlotKey(byte[] key, int slot)
+        // The slot goes in key word 0 and the map's own domain in key word 1. Materials that share a main texture also
+        // share its nonce and secrets, so without the domain the same slot of both would reuse one keystream.
+        public static byte[] SlotKey(byte[] key, int slot, uint domain = 0)
         {
             var result = (byte[])key.Clone();
-            uint domain = 0x53450000u + (uint)slot;
-            for (int i = 0; i < 4; i++) result[i] ^= (byte)(domain >> (i * 8));
+            uint slotDomain = 0x53450000u + (uint)slot;
+            for (int i = 0; i < 4; i++) result[i] ^= (byte)(slotDomain >> (i * 8));
+            for (int i = 0; i < 4; i++) result[4 + i] ^= (byte)(domain >> (i * 8));
             return result;
         }
 
-        public static EncryptResult Encrypt(Texture2D source, byte[] key, IEncryptor cipher, int slot)
+        // A random domain per encrypted map. It is stored in the Wrap vector, a float, so it stays below 2^24.
+        public static uint NewDomain()
+        {
+            byte[] bytes = new byte[3];
+            using (var random = RandomNumberGenerator.Create())
+                random.GetBytes(bytes);
+            return (uint)(bytes[0] | bytes[1] << 8 | bytes[2] << 16);
+        }
+
+        public static EncryptResult Encrypt(Texture2D source, byte[] key, IEncryptor cipher, int slot, uint domain = 0)
         {
             if (!source.isReadable || !Mathf.IsPowerOfTwo(source.width) || !Mathf.IsPowerOfTwo(source.height) || source.width * source.height < 2)
                 throw new InvalidOperationException("Emission texture must be readable, power-of-two, and contain at least two pixels: " + source.name);
@@ -53,15 +66,15 @@ namespace Shell.Protector
             {
                 // Reuse the main texture's DXT1/DXT5 encoder: compressed selectors
                 // and alpha stay in Texture1, encrypted RGB565 endpoints in Texture2.
-                EncryptResult compressed = TextureEncryptManager.EncryptTexture(source, SlotKey(key, slot), cipher);
+                EncryptResult compressed = TextureEncryptManager.EncryptTexture(source, SlotKey(key, slot, domain), cipher);
                 compressed.Texture1.Apply(false, false);
                 compressed.Texture2.Apply(false, false);
                 return compressed;
             }
-            return new EncryptResult { Texture1 = EncryptRGBA(source, key, cipher, slot) };
+            return new EncryptResult { Texture1 = EncryptRGBA(source, key, cipher, slot, domain) };
         }
 
-        static Texture2D EncryptRGBA(Texture2D source, byte[] key, IEncryptor cipher, int slot)
+        static Texture2D EncryptRGBA(Texture2D source, byte[] key, IEncryptor cipher, int slot, uint domain)
         {
             // Omit the 1x1 mip: the ciphers operate on pairs of RGBA pixels.
             int levels = Math.Min(source.mipmapCount, (int)Mathf.Log(Math.Max(source.width, source.height), 2));
@@ -73,7 +86,7 @@ namespace Shell.Protector
             };
             try
             {
-                byte[] slotKey = SlotKey(key, slot);
+                byte[] slotKey = SlotKey(key, slot, domain);
                 uint[] words = BaseTextureFormat.ConvertKeyToUInt(slotKey);
                 for (int mip = 0; mip < levels; mip++)
                 {
@@ -147,7 +160,8 @@ namespace Shell.Protector
                         importer.crunchedCompression = false;
                         importer.SaveAndReimport();
                     }
-                    EncryptResult encrypted = Encrypt(texture, key, cipher, slot);
+                    uint domain = NewDomain();
+                    EncryptResult encrypted = Encrypt(texture, key, cipher, slot, domain);
                     writer.CreateAssetInFolder(encrypted.Texture1, folderGuid, source.name + map + "_encrypted.asset");
                     target.SetTexture(TextureProperty(slot), encrypted.Texture1);
                     if (encrypted.Texture2 != null)
@@ -160,7 +174,7 @@ namespace Shell.Protector
                     Texture sampler = poiyomi && source.mainTexture != null ? source.mainTexture : texture;
                     int format = texture.format == TextureFormat.DXT1 ? 2 : texture.format == TextureFormat.DXT5 ? 3 : 1;
                     target.SetVector(SettingsProperty(slot), new Vector4(format, texture.isDataSRGB ? 1 : 0, encrypted.Texture1.mipmapCount - 1, (int)sampler.filterMode));
-                    target.SetVector(WrapProperty(slot), new Vector4((int)sampler.wrapModeU, (int)sampler.wrapModeV, sampler.mipMapBias, 0));
+                    target.SetVector(WrapProperty(slot), new Vector4((int)sampler.wrapModeU, (int)sampler.wrapModeV, sampler.mipMapBias, domain));
                     // Keep UV transforms, but remove the original image from the output material.
                     target.SetTexture(map, Texture2D.blackTexture);
                 }
