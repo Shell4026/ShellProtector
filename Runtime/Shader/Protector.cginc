@@ -5,6 +5,7 @@
 #pragma shader_feature_local _SHELL_PROTECTOR_FORMAT0
 #pragma shader_feature_local _SHELL_PROTECTOR_FORMAT1
 #pragma shader_feature_local _SHELL_PROTECTOR_RIMLIGHT
+#pragma shader_feature_local _SHELL_PROTECTOR_POINT
 
 // Unity also compiles a no-keyword variant while importing shaders.
 #if !_SHELL_PROTECTOR_XXTEA && !_SHELL_PROTECTOR_CHACHA

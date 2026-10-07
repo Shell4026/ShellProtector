@@ -23,7 +23,7 @@
 	SAMPLER(sampler_MipTex);\
 	SAMPLER(sampler_EncryptTex0); 
 	
-#ifdef _POINT
+#ifdef _SHELL_PROTECTOR_POINT
 	#define CODE\
 		fd.col = DecryptTextureBox(_EncryptTex0, _EncryptTex1, sampler_EncryptTex0, _EncryptTex0_TexelSize, _MipTex, sampler_MipTex, fd.uvMain);
 #else

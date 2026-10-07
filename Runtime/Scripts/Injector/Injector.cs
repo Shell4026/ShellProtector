@@ -109,6 +109,10 @@ namespace Shell.Protector
             if (hasLimTexture)
                 material.EnableKeyword(ShaderProperties.RimLightKeyword);
 
+            // lilToon materials share one shader, so the filter is a keyword there. Poiyomi copies bake it in instead.
+            if (Filter == (int)ShellProtectorTextureFilter.Point)
+                material.EnableKeyword(ShaderProperties.PointKeyword);
+
             // Set encryptor keyword
             material.EnableKeyword(Encryptor.Keyword);
         }

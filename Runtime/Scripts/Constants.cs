@@ -32,6 +32,7 @@ namespace Shell.Protector
         public const string Format0Keyword = "_SHELL_PROTECTOR_FORMAT0";
         public const string Format1Keyword = "_SHELL_PROTECTOR_FORMAT1";
         public const string RimLightKeyword = "_SHELL_PROTECTOR_RIMLIGHT";
+        public const string PointKeyword = "_SHELL_PROTECTOR_POINT";
 
         public const string MipTexture = "_MipTex";
         public const string EncryptTexture0 = "_EncryptTex0";

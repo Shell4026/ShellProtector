@@ -129,7 +129,7 @@ namespace Shell.Protector.Tests.Integration
             AssertTamperedKeyRendersCorruptedOutput(encryptedMaterial, reference, "Poiyomi");
         }
 
-        // lilToon only: custom.hlsl always takes the bilinear path.
+        [TestCase("lilToon", ShellProtectorTextureFilter.Point)]
         [TestCase("lilToon", ShellProtectorTextureFilter.Bilinear)]
         [TestCase(".poiyomi/Poiyomi Toon", ShellProtectorTextureFilter.Point)]
         [TestCase(".poiyomi/Poiyomi Toon", ShellProtectorTextureFilter.Bilinear)]
@@ -149,6 +149,7 @@ namespace Shell.Protector.Tests.Integration
             Assert.That(encryptedMaterial.IsKeywordEnabled(ShaderProperties.ChachaKeyword), Is.True);
             Assert.That(encryptedMaterial.IsKeywordEnabled(ShaderProperties.Format0Keyword), Is.True, "BC7 enables both format keywords.");
             Assert.That(encryptedMaterial.IsKeywordEnabled(ShaderProperties.Format1Keyword), Is.True, "BC7 enables both format keywords.");
+            Assert.That(encryptedMaterial.IsKeywordEnabled(ShaderProperties.PointKeyword), Is.EqualTo(filter == ShellProtectorTextureFilter.Point));
             Assert.That(encryptedMaterial.GetVector(ShaderProperties.SourceTexelSize).z, Is.EqualTo(TextureSize), "The BC7 layout must be stored in the material.");
             var atlas = (Texture2D)encryptedMaterial.GetTexture(ShaderProperties.EncryptTexture0);
             Assert.That(atlas.GetRawTextureData().Length, Is.LessThan(TextureSize * TextureSize * 4), "The atlas must stay smaller than RGBA32.");
