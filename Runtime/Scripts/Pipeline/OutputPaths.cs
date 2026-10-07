@@ -53,7 +53,10 @@ namespace Shell.Protector
         public string EncryptedMaterialName(Material material) => BaseName(material) + "_encrypted.mat";
         public string DuplicatedMaterial(Material material) => Combine(Mat, BaseName(material) + "_duplicated.mat");
         public string DuplicatedMaterialName(Material material) => BaseName(material) + "_duplicated.mat";
-        public string ShaderDirectory(Material material) => Combine(Shader, BaseName(material));
+        // Materials with the same name must not share a folder: each injects its own copy of the shader under the same
+        // file name. The asset GUID keeps a material's folder the same across builds, so a copy reused from an earlier
+        // build stays where it is.
+        public string ShaderDirectory(Material material) => Combine(Shader, BaseName(material) + GuidSuffix(material));
         public string Parameters(string name) => Combine(Avatar, Sanitize(name) + ".asset");
         public string ParametersName(string name) => Sanitize(name) + ".asset";
         public string Controller(RuntimeAnimatorController controller) => Combine(Anim, BaseName(controller) + "_encrypted.controller");
@@ -99,9 +102,18 @@ namespace Shell.Protector
                 return guid;
 
             string folderGuid = writer.EnsureFolderAndGetGuid(ShaderDirectory(material));
+            // A material that isn't an asset has no GUID, so its folder may already belong to another material.
+            if (shaderFolderGuids.ContainsValue(folderGuid))
+                folderGuid = writer.EnsureFolderAndGetGuid(writer.UniquePath(ShaderDirectory(material)));
             if (material != null)
                 shaderFolderGuids[material] = folderGuid;
             return folderGuid;
+        }
+
+        static string GuidSuffix(Object asset)
+        {
+            string guid = asset != null ? AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(asset)) : "";
+            return string.IsNullOrEmpty(guid) ? "" : "_" + guid.Substring(0, 8);
         }
 
         // The avatar folders under root, which also hold the outputs of older versions (folders named by instance ID).

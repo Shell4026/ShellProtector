@@ -192,13 +192,10 @@ namespace Shell.Protector
             if (duplicatedMaterials.TryGetValue(source, out Material duplicatedMaterial))
                 return duplicatedMaterial;
 
-            string duplicatedPath = OutputPaths.Combine(writer.ResolveFolderPath(paths.Folders.MatGuid), paths.DuplicatedMaterialName(source));
-            duplicatedMaterial = AssetDatabase.LoadAssetAtPath<Material>(duplicatedPath);
-            if (duplicatedMaterial == null)
-            {
-                duplicatedMaterial = Object.Instantiate(source);
-                writer.CreateAssetInFolder(duplicatedMaterial, paths.Folders.MatGuid, paths.DuplicatedMaterialName(source));
-            }
+            // Always a new copy: a file with this name can be an earlier build's copy, or the copy of another material
+            // with the same name, and its other properties would be wrong.
+            duplicatedMaterial = Object.Instantiate(source);
+            writer.CreateAssetInFolder(duplicatedMaterial, paths.Folders.MatGuid, paths.DuplicatedMaterialName(source));
 
             duplicatedMaterials[source] = duplicatedMaterial;
             return duplicatedMaterial;
