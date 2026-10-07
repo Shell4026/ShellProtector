@@ -14,7 +14,7 @@ namespace Shell.Protector
             GameObject avatar = request.Owner.EncryptLegacy(request.UseSmallMipTexture, request.IsModular);
 
             BuildResult result = request.Owner.CurrentBuildResult;
-            result.Avatar = avatar;
+            result.avatar = avatar;
             return result;
         }
     }

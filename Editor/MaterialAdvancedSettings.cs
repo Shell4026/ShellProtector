@@ -87,9 +87,9 @@ namespace Shell.Protector
             EditorGUILayout.Space(10);
 
             scroll = GUILayout.BeginScrollView(scroll);
-            if (protector.MaterialOptions.Count == 0)
+            if (protector.materialOptions.Count == 0)
                 EditorGUILayout.HelpBox(Lang("Add the objects or materials to encrypt."), MessageType.Info);
-            foreach (var option in protector.MaterialOptions)
+            foreach (var option in protector.materialOptions)
             {
                 if (option.Key == null)
                     continue;
@@ -243,16 +243,16 @@ namespace Shell.Protector
             foreach (var mat in mats)
             {
                 matSets.Add(mat);
-                if (!protector.MaterialOptions.ContainsKey(mat))
+                if (!protector.materialOptions.ContainsKey(mat))
                 {
                     var option = new ShellProtector.MatOption();
                     option.Active = true;
-                    protector.MaterialOptions.Add(mat, option);
+                    protector.materialOptions.Add(mat, option);
                 }
             }
 
             List<Material> removed = new List<Material>();
-            foreach (var pair in protector.MaterialOptions)
+            foreach (var pair in protector.materialOptions)
             {
                 if (!matSets.Contains(pair.Key))
                 {
@@ -260,7 +260,7 @@ namespace Shell.Protector
                 }
             }
             foreach (var mat in removed)
-                protector.MaterialOptions.Remove(mat);
+                protector.materialOptions.Remove(mat);
         }
     }
 }

@@ -24,11 +24,11 @@ namespace Shell.Protector
                 for (int i = 0; i < materials.Length; ++i)
                 {
                     Material material = materials[i];
-                    if (material == null || !result.EncryptedMaterials.ContainsKey(material))
+                    if (material == null || !result.encryptedMaterials.ContainsKey(material))
                         continue;
 
-                    materials[i] = result.EncryptedMaterials[material];
-                    result.Meshes.Add(renderer.gameObject);
+                    materials[i] = result.encryptedMaterials[material];
+                    result.meshes.Add(renderer.gameObject);
                     changed = true;
                 }
 

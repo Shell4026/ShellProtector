@@ -181,8 +181,8 @@ namespace Shell.Protector.Tests.Integration
                 var protector = avatar.AddComponent<ShellProtector>();
                 protector.AssetDir = root + "/Pipeline";
                 var result = (BuildResult)typeof(ShellProtector).GetProperty("CurrentBuildResult", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).GetValue(protector);
-                result.EncryptedMaterials[source] = target;
-                result.ProcessedTextures[emission] = new ProcessedTexture
+                result.encryptedMaterials[source] = target;
+                result.processedTextures[emission] = new ProcessedTexture
                 {
                     Encrypted = encryptedMain,
                     Fallbacks = new List<Texture2D> { Texture2D.blackTexture },
@@ -339,7 +339,7 @@ namespace Shell.Protector.Tests.Integration
             var material = new Material(Shader.Find("lilToon"));
             objects.Add(material);
             AssetDatabase.CreateAsset(material, root + "/options.mat");
-            protector.MaterialOptions[material] = new ShellProtector.MatOption { EmissionMask = 5 };
+            protector.materialOptions[material] = new ShellProtector.MatOption { EmissionMask = 5 };
             protector.SaveMatOption();
             protector.SaveMatOption();
             Assert.That(new SerializedObject(protector).FindProperty("_matOptionSaved").arraySize, Is.EqualTo(1));
@@ -348,9 +348,9 @@ namespace Shell.Protector.Tests.Integration
             objects.Add(restoredOwner);
             var restored = restoredOwner.GetComponent<ShellProtector>();
             restored.SyncMatOption();
-            Assert.That(restored.MaterialOptions[material].EmissionMask, Is.EqualTo(5));
+            Assert.That(restored.materialOptions[material].EmissionMask, Is.EqualTo(5));
             restored.ResetMaterialOptions();
-            Assert.That(restored.MaterialOptions, Is.Empty);
+            Assert.That(restored.materialOptions, Is.Empty);
         }
     }
 }
