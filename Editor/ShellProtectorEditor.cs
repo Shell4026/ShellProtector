@@ -76,9 +76,9 @@ namespace Shell.Protector
         {
             root = target as ShellProtector;
 
-            gameobjectList = CreateList("_gameObjectList", "Object list");
-            materialList = CreateList("_materialList", "Material List");
-            obfuscationList = CreateList("_obfuscationRenderers", "Obfuscated meshes");
+            gameobjectList = CreateList("gameObjectList", "Object list");
+            materialList = CreateList("materialList", "Material List");
+            obfuscationList = CreateList("obfuscationRenderers", "Obfuscated meshes");
 
             textureList = new ReorderableList(debugTextures, typeof(Texture2D), true, true, true, true);
             textureList.drawHeaderCallback = rect => EditorGUI.LabelField(rect, Lang("Texture List"));
@@ -88,19 +88,19 @@ namespace Shell.Protector
             };
 
             #region SerializedObject
-            descriptor = serializedObject.FindProperty("_descriptor");
-            languageIndex = serializedObject.FindProperty("_languageIndex");
-            language = serializedObject.FindProperty("_language");
-            userPassword = serializedObject.FindProperty("_userPassword");
-            filter = serializedObject.FindProperty("_filter");
-            fallback = serializedObject.FindProperty("_fallback");
-            keySize = serializedObject.FindProperty("_keySize");
-            keySizeIdx = serializedObject.FindProperty("_keySizeIndex");
-            syncSize = serializedObject.FindProperty("_syncSize");
-            deleteFolders = serializedObject.FindProperty("_deleteFolders");
-            bUseSmallMipTexture = serializedObject.FindProperty("_useSmallMipTexture");
-            bPreserveMMD = serializedObject.FindProperty("_preserveMmd");
-            turnOnAllSafetyFallback = serializedObject.FindProperty("_turnOnAllSafetyFallback");
+            descriptor = serializedObject.FindProperty("descriptor");
+            languageIndex = serializedObject.FindProperty("languageIndex");
+            language = serializedObject.FindProperty("language");
+            userPassword = serializedObject.FindProperty("userPassword");
+            filter = serializedObject.FindProperty("filter");
+            fallback = serializedObject.FindProperty("fallback");
+            keySize = serializedObject.FindProperty("keySize");
+            keySizeIdx = serializedObject.FindProperty("keySizeIndex");
+            syncSize = serializedObject.FindProperty("syncSize");
+            deleteFolders = serializedObject.FindProperty("deleteFolders");
+            bUseSmallMipTexture = serializedObject.FindProperty("useSmallMipTexture");
+            bPreserveMMD = serializedObject.FindProperty("preserveMmd");
+            turnOnAllSafetyFallback = serializedObject.FindProperty("turnOnAllSafetyFallback");
             #endregion
             viewModel = new ShellProtectorEditorViewModel(root, keySize, syncSize, gameobjectList, materialList);
 
@@ -154,7 +154,7 @@ namespace Shell.Protector
         // XXTEA is deprecated and can't be selected anymore, so components that still use it move to ChaCha.
         void MigrateAlgorithm()
         {
-            SerializedProperty algorithm = serializedObject.FindProperty("_algorithm");
+            SerializedProperty algorithm = serializedObject.FindProperty("algorithm");
             if (!algorithm.hasMultipleDifferentValues && algorithm.intValue == (int)ShellProtectorAlgorithm.Chacha)
                 return;
             algorithm.intValue = (int)ShellProtectorAlgorithm.Chacha;

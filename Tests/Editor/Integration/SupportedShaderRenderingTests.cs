@@ -178,12 +178,12 @@ namespace Shell.Protector.Tests.Integration
             ShellProtector protector = avatar.AddComponent<ShellProtector>();
             protector.Descriptor = descriptor;
             protector.AssetDir = TestAssetScope.GeneratedRoot;
-            SetSerializedField(protector, "_gameObjectList", new List<GameObject> { avatar });
-            SetSerializedField(protector, "_algorithm", (int)ShellProtectorAlgorithm.Chacha);
-            SetSerializedField(protector, "_filter", (int)ShellProtectorTextureFilter.Bilinear);
-            SetSerializedField(protector, "_fallback", (int)ShellProtectorFallback.Size32);
-            SetSerializedField(protector, "_keySize", 12);
-            SetSerializedField(protector, "_syncSize", 1);
+            SetSerializedField(protector, "gameObjectList", new List<GameObject> { avatar });
+            SetSerializedField(protector, "algorithm", (int)ShellProtectorAlgorithm.Chacha);
+            SetSerializedField(protector, "filter", (int)ShellProtectorTextureFilter.Bilinear);
+            SetSerializedField(protector, "fallback", (int)ShellProtectorFallback.Size32);
+            SetSerializedField(protector, "keySize", 12);
+            SetSerializedField(protector, "syncSize", 1);
             protector.Init();
 
             return new Fixture

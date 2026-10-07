@@ -24,13 +24,15 @@ namespace Shell.Protector
         const string WrongRuntimeOutputDir = "Assets/ShellProtector/Runtime";
         const string DefaultOutputDir = "Assets/ShellProtector/Generated";
 
+        // The underscored names are those of 2.6.0 to 2.7.0.
         [FormerlySerializedAs("gameobjectList")]
+        [FormerlySerializedAs("_gameObjectList")]
         [SerializeField]
         List<GameObject> gameObjectList = new List<GameObject>();
-        [FormerlySerializedAs("materialList")]
+        [FormerlySerializedAs("_materialList")]
         [SerializeField]
         List<Material> materialList = new List<Material>();
-        [FormerlySerializedAs("obfuscationRenderers")]
+        [FormerlySerializedAs("_obfuscationRenderers")]
         [SerializeField]
         List<SkinnedMeshRenderer> obfuscationRenderers = new List<SkinnedMeshRenderer>();
 
@@ -46,19 +48,24 @@ namespace Shell.Protector
             Chacha = 1
         }
 
-        [FormerlySerializedAs("assetDir")]
+        [FormerlySerializedAs("_assetDir")]
         [SerializeField] string assetDir = DefaultOutputDir;
         [FormerlySerializedAs("pwd")]
+        [FormerlySerializedAs("_fixedPassword")]
         [SerializeField] string fixedPassword = "password";
         [FormerlySerializedAs("pwd2")]
+        [FormerlySerializedAs("_userPassword")]
         [SerializeField] string userPassword = "pass";
         // Per-avatar salt for UserKey. It stays the same across builds so the OSC app keeps finding it.
+        [FormerlySerializedAs("_parameterSalt")]
         [SerializeField] string parameterSalt = "";
         [FormerlySerializedAs("langIdx")]
+        [FormerlySerializedAs("_languageIndex")]
         [SerializeField] int languageIndex;
         [FormerlySerializedAs("lang")]
+        [FormerlySerializedAs("_language")]
         [SerializeField] string language = "kor";
-        [FormerlySerializedAs("descriptor")]
+        [FormerlySerializedAs("_descriptor")]
         [SerializeField] VRCAvatarDescriptor descriptor;
 
         public string AssetDir { get => assetDir; set => assetDir = value; }
@@ -86,53 +93,56 @@ namespace Shell.Protector
         [Serializable]
         public class MaterialOptionPair
         {
-            [FormerlySerializedAs("material")]
+            [FormerlySerializedAs("Material")]
             public Material material;
-            [FormerlySerializedAs("option")]
+            [FormerlySerializedAs("Option")]
             public MatOption option;
         }
 
-        [FormerlySerializedAs("matOptionSaved")]
+        [FormerlySerializedAs("_matOptionSaved")]
         [SerializeField]
         List<MaterialOptionPair> matOptionSaved = new List<MaterialOptionPair>();
         public Dictionary<Material, MatOption> materialOptions = new Dictionary<Material, MatOption>();
 
-        EncryptedHistory _history;
+        EncryptedHistory history;
 
         BuildResult buildResult = new BuildResult();
 
-        [FormerlySerializedAs("rounds")]
-        [SerializeField] uint _rounds = 20;
-        [FormerlySerializedAs("filter")]
-        [SerializeField] int _filter = 1;
-        [FormerlySerializedAs("fallback")]
-        [SerializeField] int _fallback = 5;
-        [FormerlySerializedAs("algorithm")]
-        [SerializeField] int _algorithm = 1;
+        [FormerlySerializedAs("_rounds")]
+        [SerializeField] uint rounds = 20;
+        [FormerlySerializedAs("_filter")]
+        [SerializeField] int filter = 1;
+        [FormerlySerializedAs("_fallback")]
+        [SerializeField] int fallback = 5;
+        [FormerlySerializedAs("_algorithm")]
+        [SerializeField] int algorithm = 1;
 #pragma warning disable CS0414
         [FormerlySerializedAs("keySizeIdx")]
-        [SerializeField] int _keySizeIndex = 3;
+        [FormerlySerializedAs("_keySizeIndex")]
+        [SerializeField] int keySizeIndex = 3;
 #pragma warning restore CS0414
-        [FormerlySerializedAs("keySize")]
-        [SerializeField] int _keySize = 12;
-        [FormerlySerializedAs("syncSize")]
-        [SerializeField] int _syncSize = 1;
-        [FormerlySerializedAs("deleteFolders")]
-        [SerializeField] bool _deleteFolders = true;
+        [FormerlySerializedAs("_keySize")]
+        [SerializeField] int keySize = 12;
+        [FormerlySerializedAs("_syncSize")]
+        [SerializeField] int syncSize = 1;
+        [FormerlySerializedAs("_deleteFolders")]
+        [SerializeField] bool deleteFolders = true;
         [FormerlySerializedAs("bUseSmallMipTexture")]
-        [SerializeField] bool _useSmallMipTexture = true;
+        [FormerlySerializedAs("_useSmallMipTexture")]
+        [SerializeField] bool useSmallMipTexture = true;
 
         [FormerlySerializedAs("bPreserveMMD")]
-        [SerializeField] bool _preserveMmd = true;
+        [FormerlySerializedAs("_preserveMmd")]
+        [SerializeField] bool preserveMmd = true;
 
-        [FormerlySerializedAs("turnOnAllSafetyFallback")]
-        [SerializeField] bool _turnOnAllSafetyFallback = true;
+        [FormerlySerializedAs("_turnOnAllSafetyFallback")]
+        [SerializeField] bool turnOnAllSafetyFallback = true;
 
         public static readonly string[] FilterStrings = new string[2] { "Point", "Bilinear" };
         public static readonly string[] FallbackStrings = new string[8] { "white", "black", "4x4", "8x8", "16x16", "32x32", "64x64", "128x128" };
 
-        Texture2D _fallbackWhite;
-        Texture2D _fallbackBlack;
+        Texture2D fallbackWhite;
+        Texture2D fallbackBlack;
 
         string GetPackageAssetDir()
         {
@@ -225,8 +235,8 @@ namespace Shell.Protector
             }
         }
 
-        UserKey _userKey;
-        string _userKeyPassword;
+        UserKey userKey;
+        string userKeyPassword;
 
         void Reset()
         {
@@ -252,12 +262,12 @@ namespace Shell.Protector
         public UserKey GetUserKey()
         {
             EnsureParameterSalt();
-            if (_userKey == null || _userKeyPassword != userPassword || _userKey.Salt != parameterSalt || _userKey.Length != _keySize)
+            if (userKey == null || userKeyPassword != userPassword || userKey.Salt != parameterSalt || userKey.Length != keySize)
             {
-                _userKey = UserKey.Derive(userPassword, parameterSalt, _keySize);
-                _userKeyPassword = userPassword;
+                userKey = UserKey.Derive(userPassword, parameterSalt, keySize);
+                userKeyPassword = userPassword;
             }
-            return _userKey;
+            return userKey;
         }
 
         public byte[] GetKeyBytes()
@@ -275,7 +285,7 @@ namespace Shell.Protector
 
         public GameObject Encrypt(bool isModular = true)
         {
-            return Encrypt(_useSmallMipTexture, isModular);
+            return Encrypt(useSmallMipTexture, isModular);
         }
 
         public GameObject Encrypt(bool useSmallMip, bool isModular = true)
@@ -303,16 +313,16 @@ namespace Shell.Protector
                 ParameterSalt = parameterSalt,
                 Language = language,
                 LanguageIndex = languageIndex,
-                Rounds = _rounds,
-                Filter = _filter,
-                Fallback = _fallback,
-                Algorithm = _algorithm,
-                KeySize = _keySize,
-                SyncSize = _syncSize,
-                DeleteFolders = _deleteFolders,
-                UseSmallMipTexture = _useSmallMipTexture,
-                PreserveMMD = _preserveMmd,
-                TurnOnAllSafetyFallback = _turnOnAllSafetyFallback
+                Rounds = rounds,
+                Filter = filter,
+                Fallback = fallback,
+                Algorithm = algorithm,
+                KeySize = keySize,
+                SyncSize = syncSize,
+                DeleteFolders = deleteFolders,
+                UseSmallMipTexture = useSmallMipTexture,
+                PreserveMMD = preserveMmd,
+                TurnOnAllSafetyFallback = turnOnAllSafetyFallback
             };
         }
 
@@ -328,16 +338,16 @@ namespace Shell.Protector
             parameterSalt = settings.ParameterSalt;
             language = settings.Language;
             languageIndex = settings.LanguageIndex;
-            _rounds = settings.Rounds;
-            _filter = settings.Filter;
-            _fallback = settings.Fallback;
-            _algorithm = settings.Algorithm;
-            _keySize = settings.KeySize;
-            _syncSize = settings.SyncSize;
-            _deleteFolders = settings.DeleteFolders;
-            _useSmallMipTexture = settings.UseSmallMipTexture;
-            _preserveMmd = settings.PreserveMMD;
-            _turnOnAllSafetyFallback = settings.TurnOnAllSafetyFallback;
+            rounds = settings.Rounds;
+            filter = settings.Filter;
+            fallback = settings.Fallback;
+            algorithm = settings.Algorithm;
+            keySize = settings.KeySize;
+            syncSize = settings.SyncSize;
+            deleteFolders = settings.DeleteFolders;
+            useSmallMipTexture = settings.UseSmallMipTexture;
+            preserveMmd = settings.PreserveMMD;
+            turnOnAllSafetyFallback = settings.TurnOnAllSafetyFallback;
         }
 
         internal GameObject EncryptLegacy(bool useSmallMip, bool isModular = true)
@@ -362,10 +372,10 @@ namespace Shell.Protector
                 Debug.LogWarning("[ShellProtector] The parameter salt was generated during the build, so it changes on every upload. Select the ShellProtector component once to save a salt.");
             SaltRegistry.Register(parameterSalt);
 
-            if (_fallbackWhite == null)
-                _fallbackWhite = AssetDatabase.LoadAssetAtPath(OutputPaths.Combine(resourceDir, "white.png"), typeof(Texture2D)) as Texture2D;
-            if (_fallbackBlack == null)
-                _fallbackBlack = AssetDatabase.LoadAssetAtPath(OutputPaths.Combine(resourceDir, "black.png"), typeof(Texture2D)) as Texture2D;
+            if (fallbackWhite == null)
+                fallbackWhite = AssetDatabase.LoadAssetAtPath(OutputPaths.Combine(resourceDir, "white.png"), typeof(Texture2D)) as Texture2D;
+            if (fallbackBlack == null)
+                fallbackBlack = AssetDatabase.LoadAssetAtPath(OutputPaths.Combine(resourceDir, "black.png"), typeof(Texture2D)) as Texture2D;
 
             if (descriptor == null)
             {
@@ -375,7 +385,7 @@ namespace Shell.Protector
 
             descriptor.gameObject.SetActive(true);
             // The fixed key bytes are stored in the encrypted materials, so nobody has to remember them and each build picks new ones.
-            fixedPassword = KeyGenerator.GenerateRandomString(16 - _keySize);
+            fixedPassword = KeyGenerator.GenerateRandomString(16 - keySize);
             Debug.Log("Key bytes: " + string.Join(", ", GetKeyBytes()));
 
             var materials = new List<Material>();
@@ -410,13 +420,13 @@ namespace Shell.Protector
 
             ///////////////////Select crypto algorithm/////////////////////
             IEncryptor encryptor = new XXTEA();
-            if (_algorithm == (int)Algorithm.Xxtea)
+            if (algorithm == (int)Algorithm.Xxtea)
             {
                 XXTEA xxtea = new XXTEA();
-                xxtea.Rounds = _rounds;
+                xxtea.Rounds = rounds;
                 encryptor = xxtea;
             }
-            else if (_algorithm == (int)Algorithm.Chacha)
+            else if (algorithm == (int)Algorithm.Chacha)
             {
                 Chacha20 chacha = new Chacha20();
                 byte[] hash1 = KeyGenerator.GetKeyHash(keyBytes, KeyGenerator.GenerateRandomString(chacha.Nonce.Length));
@@ -425,16 +435,16 @@ namespace Shell.Protector
             }
             ///////////////////////////////////////////////////////////////
 
-            if (_history == null)
+            if (history == null)
             {
-                _history = AssetDatabase.LoadAssetAtPath(outputPaths.History(), typeof(EncryptedHistory)) as EncryptedHistory;
-                if (_history == null)
+                history = AssetDatabase.LoadAssetAtPath(outputPaths.History(), typeof(EncryptedHistory)) as EncryptedHistory;
+                if (history == null)
                 {
-                    _history = EncryptedHistory.CreateCurrent();
-                    assetWriter.CreateAssetInFolder(_history, outputPaths.Folders.RootGuid, outputPaths.HistoryName());
+                    history = EncryptedHistory.CreateCurrent();
+                    assetWriter.CreateAssetInFolder(history, outputPaths.Folders.RootGuid, outputPaths.HistoryName());
                 }
             }
-            _history.LoadData();
+            history.LoadData();
 
             int progress = 0;
             int maxprogress = materials.Count;
@@ -444,7 +454,7 @@ namespace Shell.Protector
             {
                 if (mat == null)
                     continue;
-                int materialFilter = _filter;
+                int materialFilter = filter;
 #if UNITY_2022
                 MatOption option = materialOptions.GetValueOrDefault(mat, null);
 #else
@@ -486,7 +496,7 @@ namespace Shell.Protector
                 Texture2D mainTexture = (Texture2D)mat.mainTexture;
                 ShaderSecrets secrets = SelectShaderSecrets(mat);
                 Shader encryptedShader = shaderManager.IsLilToon(mat.shader) ? null : IsEncryptedBefore(mat.shader, secrets);
-                injector.Init(descriptor.gameObject, mainTexture, keyBytes, _keySize, materialFilter, resourceDir, encryptor, secrets);
+                injector.Init(descriptor.gameObject, mainTexture, keyBytes, keySize, materialFilter, resourceDir, encryptor, secrets);
 
                 int mipRefSize = Math.Max(mat.mainTexture.width, mat.mainTexture.height);
                 if (!mips.ContainsKey(mipRefSize))
@@ -536,7 +546,7 @@ namespace Shell.Protector
                             Debug.LogErrorFormat("{0}: Injection failed", mat.name);
                             continue;
                         }
-                        _history.Save(mat.shader, secrets);
+                        history.Save(mat.shader, secrets);
                     }
                     catch (UnityException e)
                     {
@@ -560,7 +570,7 @@ namespace Shell.Protector
 
             ///////////////////////parameter////////////////////
             var av3 = avatar.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
-            av3.expressionParameters = ParameterManager.AddKeyParameter(av3.expressionParameters, _keySize, _syncSize, GetUserKey());
+            av3.expressionParameters = ParameterManager.AddKeyParameter(av3.expressionParameters, keySize, syncSize, GetUserKey());
             assetWriter.CreateAssetInFolder(av3.expressionParameters, outputPaths.Folders.AvatarGuid, outputPaths.ParametersName(av3.expressionParameters.name));
             ////////////////////////////////////////////////////
             if (!isModular)
@@ -575,7 +585,7 @@ namespace Shell.Protector
                 tester.Language = language;
                 tester.LanguageIndex = languageIndex;
                 tester.Protector = this;
-                tester.UserKeyLength = _keySize;
+                tester.UserKeyLength = keySize;
                 Selection.activeObject = tester;
 
 #if MODULAR
@@ -814,7 +824,7 @@ namespace Shell.Protector
             GameObject[] meshArray = new GameObject[buildResult.meshes.Count];
             buildResult.meshes.CopyTo(meshArray);
             AnimatorManager.CreateKeyAnimations(OutputPaths.Combine(GetRuntimeAssetDir(), "Animations"), paths, assetWriter, meshArray);
-            AnimatorManager.AddKeyLayer(fx, animationDir, _keySize, _syncSize, 3.0f, GetUserKey());
+            AnimatorManager.AddKeyLayer(fx, animationDir, keySize, syncSize, 3.0f, GetUserKey());
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -880,7 +890,7 @@ namespace Shell.Protector
 
             Obfuscator obfuscator = ScriptableObject.CreateInstance<Obfuscator>();
             obfuscator.Clone = clone;
-            obfuscator.PreserveMmd = _preserveMmd;
+            obfuscator.PreserveMmd = preserveMmd;
 
             var childRenderers = avatar.GetComponentsInChildren<SkinnedMeshRenderer>();
 
@@ -1014,13 +1024,13 @@ namespace Shell.Protector
         // so drop every previous output (and the history) before this build writes anything.
         void CleanOutdatedEncrypted()
         {
-            var history = AssetDatabase.LoadAssetAtPath<EncryptedHistory>(OutputPaths.Combine(assetDir, "EncryptedHistory.asset"));
-            if (history == null || !history.IsOutdatedFormat)
+            var outdated = AssetDatabase.LoadAssetAtPath<EncryptedHistory>(OutputPaths.Combine(assetDir, "EncryptedHistory.asset"));
+            if (outdated == null || !outdated.IsOutdatedFormat)
                 return;
 
             Debug.LogWarning("[ShellProtector] Previously encrypted files use an older format and are being deleted.");
             CleanEncrypted();
-            _history = null;
+            history = null;
         }
 
         public void CleanEncrypted()
@@ -1075,15 +1085,15 @@ namespace Shell.Protector
 
         public int GetDefaultFilter()
         {
-            return _filter;
+            return filter;
         }
         public int GetDefaultFallback()
         {
-            return _fallback;
+            return fallback;
         }
         public int GetKeySize()
         {
-            return _keySize;
+            return keySize;
         }
 
         public void ResetMaterialOptions()
@@ -1099,25 +1109,25 @@ namespace Shell.Protector
             if (shaderManager.IsLilToon(mat.shader))
                 return LilToonShaders.GetSecrets();
 
-            return _history.GetTextureSecrets((Texture2D)mat.mainTexture);
+            return history.GetTextureSecrets((Texture2D)mat.mainTexture);
         }
 
         public Shader IsEncryptedBefore(Shader shader, ShaderSecrets secrets = null)
         {
-            if (_history == null)
+            if (history == null)
             {
-                _history = AssetDatabase.LoadAssetAtPath(GetOutputPaths().History(), typeof(EncryptedHistory)) as EncryptedHistory;
-                if (_history == null)
+                history = AssetDatabase.LoadAssetAtPath(GetOutputPaths().History(), typeof(EncryptedHistory)) as EncryptedHistory;
+                if (history == null)
                 {
-                    _history = EncryptedHistory.CreateCurrent();
+                    history = EncryptedHistory.CreateCurrent();
                     OutputPaths paths = GetOutputPaths();
                     if (paths.Folders == null)
                         paths.PrepareFolders(assetWriter, false);
-                    assetWriter.CreateAssetInFolder(_history, paths.Folders.RootGuid, paths.HistoryName());
+                    assetWriter.CreateAssetInFolder(history, paths.Folders.RootGuid, paths.HistoryName());
                 }
             }
-            _history.LoadData();
-            return _history.IsEncryptedBefore(shader, secrets);
+            history.LoadData();
+            return history.IsEncryptedBefore(shader, secrets);
         }
 
         public static int GetRequiredSwitchCount(int keyLength, int syncSize)
@@ -1210,7 +1220,7 @@ namespace Shell.Protector
         void CreateFolders()
         {
             OutputPaths paths = GetOutputPaths();
-            paths.PrepareFolders(assetWriter, _deleteFolders && AssetDatabase.IsValidFolder(paths.Avatar));
+            paths.PrepareFolders(assetWriter, deleteFolders && AssetDatabase.IsValidFolder(paths.Avatar));
         }
 
         Texture2D GenerateMipRefTexture(string fileName, int size, bool useSmallMip)
@@ -1248,7 +1258,7 @@ namespace Shell.Protector
             }
 
             //Set chacha nonce
-            if (_algorithm == (int)Algorithm.Chacha)
+            if (algorithm == (int)Algorithm.Chacha)
             {
                 Chacha20 chacha = encryptor as Chacha20;
                 if (!processed)
@@ -1322,7 +1332,7 @@ namespace Shell.Protector
         }
         Texture2D GenerateFallbackTexture(string fileName, MatOption option, Texture2D mainTexture, ref ProcessedTexture processedTexture)
         {
-            int fallbackOption = _fallback;
+            int fallbackOption = this.fallback;
             if (option != null)
                 fallbackOption = option.Fallback;
 
@@ -1374,14 +1384,14 @@ namespace Shell.Protector
                     switch (fallbackSize)
                     {
                         case 0:
-                            processedTexture.Fallbacks.Add(_fallbackWhite);
+                            processedTexture.Fallbacks.Add(fallbackWhite);
                             processedTexture.FallbackOptions.Add(fallbackOption);
-                            fallback = _fallbackWhite;
+                            fallback = fallbackWhite;
                             break;
                         case 1:
-                            processedTexture.Fallbacks.Add(_fallbackBlack);
+                            processedTexture.Fallbacks.Add(fallbackBlack);
                             processedTexture.FallbackOptions.Add(fallbackOption);
-                            fallback = _fallbackBlack;
+                            fallback = fallbackBlack;
                             break;
                     }
                 }
@@ -1393,9 +1403,9 @@ namespace Shell.Protector
         }
         Material GenerateEncryptedMaterial(string fileName, Material mat, Shader encryptedShader, Texture2D fallback, Texture2D mip, AuxiliaryTextures otherTex, ProcessedTexture processedTexture, byte[] keyBytes, IEncryptor encryptor, ShaderSecrets secrets)
         {
-            MaterialEncryptor materialEncryptor = new MaterialEncryptor(assetWriter, _turnOnAllSafetyFallback, _algorithm, _rounds);
+            MaterialEncryptor materialEncryptor = new MaterialEncryptor(assetWriter, turnOnAllSafetyFallback, algorithm, rounds);
             int emissionMask = materialOptions.TryGetValue(mat, out var option) ? option.EmissionMask : 0;
-            Material newMat = materialEncryptor.CreateEncryptedMaterial(GetOutputPaths().Folders.MatGuid, fileName, mat, encryptedShader, fallback, mip, otherTex, processedTexture, keyBytes, 16 - _keySize, encryptor, injector, secrets, emissionMask);
+            Material newMat = materialEncryptor.CreateEncryptedMaterial(GetOutputPaths().Folders.MatGuid, fileName, mat, encryptedShader, fallback, mip, otherTex, processedTexture, keyBytes, 16 - keySize, encryptor, injector, secrets, emissionMask);
             Debug.LogFormat("{0} : create encrypted material : {1}", mat.name, AssetDatabase.GetAssetPath(newMat));
 
             if (!buildResult.encryptedMaterials.ContainsKey(mat))

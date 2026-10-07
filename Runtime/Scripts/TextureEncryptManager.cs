@@ -8,7 +8,7 @@ namespace Shell.Protector
 {
     public class TextureEncryptManager
     {
-        private static readonly Dictionary<TextureFormat, ITextureFormat> _formats = new Dictionary<TextureFormat, ITextureFormat> {
+        private static readonly Dictionary<TextureFormat, ITextureFormat> formats = new Dictionary<TextureFormat, ITextureFormat> {
             { TextureFormat.DXT1, new DXT1Format() },
             { TextureFormat.DXT1Crunched, new DXT1Format() },
             { TextureFormat.DXT5, new DXT5Format() },
@@ -104,7 +104,7 @@ namespace Shell.Protector
                 return null;
             }
 
-            return _formats.FirstOrDefault(f => f.Value.CanHandle(texture2D.format)).Value;
+            return formats.FirstOrDefault(f => f.Value.CanHandle(texture2D.format)).Value;
         }
 
         private static ITextureFormat GetFormat(Material material)

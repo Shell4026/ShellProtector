@@ -10,26 +10,26 @@ namespace Shell.Protector
 {
     public class AssetManager
     {
-        static AssetManager _instance;
-        readonly Dictionary<string, int> _supportedVersions = new Dictionary<string, int>();
+        static AssetManager instance;
+        readonly Dictionary<string, int> supportedVersions = new Dictionary<string, int>();
 
         public static AssetManager GetInstance()
         {
-            if (_instance == null)
-                _instance = new AssetManager();
-            return _instance;
+            if (instance == null)
+                instance = new AssetManager();
+            return instance;
         }
         AssetManager()
         {
-            _supportedVersions.Add("Poiyomi 8.0", 80);
-            _supportedVersions.Add("Poiyomi 8.1", 81);
-            _supportedVersions.Add("Poiyomi 8.2", 82);
-            _supportedVersions.Add("Poiyomi 9.0", 90);
-            _supportedVersions.Add("Poiyomi 9.1", 91);
-            _supportedVersions.Add("Poiyomi 9.2", 92);
-            _supportedVersions.Add("Poiyomi 9.3", 93);
-           _supportedVersions.Add("Poiyomi 10.0", 100);
-            _supportedVersions.Add("lilToon", 0);
+            supportedVersions.Add("Poiyomi 8.0", 80);
+            supportedVersions.Add("Poiyomi 8.1", 81);
+            supportedVersions.Add("Poiyomi 8.2", 82);
+            supportedVersions.Add("Poiyomi 9.0", 90);
+            supportedVersions.Add("Poiyomi 9.1", 91);
+            supportedVersions.Add("Poiyomi 9.2", 92);
+            supportedVersions.Add("Poiyomi 9.3", 93);
+           supportedVersions.Add("Poiyomi 10.0", 100);
+            supportedVersions.Add("lilToon", 0);
         }
         public bool IsPoiyomi(Shader shader)
         {
@@ -51,31 +51,31 @@ namespace Shell.Protector
         }
         public int GetShaderType(Shader shader)
         {
-            foreach (var version in _supportedVersions)
+            foreach (var version in supportedVersions)
             {
                 if (shader.name.Contains(version.Key))
-                    return _supportedVersions[version.Key];
+                    return supportedVersions[version.Key];
             }
             int poiyomiLabel = shader.FindPropertyIndex("shader_master_label");
             if (poiyomiLabel != -1)
             {
                 var str = shader.GetPropertyDescription(poiyomiLabel);
                 if (str.Contains("Poiyomi 10.0"))
-                    return _supportedVersions["Poiyomi 10.0"];
+                    return supportedVersions["Poiyomi 10.0"];
                 if (str.Contains("Poiyomi 9.3"))
-                    return _supportedVersions["Poiyomi 9.3"];
+                    return supportedVersions["Poiyomi 9.3"];
                 if (str.Contains("Poiyomi 9.2"))
-                    return _supportedVersions["Poiyomi 9.2"];
+                    return supportedVersions["Poiyomi 9.2"];
                 if (str.Contains("Poiyomi 9.1"))
-                    return _supportedVersions["Poiyomi 9.1"];
+                    return supportedVersions["Poiyomi 9.1"];
                 if (str.Contains("Poiyomi 9.0"))
-                    return _supportedVersions["Poiyomi 9.0"];
+                    return supportedVersions["Poiyomi 9.0"];
                 if(str.Contains("Poiymoi 8.0"))
-                    return _supportedVersions["Poiyomi 8.0"];
+                    return supportedVersions["Poiyomi 8.0"];
                 if(str.Contains("Poiyomi 8.1"))
-                    return _supportedVersions["Poiyomi 8.1"];
+                    return supportedVersions["Poiyomi 8.1"];
                 if (str.Contains("Poiyomi 8.2"))
-                    return _supportedVersions["Poiyomi 8.2"];
+                    return supportedVersions["Poiyomi 8.2"];
             }
             return -1;
         }

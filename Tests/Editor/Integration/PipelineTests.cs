@@ -146,7 +146,7 @@ namespace Shell.Protector.Tests.Integration
 
             // The face goes first, so the body's pass runs after the face's indices were already remapped.
             var renderers = obfuscateFace ? new List<SkinnedMeshRenderer> { face, body } : new List<SkinnedMeshRenderer> { body };
-            SetSerializedField(fixture.Protector, "_obfuscationRenderers", renderers);
+            SetSerializedField(fixture.Protector, "obfuscationRenderers", renderers);
 
             fixture.Protector.ObfuscateBlendShape(fixture.Avatar, false);
 
@@ -324,12 +324,12 @@ namespace Shell.Protector.Tests.Integration
             protector.Descriptor = descriptor;
             if (assetDir != null)
                 protector.AssetDir = assetDir;
-            SetSerializedField(protector, "_gameObjectList", new List<GameObject> { avatar });
-            SetSerializedField(protector, "_algorithm", 1);
-            SetSerializedField(protector, "_filter", 0);
-            SetSerializedField(protector, "_fallback", 5);
-            SetSerializedField(protector, "_keySize", 12);
-            SetSerializedField(protector, "_syncSize", 1);
+            SetSerializedField(protector, "gameObjectList", new List<GameObject> { avatar });
+            SetSerializedField(protector, "algorithm", 1);
+            SetSerializedField(protector, "filter", 0);
+            SetSerializedField(protector, "fallback", 5);
+            SetSerializedField(protector, "keySize", 12);
+            SetSerializedField(protector, "syncSize", 1);
             protector.Init();
 
             return new Fixture

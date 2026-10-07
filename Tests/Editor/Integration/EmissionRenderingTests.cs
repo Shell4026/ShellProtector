@@ -342,7 +342,7 @@ namespace Shell.Protector.Tests.Integration
             protector.materialOptions[material] = new ShellProtector.MatOption { EmissionMask = 5 };
             protector.SaveMatOption();
             protector.SaveMatOption();
-            Assert.That(new SerializedObject(protector).FindProperty("_matOptionSaved").arraySize, Is.EqualTo(1));
+            Assert.That(new SerializedObject(protector).FindProperty("matOptionSaved").arraySize, Is.EqualTo(1));
             PrefabUtility.SaveAsPrefabAsset(owner, root + "/options.prefab");
             var restoredOwner = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(root + "/options.prefab"));
             objects.Add(restoredOwner);
