@@ -45,5 +45,8 @@ namespace Shell.Protector
         public const string PasswordHash = "_PasswordHash";
         public const string HashMagic = "_HashMagic";
         public const string KeyPrefix = "_Key";
+        public const string SourceTexelSize = "_ShellSourceTexelSize";
+        public const string SourceSampling = "_ShellSourceSampling";
+        public const string MipOffsetsPrefix = "_ShellMipOffsets";
     }
 }

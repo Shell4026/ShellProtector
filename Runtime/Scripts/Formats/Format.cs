@@ -8,6 +8,8 @@ namespace Shell.Protector
     public struct EncryptResult {
         public Texture2D Texture1;
         public Texture2D Texture2;
+        // BC7 only: how the atlas in Texture1 is addressed (BC7Format.SetLayoutProperties).
+        public BC7TextureLayout Layout;
     }
 
     public interface ITextureFormat {
