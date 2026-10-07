@@ -56,6 +56,17 @@ uint SelectWord(const uint data[16], int k)
 	return b3 ? d.y : d.x;
 }
 
+// A BC7 record (BC7.cginc). Only the low three bits of k are used.
+uint SelectWord(const uint data[8], int k)
+{
+	const bool b0 = (k & 1) != 0;
+	const bool b1 = (k & 2) != 0;
+	const bool b2 = (k & 4) != 0;
+	const uint4 a = b0 ? uint4(data[1], data[3], data[5], data[7]) : uint4(data[0], data[2], data[4], data[6]);
+	const uint2 c = b1 ? a.yw : a.xz;
+	return b2 ? c.y : c.x;
+}
+
 uint SelectWord(const uint data[2], int k)
 {
 	return (k & 1) != 0 ? data[1] : data[0];

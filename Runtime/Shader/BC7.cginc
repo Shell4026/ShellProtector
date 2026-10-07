@@ -60,16 +60,19 @@ void GetData(Texture2D atlas, SamplerState unusedSampler, inout uint data[8], fl
 uint BC7ReadBits(in uint data[8], uint start, uint count)
 {
     uint word = start >> 5, shift = start & 31u;
-    uint result = data[word] >> shift;
-    if (shift + count > 32u) result |= data[word + 1u] << (32u - shift);
+    uint result = SelectWord(data, word) >> shift;
+    if (shift + count > 32u) result |= SelectWord(data, word + 1u) << (32u - shift);
     return result & ((1u << count) - 1u);
 }
 
-uint BC7Byte(in uint data[8], uint index)
+// The four bytes from byte o of the record, so one endpoint in one read. The channels of an endpoint are bytes in a row;
+// with three channels the fourth byte belongs to the next endpoint and is ignored. Endpoints end before byte 18.
+uint BC7Endpoint(in uint data[8], uint o)
 {
-    // Keep the shared extractor: the shortened byte-shift expression produced incorrect
-    // first-endpoint alpha inside the unrolled loop on Unity 2022.3 / DX11.
-    return BC7ReadBits(data, index * 8u, 8u);
+    uint word = o >> 2, shift = (o & 3u) * 8u;
+    uint low = SelectWord(data, word);
+    if (shift == 0u) return low;
+    return (low >> shift) | (SelectWord(data, word + 1u) << (32u - shift));
 }
 
 uint BC7Weight(uint index, uint precision)
@@ -106,12 +109,16 @@ float4 GetPixel(Texture2D unusedTex0, Texture2D unusedTex1, SamplerState unusedS
     uint wc = BC7Weight(dual ? code & 7u : code & 15u, colorPrecision);
     uint wa = dual ? BC7Weight(code >> 3, alphaPrecision) : wc;
     uint stride = mode < 4u ? 3u : 4u, start = subset * 2u * stride;
+    // Modes 0-3 have no alpha: both endpoints are opaque.
+    uint opaque = mode < 4u ? 0xff000000u : 0u;
+    uint endpointA = BC7Endpoint(data, start) | opaque;
+    uint endpointB = BC7Endpoint(data, start + stride) | opaque;
     uint4 decoded;
     [unroll]
     for (uint c = 0; c < 4; ++c)
     {
-        uint a = c == 3u && mode < 4u ? 255u : BC7Byte(data, start + c);
-        uint b = c == 3u && mode < 4u ? 255u : BC7Byte(data, start + stride + c);
+        uint a = (endpointA >> (c * 8u)) & 255u;
+        uint b = (endpointB >> (c * 8u)) & 255u;
         uint weight = c == 3u ? wa : wc;
         decoded[c] = ((64u - weight) * a + weight * b + 32u) >> 6;
     }
