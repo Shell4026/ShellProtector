@@ -172,6 +172,27 @@ namespace Shell.Protector
             }
             return maps;
         }
+        // The targets the next build encrypts, with their saved options (null for a material never shown in the settings).
+        public List<(Material material, MatOption option)> GetActiveMaterials()
+        {
+            var saved = new Dictionary<Material, MatOption>();
+            foreach (var pair in matOptionSaved)
+            {
+                if (pair.material != null)
+                    saved[pair.material] = pair.option;
+            }
+
+            var active = new List<(Material, MatOption)>();
+            foreach (Material material in GetMaterials())
+            {
+                if (material == null)
+                    continue;
+                saved.TryGetValue(material, out MatOption option);
+                if (option == null || option.Active)
+                    active.Add((material, option));
+            }
+            return active;
+        }
         public void SaveMatOption()
         {
             matOptionSaved.Clear();

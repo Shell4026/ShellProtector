@@ -58,6 +58,7 @@ namespace Shell.Protector
         string currentVersion = "";
         List<string> shaders = new List<string>();
         readonly List<Texture2D> debugTextures = new List<Texture2D>();
+        List<string> materialWarnings = new List<string>();
 
         // Not serialized: Unity keeps an editor's serializable fields across script reloads, so the styles would never be rebuilt.
         [NonSerialized] GUIStyle titleStyle;
@@ -306,10 +307,54 @@ namespace Shell.Protector
 
             if (GUILayout.Button(new GUIContent(Lang("Material advanced settings"), Lang("Filter, fallback and emission encryption per material."))))
                 MaterialAdvancedSettings.ShowWindow(root);
+            // Checked on layout only: the repaint that follows must draw the same boxes.
+            if (Event.current.type == EventType.Layout)
+                materialWarnings = CollectMaterialWarnings();
+            foreach (string warning in materialWarnings)
+                EditorGUILayout.HelpBox(warning, MessageType.Warning);
             int emissionMaps = root.CountEncryptedEmissionMaps(out int emissionMaterials);
             if (emissionMaps > 0)
                 Hint(string.Format(Lang("Emission encryption: {0} maps in {1} materials"), emissionMaps, emissionMaterials));
             EndSection();
+        }
+
+        // One warning per kind of problem in the materials to encrypt, naming the materials. The details are in the material settings.
+        List<string> CollectMaterialWarnings()
+        {
+            var materials = new Dictionary<string, List<string>>();
+            void Add(string warning, Material material)
+            {
+                if (!materials.TryGetValue(warning, out List<string> names))
+                    materials.Add(warning, names = new List<string>());
+                names.Add(material.name);
+            }
+
+            foreach (var (material, option) in root.GetActiveMaterials())
+            {
+                MaterialIssues.Issue issue = MaterialIssues.Check(material);
+                if (issue != MaterialIssues.Issue.None)
+                    Add(IssueWarning(issue), material);
+                if (option != null && MaterialIssues.HasUnsupportedEmission(material, option.EmissionMask))
+                    Add("There are emission maps that can't be encrypted.", material);
+            }
+
+            var warnings = new List<string>();
+            foreach (var pair in materials)
+                warnings.Add(Lang(pair.Key) + "\n" + string.Join(", ", pair.Value));
+            return warnings;
+        }
+
+        static string IssueWarning(MaterialIssues.Issue issue)
+        {
+            switch (issue)
+            {
+                case MaterialIssues.Issue.UnsupportedShader: return "There are materials with an unsupported shader.";
+                case MaterialIssues.Issue.EmptyMainTexture: return "There are materials without a main texture.";
+                case MaterialIssues.Issue.MainTextureNotTexture2D: return "There are main textures that are not Texture2D.";
+                case MaterialIssues.Issue.UnsupportedMainTextureFormat: return "There are textures in an unsupported format.";
+                case MaterialIssues.Issue.OddMainTextureSize: return "There are textures whose size is not a multiple of 2.";
+                default: return "";
+            }
         }
 
         void DrawObfuscation()

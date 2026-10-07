@@ -156,21 +156,16 @@ namespace Shell.Protector
 
             if (!active)
                 return;
-            if (!supported)
-                EditorGUILayout.HelpBox(Lang("Not supported shader"), MessageType.Error);
-            else if (material.mainTexture == null)
-                EditorGUILayout.HelpBox(Lang("The main texture is empty."), MessageType.Error);
-            else if (mainTex == null)
-                EditorGUILayout.HelpBox(Lang("The main texture is not Texture2D."), MessageType.Error);
-            else if (!TextureEncryptManager.IsSupportedTexture(mainTex))
-                EditorGUILayout.HelpBox(Lang("The main texture is not supported format."), MessageType.Error);
+            MaterialIssues.Issue issue = MaterialIssues.Check(material);
+            if (issue != MaterialIssues.Issue.None)
+                EditorGUILayout.HelpBox(Lang(MaterialIssues.Message(issue)), MessageType.Error);
         }
 
         // One toggle per emission slot of the shader. A slot without a texture can't be selected.
         int DrawEmission(Material material, int mask)
         {
             bool poiyomi = assetManager.IsPoiyomi(material.shader);
-            string[] maps = poiyomi ? EmissionEncryption.PoiyomiMaps : EmissionEncryption.LilToonMaps;
+            string[] maps = MaterialIssues.EmissionMaps(material);
             var unsupported = new List<string>();
 
             EditorGUILayout.BeginHorizontal();
@@ -191,7 +186,7 @@ namespace Shell.Protector
                         mask ^= 1 << slot;
                 }
                 GUILayout.Space(6);
-                if (selected && texture != null && !IsSupportedEmission(texture))
+                if (selected && texture != null && !MaterialIssues.IsSupportedEmission(texture))
                     unsupported.Add(name);
             }
             EditorGUI.indentLevel = indent;
@@ -201,17 +196,6 @@ namespace Shell.Protector
             if (unsupported.Count > 0)
                 EditorGUILayout.HelpBox(string.Join(", ", unsupported) + ": " + Lang("Emission maps must be power-of-two RGB24, RGBA32, DXT1 or DXT5 textures (DXT: at least 8x4)."), MessageType.Error);
             return mask;
-        }
-
-        // The conditions EmissionEncryption.Encrypt checks at build time, except readability, which the build sets itself.
-        static bool IsSupportedEmission(Texture texture)
-        {
-            if (!(texture is Texture2D texture2D) || !EmissionEncryption.SupportsFormat(texture2D))
-                return false;
-            if (!Mathf.IsPowerOfTwo(texture2D.width) || !Mathf.IsPowerOfTwo(texture2D.height) || texture2D.width * texture2D.height < 2)
-                return false;
-            bool dxt = TextureEncryptManager.IsDXTFormat(texture2D.format) || texture2D.format == TextureFormat.DXT1Crunched || texture2D.format == TextureFormat.DXT5Crunched;
-            return !dxt || (texture2D.width >= 8 && texture2D.height >= 4);
         }
 
         static GUIContent[] ToContents(string[] texts)
