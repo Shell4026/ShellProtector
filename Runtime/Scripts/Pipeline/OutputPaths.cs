@@ -1,7 +1,9 @@
 #if UNITY_EDITOR
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
+using UnityEditor;
 using UnityEngine;
 
 namespace Shell.Protector
@@ -13,6 +15,7 @@ namespace Shell.Protector
         public const string ShaderFolder = "Shader";
         public const string AnimFolder = "Anim";
         public const string MeshFolder = "Mesh";
+        const string HistoryFile = "EncryptedHistory.asset";
 
         readonly Dictionary<Material, string> shaderFolderGuids = new Dictionary<Material, string>();
 
@@ -57,8 +60,9 @@ namespace Shell.Protector
         public string AnimationClipName(AnimationClip clip, string suffix) => BaseName(clip) + suffix + ".anim";
         public string MeshAsset(Mesh mesh) => Combine(Mesh, BaseName(mesh) + ".asset");
         public string MeshAssetName(Mesh mesh) => BaseName(mesh) + ".asset";
-        public string History() => Combine(Root, "EncryptedHistory.asset");
-        public string HistoryName() => "EncryptedHistory.asset";
+        public string History() => HistoryPath(Root);
+        public string HistoryName() => HistoryFile;
+        public static string HistoryPath(string root) => Combine(Normalize(root), HistoryFile);
 
         public OutputFolders PrepareFolders(AssetWriter writer, bool deleteExistingChildren)
         {
@@ -98,6 +102,53 @@ namespace Shell.Protector
             if (material != null)
                 shaderFolderGuids[material] = folderGuid;
             return folderGuid;
+        }
+
+        // The avatar folders under root, which also hold the outputs of older versions (folders named by instance ID).
+        public static int CountGeneratedFolders(string root)
+        {
+            return Directory.Exists(root) ? Directory.GetDirectories(root).Count(IsGeneratedFolder) : 0;
+        }
+
+        // Deletes every generated avatar folder under root, and the history that refers to them.
+        public static void DeleteGenerated(string root)
+        {
+            AssetDatabase.DeleteAsset(HistoryPath(root));
+
+            if (!Directory.Exists(root))
+            {
+                Debug.LogError($"The specified path does not exist: {root}");
+                return;
+            }
+
+            int deletedCount = 0;
+            foreach (string dir in Directory.GetDirectories(root))
+            {
+                if (!IsGeneratedFolder(dir))
+                    continue;
+                if (AssetDatabase.DeleteAsset(Normalize(dir)))
+                {
+                    deletedCount++;
+                    Debug.Log($"Deleted folder: {dir}");
+                }
+                else
+                    Debug.LogError($"Failed to delete folder {dir}");
+            }
+
+            Debug.Log($"Deletion complete. {deletedCount} folders were deleted.");
+        }
+
+        static bool IsGeneratedFolder(string path)
+        {
+            string normalized = Normalize(path);
+            if (Regex.IsMatch(Path.GetFileName(normalized), @"^-*\d+$"))
+                return true;
+
+            return AssetDatabase.IsValidFolder(Combine(normalized, TexFolder)) ||
+                   AssetDatabase.IsValidFolder(Combine(normalized, MatFolder)) ||
+                   AssetDatabase.IsValidFolder(Combine(normalized, ShaderFolder)) ||
+                   AssetDatabase.IsValidFolder(Combine(normalized, AnimFolder)) ||
+                   AssetDatabase.IsValidFolder(Combine(normalized, MeshFolder));
         }
 
         public static string Combine(params string[] parts)

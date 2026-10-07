@@ -88,18 +88,12 @@ namespace Shell.Protector.Tests.Integration
         }
 
         [Test]
-        public void InPlaceEncrypt_RewritesOriginalAvatarWhenNdmfStyleStepsRun()
+        public void InPlaceEncrypt_RewritesOriginalAvatarAsTheNdmfPassDoes()
         {
             Fixture fixture = CreateFixture("InPlace");
             UserKey key = fixture.Protector.GetUserKey();
 
             GameObject avatar = fixture.Protector.Encrypt(true);
-            fixture.Protector.ReplaceMaterials(avatar);
-            fixture.Protector.RemoveDuplicatedTextures(avatar);
-            fixture.Protector.SetAnimations(avatar, false);
-            fixture.Protector.ObfuscateBlendShape(avatar, false);
-            fixture.Protector.ChangeMaterialsInAnims(avatar, false);
-            fixture.Protector.CleanComponent(avatar);
 
             Assert.That(avatar, Is.SameAs(fixture.Avatar));
             Assert.That(avatar.activeSelf, Is.True);
@@ -148,7 +142,7 @@ namespace Shell.Protector.Tests.Integration
             var renderers = obfuscateFace ? new List<SkinnedMeshRenderer> { face, body } : new List<SkinnedMeshRenderer> { body };
             SetSerializedField(fixture.Protector, "obfuscationRenderers", renderers);
 
-            fixture.Protector.ObfuscateBlendShape(fixture.Avatar, false);
+            new Pipeline(new BuildRequest(fixture.Avatar, false), fixture.Protector.CreateSettings()).ObfuscateBlendShapes(false);
 
             Assert.That(body.sharedMesh.GetBlendShapeName(0), Does.Not.StartWith("Shape"));
             if (obfuscateFace)
@@ -489,7 +483,7 @@ namespace Shell.Protector.Tests.Integration
 
         private static void AssertFxController(GameObject avatar, UserKey key)
         {
-            AnimatorController fx = ShellProtector.GetFx(avatar);
+            AnimatorController fx = Pipeline.GetFx(avatar);
 
             Assert.That(fx, Is.Not.Null);
             Assert.That(fx.layers.Select(l => l.name), Does.Contain("ShellProtector"));
@@ -524,7 +518,7 @@ namespace Shell.Protector.Tests.Integration
 
         private static void AssertAnimationMaterialWasRewritten(GameObject avatar, Material originalMaterial)
         {
-            AnimatorController fx = ShellProtector.GetFx(avatar);
+            AnimatorController fx = Pipeline.GetFx(avatar);
             Material encryptedMaterial = avatar.transform.Find("Body").GetComponent<SkinnedMeshRenderer>().sharedMaterial;
             List<AnimationClip> clips = new List<AnimationClip>();
 

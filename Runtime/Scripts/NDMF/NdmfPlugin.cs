@@ -17,16 +17,7 @@ public class NdmfPlugin : Plugin<NdmfPlugin>
                 Debug.Log("After encrypting Shell Protector");
                 var shellProtector = ctx.AvatarRootObject.GetComponentInChildren<ShellProtector>(true);
                 if (shellProtector)
-                {
                     shellProtector.Encrypt(isModular: true);
-                    shellProtector.ReplaceMaterials(ctx.AvatarRootObject);
-                    shellProtector.RemoveDuplicatedTextures(ctx.AvatarRootObject);
-
-                    shellProtector.SetAnimations(ctx.AvatarRootObject, false);
-                    shellProtector.ObfuscateBlendShape(ctx.AvatarRootObject, false);
-                    shellProtector.ChangeMaterialsInAnims(ctx.AvatarRootObject, false);
-                    shellProtector.CleanComponent(ctx.AvatarRootObject);
-                }
             });
     }
 }

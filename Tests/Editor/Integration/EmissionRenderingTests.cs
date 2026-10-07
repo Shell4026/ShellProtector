@@ -180,15 +180,15 @@ namespace Shell.Protector.Tests.Integration
                 avatar.AddComponent<MeshRenderer>().sharedMaterial = target;
                 var protector = avatar.AddComponent<ShellProtector>();
                 protector.AssetDir = root + "/Pipeline";
-                var result = (BuildResult)typeof(ShellProtector).GetProperty("CurrentBuildResult", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).GetValue(protector);
-                result.encryptedMaterials[source] = target;
-                result.processedTextures[emission] = new ProcessedTexture
+                var pipeline = new Pipeline(new BuildRequest(avatar, false), protector.CreateSettings());
+                pipeline.Result.encryptedMaterials[source] = target;
+                pipeline.Result.processedTextures[emission] = new ProcessedTexture
                 {
                     Encrypted = encryptedMain,
                     Fallbacks = new List<Texture2D> { Texture2D.blackTexture },
                     FallbackOptions = new List<int> { 0 }
                 };
-                protector.RemoveDuplicatedTextures(avatar);
+                pipeline.ReplaceProtectedTextures();
                 Assert.That(avatar.GetComponent<MeshRenderer>().sharedMaterial.GetTexture(map), Is.EqualTo(emission), "Fallback cleanup must preserve unselected emission maps shared with protected main maps.");
             }
             Color32[] actual = SupportedShaderRenderingTests.RenderMaterial(target);
