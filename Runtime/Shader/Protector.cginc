@@ -125,8 +125,9 @@ float4 DecryptTextureBox(Texture2D tex0, Texture2D tex1, SamplerState texSampler
 	return DecryptTexture(tex0, tex1, texSampler, uv, GetBC7Mip(mipTex, mipSamp, uv));
 }
 
-// Taps on the texel centers of the selected mip level; texSize is the atlas's and unused. A decrypted record is a whole 4x4
-// block, so the taps in a block already decrypted are decoded from it and only taps in another block decrypt again.
+// Taps on the texel centers of the selected mip level; texSize is the code texture's and unused. One keystream covers a
+// unit of 2x2 blocks (8x8 texels), so the taps usually share it: only taps in another unit derive their own. Every tap is
+// then decoded once from its own record.
 float4 DecryptTextureBilinear(Texture2D tex0, Texture2D tex1, SamplerState texSampler, float4 texSize, Texture2D mipTex, SamplerState mipSamp, float2 uv)
 {
 	const int mip = GetBC7Mip(mipTex, mipSamp, uv);
@@ -137,47 +138,49 @@ float4 DecryptTextureBilinear(Texture2D tex0, Texture2D tex1, SamplerState texSa
 	const float2 uv01 = uv00 + float2(0, 1.0 / size.y);
 	const float2 uv11 = uv00 + 1.0 / size;
 
-	const int unit00 = GetBlockIndex(uv00, mip);
-	const int unit10 = GetBlockIndex(uv10, mip);
-	const int unit01 = GetBlockIndex(uv01, mip);
-	const int unit11 = GetBlockIndex(uv11, mip);
+	const uint2 p00 = BC7PixelCoord(uv00, mip);
+	const uint2 p10 = BC7PixelCoord(uv10, mip);
+	const uint2 p01 = BC7PixelCoord(uv01, mip);
+	const uint2 p11 = BC7PixelCoord(uv11, mip);
+	const int unit00 = BC7Unit(p00, mip);
+	const int unit10 = BC7Unit(p10, mip);
+	const int unit01 = BC7Unit(p01, mip);
+	const int unit11 = BC7Unit(p11, mip);
 
 	uint data[_SHELL_PROTECTOR_DATA_LENGTH];
 	DecryptData(data, tex0, tex1, texSampler, uv00, mip);
-	const float4 c00 = GetPixel(tex0, tex1, texSampler, data, uv00, mip);
-	float4 c10 = 0;
-	float4 c01 = 0;
-	float4 c11 = 0;
-	if (unit10 == unit00)
-		c10 = GetPixel(tex0, tex1, texSampler, data, uv10, mip);
-	if (unit01 == unit00)
-		c01 = GetPixel(tex0, tex1, texSampler, data, uv01, mip);
-	if (unit11 == unit00)
-		c11 = GetPixel(tex0, tex1, texSampler, data, uv11, mip);
+	const uint4 stream00 = BC7SelectRecordStream(data, BC7UnitLocal(p00));
+	uint4 stream10 = BC7SelectRecordStream(data, BC7UnitLocal(p10));
+	uint4 stream01 = BC7SelectRecordStream(data, BC7UnitLocal(p01));
+	uint4 stream11 = BC7SelectRecordStream(data, BC7UnitLocal(p11));
 
 	[branch]
 	if (unit10 != unit00)
 	{
 		DecryptData(data, tex0, tex1, texSampler, uv10, mip);
-		c10 = GetPixel(tex0, tex1, texSampler, data, uv10, mip);
+		stream10 = BC7SelectRecordStream(data, BC7UnitLocal(p10));
 		if (unit11 == unit10)
-			c11 = GetPixel(tex0, tex1, texSampler, data, uv11, mip);
+			stream11 = BC7SelectRecordStream(data, BC7UnitLocal(p11));
 	}
 	[branch]
 	if (unit01 != unit00)
 	{
 		DecryptData(data, tex0, tex1, texSampler, uv01, mip);
-		c01 = GetPixel(tex0, tex1, texSampler, data, uv01, mip);
+		stream01 = BC7SelectRecordStream(data, BC7UnitLocal(p01));
 		if (unit11 == unit01)
-			c11 = GetPixel(tex0, tex1, texSampler, data, uv11, mip);
+			stream11 = BC7SelectRecordStream(data, BC7UnitLocal(p11));
 	}
 	[branch]
 	if (unit11 != unit00 && unit11 != unit10 && unit11 != unit01)
 	{
 		DecryptData(data, tex0, tex1, texSampler, uv11, mip);
-		c11 = GetPixel(tex0, tex1, texSampler, data, uv11, mip);
+		stream11 = BC7SelectRecordStream(data, BC7UnitLocal(p11));
 	}
 
+	const float4 c00 = BC7DecodeTexel(tex0, tex1, stream00, p00, mip);
+	const float4 c10 = BC7DecodeTexel(tex0, tex1, stream10, p10, mip);
+	const float4 c01 = BC7DecodeTexel(tex0, tex1, stream01, p01, mip);
+	const float4 c11 = BC7DecodeTexel(tex0, tex1, stream11, p11, mip);
 	const float2 f = frac(position);
 	return lerp(lerp(c00, c10, f.x), lerp(c01, c11, f.x), f.y);
 }

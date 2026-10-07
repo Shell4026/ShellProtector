@@ -19,6 +19,7 @@ namespace Shell.Protector.Tests.Gpu
             for (int i = 0; i < cipher.Nonce.Length; ++i) cipher.Nonce[i] = (byte)(i * 37 + 11);
             EncryptResult result = TextureEncryptManager.EncryptTexture(source, Bc7TestData.Key, cipher);
             Own(result.Texture1);
+            Own(result.Texture2);
             var material = Own(Bc7TestData.Material(source, result, cipher));
             mip = Own(new Texture2D(1, 1, TextureFormat.RGBA32, false, true));
             mip.SetPixel(0, 0, Color.black); mip.Apply(false, false);
@@ -35,12 +36,12 @@ namespace Shell.Protector.Tests.Gpu
             Material material = Prepare(source, out _);
             var expected = Bc7TestData.Render(source, material, 0, source.width, source.height);
             var actual = Bc7TestData.Render(Texture2D.blackTexture, material, 1, source.width, source.height);
-            byte[] normalized = new byte[32];
+            byte[] normalized = new byte[16], codes = new byte[16];
             byte[] raw = source.GetRawTextureData();
-            BC7Codec.Normalize(raw.AsSpan(0, 16), normalized);
+            BC7Codec.Normalize(raw.AsSpan(0, 16), normalized, codes);
             Assert.That(Bc7TestData.MaxError(expected, actual), Is.Zero,
                 "First pixels: native=" + expected[0] + "," + expected[1] + " decrypted=" + actual[0] + "," + actual[1]
-                + " raw=" + BitConverter.ToString(raw, 0, 16) + " record=" + BitConverter.ToString(normalized));
+                + " raw=" + BitConverter.ToString(raw, 0, 16) + " record=" + BitConverter.ToString(normalized) + " codes=" + BitConverter.ToString(codes));
         }
 
         [TestCase(TextureWrapMode.Repeat, false)] [TestCase(TextureWrapMode.Repeat, true)]

@@ -2,11 +2,14 @@ using System;
 
 namespace Shell.Protector
 {
-    /// <summary>Losslessly normalizes one BC7 block to the 32-byte shader record.</summary>
+    /// <summary>Losslessly splits one BC7 block into a 16-byte endpoint record and one 6-bit code per pixel.</summary>
     public static class BC7Codec
     {
         public const int SourceBlockBytes = 16;
-        public const int RecordBytes = 32;
+        // Mode, rotation and selector in 6 bits, then every endpoint at its own precision (p-bit included): R, G, B, and A
+        // for modes 4-7. The largest blocks (modes 3 and 7) take 6 + 96 bits, so four records share one 64-byte keystream.
+        public const int RecordBytes = 16;
+        public const int PixelCount = 16;
         static readonly byte[] Subsets = { 3, 2, 3, 2, 1, 1, 1, 2 };
         static readonly byte[] PartitionBits = { 4, 6, 6, 6, 0, 0, 0, 6 };
         static readonly byte[] ColorBits = { 4, 6, 5, 7, 5, 7, 7, 5 };
@@ -14,18 +17,21 @@ namespace Shell.Protector
         static readonly byte[] IndexBits = { 3, 3, 2, 2, 2, 2, 4, 2 };
         static readonly bool[] HasP = { true, true, false, true, false, false, true, true };
 
-        public static void Normalize(ReadOnlySpan<byte> source, Span<byte> destination)
+        // codes: per pixel (row-major in the block), subset << 4 | index, or scalar << 3 | vector for modes 4 and 5.
+        public static void Normalize(ReadOnlySpan<byte> source, Span<byte> record, Span<byte> codes)
         {
-            if (source.Length != SourceBlockBytes || destination.Length != RecordBytes)
-                throw new ArgumentException("BC7 normalization requires a 16-byte block and a 32-byte destination.");
+            if (source.Length != SourceBlockBytes || record.Length != RecordBytes || codes.Length != PixelCount)
+                throw new ArgumentException("BC7 normalization requires a 16-byte block, a 16-byte record and 16 codes.");
+            record.Clear();
+            codes.Clear();
             var reader = new BitReader(source);
+            var writer = new BitWriter(record);
             int mode = 0;
             while (mode < 8 && reader.Read(1) == 0) ++mode;
             if (mode == 8)
             {
-                // The native BC7 decoder defines the reserved zero prefix as transparent black.
-                destination.Clear();
-                destination[18] = 6;
+                // The native BC7 decoder defines the reserved zero prefix as transparent black: mode 6 with zero endpoints.
+                writer.Write(6, 6);
                 return;
             }
 
@@ -51,17 +57,15 @@ namespace Shell.Protector
                     for (int e = 0; e < count; ++e)
                         pbits[e] = reader.Read(1);
             }
-            destination.Clear();
+            writer.Write(mode | (rotation << 3) | (selector << 5), 6);
             for (int e = 0; e < count; ++e)
                 for (int c = 0; c < channels; ++c)
                 {
                     int precision = c == 3 ? AlphaBits[mode] : ColorBits[mode];
                     int value = endpoints[e * channels + c];
                     if (HasP[mode]) { value = (value << 1) | pbits[e]; ++precision; }
-                    value <<= 8 - precision;
-                    destination[e * channels + c] = (byte)(value | (value >> precision));
+                    writer.Write(value, precision);
                 }
-            destination[18] = (byte)(mode | (rotation << 3) | (selector << 5));
 
             if (dual)
             {
@@ -73,7 +77,7 @@ namespace Shell.Protector
                     int second = reader.Read((mode == 4 ? 3 : 2) - (pixel == 0 ? 1 : 0));
                     int vector = selector == 0 ? first[pixel] : second;
                     int scalar = selector == 0 ? second : first[pixel];
-                    WriteCode(destination, pixel, vector | (scalar << 3));
+                    codes[pixel] = (byte)(vector | (scalar << 3));
                 }
             }
             else
@@ -85,16 +89,22 @@ namespace Shell.Protector
                     int anchor = subset == 0 ? 0 : subsets == 2 ? Anchor2Subset1[partition]
                         : subset == 1 ? Anchor3Subset1[partition] : Anchor3Subset2[partition];
                     int index = reader.Read(IndexBits[mode] - (pixel == anchor ? 1 : 0));
-                    WriteCode(destination, pixel, index | (subset << 4));
+                    codes[pixel] = (byte)(index | (subset << 4));
                 }
             }
         }
 
-        static void WriteCode(Span<byte> record, int pixel, int code)
+        ref struct BitWriter
         {
-            int bit = pixel * 6, offset = 20 + (bit >> 3), shift = bit & 7;
-            record[offset] |= (byte)(code << shift);
-            if (shift > 2) record[offset + 1] |= (byte)(code >> (8 - shift));
+            readonly Span<byte> data;
+            int bit;
+            public BitWriter(Span<byte> data) { this.data = data; bit = 0; }
+            public void Write(int value, int count)
+            {
+                for (int i = 0; i < count; ++i, ++bit)
+                    if (((value >> i) & 1) != 0)
+                        data[bit >> 3] |= (byte)(1 << (bit & 7));
+            }
         }
 
         ref struct BitReader

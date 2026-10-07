@@ -1,6 +1,9 @@
 #pragma once
 
-#define _SHELL_PROTECTOR_DATA_LENGTH 8
+// tex0 holds the plain 6-bit code of every pixel (R8, the source's mip chain). tex1 is the encrypted atlas of 16-byte endpoint
+// records, one per 4x4 block. One ChaCha keystream block covers 2x2 blocks: block (x & 1) + 2 * (y & 1) of the unit uses
+// keystream words 4k to 4k + 3 (BC7Format).
+#define _SHELL_PROTECTOR_DATA_LENGTH 16
 #define _SHELL_PROTECTOR_INDEX_ALIGNMENT 0
 
 float4 _ShellSourceTexelSize;
@@ -27,10 +30,27 @@ uint2 BC7PixelCoord(float2 uv, int mip)
     return min((uint2)floor(wrapped * size), size - 1u);
 }
 
+uint BC7BlocksPerRow(int mip)
+{
+    return (BC7MipSize(mip).x + 3u) >> 2;
+}
+
+// The keystream unit of a pixel: 2x2 blocks.
+int BC7Unit(uint2 p, int mip)
+{
+    uint unitsPerRow = (BC7BlocksPerRow(mip) + 1u) >> 1;
+    return (p.y >> 3) * unitsPerRow + (p.x >> 3);
+}
+
+// Which record of its unit the pixel's block is.
+uint BC7UnitLocal(uint2 p)
+{
+    return ((p.x >> 2) & 1u) | (((p.y >> 2) & 1u) << 1);
+}
+
 int GetBlockIndex(float2 uv, int mip)
 {
-    uint2 p = BC7PixelCoord(uv, mip);
-    return (p.y >> 2) * ((BC7MipSize(mip).x + 3u) >> 2) + (p.x >> 2);
+    return BC7Unit(BC7PixelCoord(uv, mip), mip);
 }
 
 uint BC7MipOffset(int mip)
@@ -41,38 +61,72 @@ uint BC7MipOffset(int mip)
     return (uint)_ShellMipOffsets3[mip - 12];
 }
 
-void GetData(Texture2D atlas, SamplerState unusedSampler, inout uint data[8], float2 uv, int mip)
+// The records are loaded per pixel (BC7DecodeTexel), so the unit's data is only its keystream.
+void GetData(Texture2D unusedTex, SamplerState unusedSampler, inout uint data[16], float2 uv, int mip)
+{
+    [unroll]
+    for (int i = 0; i < 16; ++i)
+        data[i] = 0;
+}
+
+// Keystream words 4k to 4k + 3, with constant indices only (see SelectWord).
+uint4 BC7SelectRecordStream(const uint data[16], uint k)
+{
+    const uint4 a = (k & 1u) != 0 ? uint4(data[4], data[5], data[6], data[7]) : uint4(data[0], data[1], data[2], data[3]);
+    const uint4 b = (k & 1u) != 0 ? uint4(data[12], data[13], data[14], data[15]) : uint4(data[8], data[9], data[10], data[11]);
+    return (k & 2u) != 0 ? b : a;
+}
+
+uint4 BC7LoadRecord(Texture2D atlas, uint block)
 {
     uint width, height;
     atlas.GetDimensions(width, height);
-    // Layout guarantees a power-of-two width. Avoid two integer divisions per word.
+    // Layout guarantees a power-of-two width. Avoid an integer division per word.
     uint widthMask = width - 1u, widthShift = firstbithigh(width);
-    uint address = (BC7MipOffset(mip) + (uint)GetBlockIndex(uv, mip)) * 8u;
+    uint address = block * 4u;
+    uint4 record;
     [unroll]
-    for (uint i = 0; i < 8; ++i)
+    for (uint i = 0; i < 4; ++i)
     {
         uint position = address + i;
         uint4 bytes = (uint4)round(atlas.Load(int3(position & widthMask, position >> widthShift, 0)) * 255.0);
-        data[i] = bytes.x | (bytes.y << 8) | (bytes.z << 16) | (bytes.w << 24);
+        record[i] = bytes.x | (bytes.y << 8) | (bytes.z << 16) | (bytes.w << 24);
     }
+    return record;
 }
 
-uint BC7ReadBits(in uint data[8], uint start, uint count)
+uint BC7RecordWord(uint4 record, uint word)
+{
+    const uint2 pair = (word & 1u) != 0 ? record.yw : record.xz;
+    return (word & 2u) != 0 ? pair.y : pair.x;
+}
+
+// The 32 bits from bit start of the record. An endpoint has at most 32 bits and starts before bit 82, so this holds a
+// whole endpoint and never reads past the last word.
+uint BC7RecordWindow(uint4 record, uint start)
 {
     uint word = start >> 5, shift = start & 31u;
-    uint result = SelectWord(data, word) >> shift;
-    if (shift + count > 32u) result |= SelectWord(data, word + 1u) << (32u - shift);
-    return result & ((1u << count) - 1u);
+    uint high = shift != 0u ? BC7RecordWord(record, word + 1u) << (32u - shift) : 0u;
+    return (BC7RecordWord(record, word) >> shift) | high;
 }
 
-// The four bytes from byte o of the record, so one endpoint in one read. The channels of an endpoint are bytes in a row;
-// with three channels the fourth byte belongs to the next endpoint and is ignored. Endpoints end before byte 18.
-uint BC7Endpoint(in uint data[8], uint o)
+// A precision-bit endpoint channel widened to 8 bits the way BC7 does: the high bits repeat in the low bits.
+uint BC7Expand(uint value, uint precision)
 {
-    uint word = o >> 2, shift = (o & 3u) * 8u;
-    uint low = SelectWord(data, word);
-    if (shift == 0u) return low;
-    return (low >> shift) | (SelectWord(data, word + 1u) << (32u - shift));
+    uint widened = (value & ((1u << precision) - 1u)) << (8u - precision);
+    return (widened | (widened >> precision)) & 255u;
+}
+
+// Endpoint at bit start: R, G, B with colorBits each, then A with alphaBits (opaque when there are none).
+uint4 BC7ReadEndpoint(uint4 record, uint start, uint colorBits, uint alphaBits)
+{
+    uint bits = BC7RecordWindow(record, start);
+    uint4 endpoint;
+    endpoint.r = BC7Expand(bits, colorBits);
+    endpoint.g = BC7Expand(bits >> colorBits, colorBits);
+    endpoint.b = BC7Expand(bits >> (2u * colorBits), colorBits);
+    endpoint.a = alphaBits == 0u ? 255u : BC7Expand(bits >> (3u * colorBits), alphaBits);
+    return endpoint;
 }
 
 uint BC7Weight(uint index, uint precision)
@@ -93,14 +147,17 @@ float BC7SrgbToLinear(float c)
     return c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4);
 }
 
-float4 GetPixel(Texture2D unusedTex0, Texture2D unusedTex1, SamplerState unusedSampler, in uint data[8], float2 uv, int mip)
+// One texel of mip level mip at pixel p, with the keystream words of its record.
+float4 BC7DecodeTexel(Texture2D codes, Texture2D atlas, uint4 stream, uint2 p, int mip)
 {
-    uint2 p = BC7PixelCoord(uv, mip);
-    uint meta = (data[4] >> 16) & 255u;
-    uint mode = meta & 7u, rotation = (meta >> 3) & 3u, selector = (meta >> 5) & 1u;
-    uint code = BC7ReadBits(data, 160u + 6u * ((p.y & 3u) * 4u + (p.x & 3u)), 6u);
+    uint4 record = BC7LoadRecord(atlas, BC7MipOffset(mip) + (p.y >> 2) * BC7BlocksPerRow(mip) + (p.x >> 2)) ^ stream;
+    uint code = (uint)round(codes.Load(int3(p, mip)).r * 255.0);
+    uint mode = record.x & 7u, rotation = (record.x >> 3) & 3u, selector = (record.x >> 5) & 1u;
     bool dual = mode == 4u || mode == 5u;
-    uint subsets = mode == 0u || mode == 2u ? 3u : mode == 1u || mode == 3u || mode == 7u ? 2u : 1u;
+    // Per mode, one nibble each: subsets, endpoint color bits and endpoint alpha bits (p-bits included).
+    uint subsets = (0x21112323u >> (mode * 4u)) & 15u;
+    uint colorBits = (0x68758575u >> (mode * 4u)) & 15u;
+    uint alphaBits = (0x68860000u >> (mode * 4u)) & 15u;
     // A wrong key is allowed to reach the decoder in the tester; keep all reads within the record.
     uint subset = dual ? 0u : min(code >> 4, subsets - 1u);
     uint colorPrecision = mode == 0u || mode == 1u ? 3u : mode == 6u ? 4u : 2u;
@@ -108,19 +165,16 @@ float4 GetPixel(Texture2D unusedTex0, Texture2D unusedTex1, SamplerState unusedS
     if (mode == 4u) { colorPrecision = selector == 0u ? 2u : 3u; alphaPrecision = selector == 0u ? 3u : 2u; }
     uint wc = BC7Weight(dual ? code & 7u : code & 15u, colorPrecision);
     uint wa = dual ? BC7Weight(code >> 3, alphaPrecision) : wc;
-    uint stride = mode < 4u ? 3u : 4u, start = subset * 2u * stride;
-    // Modes 0-3 have no alpha: both endpoints are opaque.
-    uint opaque = mode < 4u ? 0xff000000u : 0u;
-    uint endpointA = BC7Endpoint(data, start) | opaque;
-    uint endpointB = BC7Endpoint(data, start + stride) | opaque;
+    uint endpointBits = 3u * colorBits + alphaBits;
+    uint start = 6u + subset * 2u * endpointBits;
+    uint4 endpointA = BC7ReadEndpoint(record, start, colorBits, alphaBits);
+    uint4 endpointB = BC7ReadEndpoint(record, start + endpointBits, colorBits, alphaBits);
     uint4 decoded;
     [unroll]
     for (uint c = 0; c < 4; ++c)
     {
-        uint a = (endpointA >> (c * 8u)) & 255u;
-        uint b = (endpointB >> (c * 8u)) & 255u;
         uint weight = c == 3u ? wa : wc;
-        decoded[c] = ((64u - weight) * a + weight * b + 32u) >> 6;
+        decoded[c] = ((64u - weight) * endpointA[c] + weight * endpointB[c] + 32u) >> 6;
     }
     if (dual)
     {
@@ -134,4 +188,10 @@ float4 GetPixel(Texture2D unusedTex0, Texture2D unusedTex1, SamplerState unusedS
         color.rgb = float3(BC7SrgbToLinear(color.r), BC7SrgbToLinear(color.g), BC7SrgbToLinear(color.b));
     #endif
     return color;
+}
+
+float4 GetPixel(Texture2D codes, Texture2D atlas, SamplerState unusedSampler, in uint data[16], float2 uv, int mip)
+{
+    uint2 p = BC7PixelCoord(uv, mip);
+    return BC7DecodeTexel(codes, atlas, BC7SelectRecordStream(data, BC7UnitLocal(p)), p, mip);
 }

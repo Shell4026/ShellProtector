@@ -33,7 +33,8 @@ namespace Shell.Protector
         // 2: per-shader key mask and ChaCha constants (ShaderSecrets) compiled into the shaders.
         // 3: ChaCha DXT units cover 4x4 blocks (16x16 texels), one keystream word per block.
         // 4: ChaCha reduced from 8 to 6 rounds.
-        public const int CurrentFormatVersion = 4;
+        // 5: BC7 keeps its pixel codes plain and encrypts 16-byte endpoint records, one keystream per 2x2 blocks.
+        public const int CurrentFormatVersion = 5;
 
         // No initializer on purpose: histories saved before this field existed must deserialize as 0.
         [SerializeField]

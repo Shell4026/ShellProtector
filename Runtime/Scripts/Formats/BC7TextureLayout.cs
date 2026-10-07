@@ -4,7 +4,7 @@ using UnityEngine.Experimental.Rendering;
 
 namespace Shell.Protector
 {
-    /// <summary>Public addressing metadata; image content lives only in the encrypted atlas.</summary>
+    /// <summary>Addressing metadata of the encrypted endpoint atlas: one 16-byte record per block, all mip levels in a row.</summary>
     public sealed class BC7TextureLayout
     {
         public const int MaxMipCount = 13;

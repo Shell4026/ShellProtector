@@ -34,27 +34,32 @@ namespace Shell.Protector.Tests.Unit
         {
             var result = new BC7Format().Encrypt(source, Bc7TestData.Key, chacha);
             Own(result.Texture1);
+            Own(result.Texture2);
             return result;
         }
 
         [Test]
-        public void ProducesOnlyAnEncryptedAtlasSmallerThanRgbaWithTheSameMips()
+        public void ProducesPlainCodesAndAnEncryptedEndpointAtlasSmallerThanRgba()
         {
-            var result = Encrypt(Constant(64, 32, true), Cipher());
-            Assert.That(result.Texture1.format, Is.EqualTo(TextureFormat.RGBA32));
-            Assert.That(result.Texture1.mipmapCount, Is.EqualTo(1), "The ciphertext atlas must not be mip-filtered.");
-            Assert.That(result.Texture2, Is.Null, "No plaintext carrier is part of the output contract.");
-            Assert.That(result.Texture1.GetRawTextureData().LongLength, Is.LessThan(result.Layout.RgbaBytes));
+            var source = Constant(64, 32, true);
+            var result = Encrypt(source, Cipher());
+            Assert.That(result.Texture1.format, Is.EqualTo(TextureFormat.R8));
+            Assert.That(result.Texture1.mipmapCount, Is.EqualTo(source.mipmapCount), "The codes keep the source's mip chain.");
+            Assert.That(result.Texture2.format, Is.EqualTo(TextureFormat.RGBA32));
+            Assert.That(result.Texture2.mipmapCount, Is.EqualTo(1), "The ciphertext atlas must not be mip-filtered.");
+            Assert.That(result.Texture2.GetRawTextureData().LongLength, Is.EqualTo(result.Layout.AtlasBytes));
+            Assert.That(result.Texture1.GetRawTextureData().LongLength + result.Layout.AtlasBytes, Is.LessThan(result.Layout.RgbaBytes));
         }
 
         [Test]
         public void IdenticalRecordsAtDifferentMipsDoNotReuseCiphertext()
         {
             var result = Encrypt(Constant(16, 16, true), Cipher());
-            byte[] bytes = result.Texture1.GetRawTextureData();
-            byte[] first = bytes.Take(32).ToArray();
-            Assert.That(bytes.Skip(32).Take(32).ToArray(), Is.Not.EqualTo(first), "Different block addresses.");
-            byte[] nextMip = bytes.Skip(result.Layout.MipBlockOffsets[1] * 32).Take(32).ToArray();
+            byte[] bytes = result.Texture2.GetRawTextureData();
+            byte[] first = bytes.Take(16).ToArray();
+            Assert.That(bytes.Skip(16).Take(16).ToArray(), Is.Not.EqualTo(first), "Different blocks of one keystream unit.");
+            Assert.That(bytes.Skip(32).Take(16).ToArray(), Is.Not.EqualTo(first), "Different keystream units.");
+            byte[] nextMip = bytes.Skip(result.Layout.MipBlockOffsets[1] * 16).Take(16).ToArray();
             Assert.That(nextMip, Is.Not.EqualTo(first));
         }
 
@@ -65,22 +70,33 @@ namespace Shell.Protector.Tests.Unit
             var source = Constant(width, height, true);
             var cipher = Cipher();
             var result = Encrypt(source, cipher);
-            byte[] bytes = result.Texture1.GetRawTextureData();
+            byte[] bytes = result.Texture2.GetRawTextureData();
             Assert.That(bytes.LongLength, Is.EqualTo(result.Layout.AtlasBytes));
-            byte[] expected = new byte[32]; BC7Codec.Normalize(source.GetPixelData<byte>(0).ToArray().AsSpan(0, 16), expected);
-            uint[] words = new uint[8], key = new uint[4];
+            byte[] expected = new byte[16], expectedCodes = new byte[16];
+            BC7Codec.Normalize(source.GetPixelData<byte>(0).ToArray().AsSpan(0, 16), expected, expectedCodes);
+            uint[] words = new uint[4], stream = new uint[16], key = new uint[4];
             Buffer.BlockCopy(Bc7TestData.Key, 0, key, 0, 16); uint last = key[3];
             for (int mip = 0; mip < result.Layout.MipCount; ++mip)
             {
-                int begin = result.Layout.MipBlockOffsets[mip];
-                int end = mip + 1 < result.Layout.MipCount ? result.Layout.MipBlockOffsets[mip + 1] : result.Layout.BlockCount;
-                for (int block = 0; block < end - begin; ++block)
-                {
-                    Buffer.BlockCopy(bytes, (begin + block) * 32, words, 0, 32);
-                    key[3] = last ^ (uint)block ^ ((uint)mip << 24); cipher.XorKeyStream(words, key);
-                    byte[] decoded = new byte[32]; Buffer.BlockCopy(words, 0, decoded, 0, 32);
-                    Assert.That(decoded, Is.EqualTo(expected), "Whole record at mip " + mip + " block " + block);
-                }
+                int w = Math.Max(1, width >> mip), h = Math.Max(1, height >> mip);
+                int blockWidth = (w + 3) / 4, blockHeight = (h + 3) / 4, unitsPerRow = (blockWidth + 1) / 2;
+                for (int by = 0; by < blockHeight; ++by)
+                    for (int bx = 0; bx < blockWidth; ++bx)
+                    {
+                        // One keystream per 2x2 blocks; block (bx & 1) + 2 * (by & 1) of the unit uses words 4k to 4k + 3.
+                        int unit = (by / 2) * unitsPerRow + bx / 2, local = (bx & 1) | ((by & 1) << 1);
+                        Array.Clear(stream, 0, stream.Length);
+                        key[3] = last ^ (uint)unit ^ ((uint)mip << 24); cipher.XorKeyStream(stream, key);
+                        Buffer.BlockCopy(bytes, (result.Layout.MipBlockOffsets[mip] + by * blockWidth + bx) * 16, words, 0, 16);
+                        for (int i = 0; i < 4; ++i) words[i] ^= stream[local * 4 + i];
+                        byte[] decoded = new byte[16]; Buffer.BlockCopy(words, 0, decoded, 0, 16);
+                        Assert.That(decoded, Is.EqualTo(expected), "Whole record at mip " + mip + " block " + bx + "," + by);
+                    }
+                byte[] codes = result.Texture1.GetPixelData<byte>(mip).ToArray();
+                Assert.That(codes.Length, Is.EqualTo(w * h));
+                for (int y = 0; y < h; ++y)
+                    for (int x = 0; x < w; ++x)
+                        Assert.That(codes[y * w + x], Is.EqualTo(expectedCodes[(y & 3) * 4 + (x & 3)]), "Code at mip " + mip + " pixel " + x + "," + y);
             }
         }
 
@@ -112,8 +128,9 @@ namespace Shell.Protector.Tests.Unit
         [Test]
         public void RejectsWrongBlockLengths()
         {
-            Assert.Throws<ArgumentException>(() => BC7Codec.Normalize(new byte[15], new byte[32]));
-            Assert.Throws<ArgumentException>(() => BC7Codec.Normalize(new byte[16], new byte[31]));
+            Assert.Throws<ArgumentException>(() => BC7Codec.Normalize(new byte[15], new byte[16], new byte[16]));
+            Assert.Throws<ArgumentException>(() => BC7Codec.Normalize(new byte[16], new byte[15], new byte[16]));
+            Assert.Throws<ArgumentException>(() => BC7Codec.Normalize(new byte[16], new byte[16], new byte[15]));
         }
     }
 }

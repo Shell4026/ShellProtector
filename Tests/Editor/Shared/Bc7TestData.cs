@@ -86,6 +86,7 @@ namespace Shell.Protector.Tests
             if (shader == null) throw new InvalidOperationException("BC7 test shader was not imported.");
             var material = new Material(shader);
             material.SetTexture(ShaderProperties.EncryptTexture0, encrypted.Texture1);
+            material.SetTexture(ShaderProperties.EncryptTexture1, encrypted.Texture2);
             for (int i = 0; i < Key.Length; ++i)
                 material.SetFloat(ShaderProperties.KeyPrefix + i, Key[i]);
             uint[] nonce = chacha.GetNonceUint3();
