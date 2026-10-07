@@ -206,7 +206,7 @@ namespace Shell.Protector
         // The conditions EmissionEncryption.Encrypt checks at build time, except readability, which the build sets itself.
         static bool IsSupportedEmission(Texture texture)
         {
-            if (!(texture is Texture2D texture2D) || !TextureEncryptManager.IsSupportedTexture(texture2D))
+            if (!(texture is Texture2D texture2D) || !EmissionEncryption.SupportsFormat(texture2D))
                 return false;
             if (!Mathf.IsPowerOfTwo(texture2D.width) || !Mathf.IsPowerOfTwo(texture2D.height) || texture2D.width * texture2D.height < 2)
                 return false;

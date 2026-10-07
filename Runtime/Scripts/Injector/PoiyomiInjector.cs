@@ -155,7 +155,11 @@ namespace Shell.Protector
 " + ShaderProperties.Rounds + @" (""Rounds"", integer) = 0
 " + ShaderProperties.PasswordHash + @" (""PasswordHash"", integer) = 0
 " + ShaderProperties.HashMagic + @" (""HashMagic"", integer) = 0
+[HideInInspector] " + ShaderProperties.SourceTexelSize + @" (""Source size"", Vector) = (1,1,1,1)
+[HideInInspector] " + ShaderProperties.SourceSampling + @" (""Source sampling"", Vector) = (1,1,0,0)
 ";
+                for (int i = 0; i < 4; ++i)
+                    properties += "[HideInInspector] " + ShaderProperties.MipOffsetsPrefix + i + " (\"Mip offsets " + i + "\", Vector) = (0,0,0,0)\n";
 
                 for (int i = 0; i < 16; ++i)
                     properties += ShaderProperties.KeyPrefix + i + " (\"key" + i + "\", float) = 0\n";

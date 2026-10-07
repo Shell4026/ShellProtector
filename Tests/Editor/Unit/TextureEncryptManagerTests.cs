@@ -31,6 +31,16 @@ namespace Shell.Protector.Tests.Unit
         }
 
         [Test]
+        public void SupportsBc7MainTexturesButNotBc7EmissionMaps()
+        {
+            Texture2D bc7 = Bc7TestData.Pattern(16, 16, true, true);
+
+            Assert.That(TextureEncryptManager.IsSupportedTexture(bc7), Is.True);
+            Assert.That(TextureEncryptManager.CalculateOffsets(bc7), Is.EqualTo((0, 0)));
+            Assert.That(EmissionEncryption.SupportsFormat(bc7), Is.False, "Emission.cginc can't decode BC7.");
+        }
+
+        [Test]
         public void GeneratesMipReferenceTexture()
         {
             Texture2D mip = TextureEncryptManager.GenerateRefMipmap(16, 16, false);
@@ -39,6 +49,15 @@ namespace Shell.Protector.Tests.Unit
             Assert.That(mip.height, Is.EqualTo(16));
             Assert.That(mip.GetPixels32(0)[0].r, Is.EqualTo(0));
             Assert.That(mip.GetPixels32(1)[0].r, Is.EqualTo(10));
+        }
+
+        [Test]
+        public void SmallFullChainMipReferenceCoversEveryLevelOfATallTexture()
+        {
+            Texture2D mip = TextureEncryptManager.GenerateRefMipmap(4, 4096, true, true);
+
+            Assert.That(mip.mipmapCount, Is.EqualTo(13));
+            Assert.That(mip.GetPixels32(12)[0].r, Is.EqualTo(120));
         }
 
         [Test]

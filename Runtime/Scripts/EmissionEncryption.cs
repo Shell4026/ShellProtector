@@ -18,6 +18,12 @@ namespace Shell.Protector
         public static string SettingsProperty(int slot) => TextureProperty(slot) + "Settings";
         public static string WrapProperty(int slot) => TextureProperty(slot) + "Wrap";
 
+        // The main texture formats except BC7, which Emission.cginc can't decode.
+        public static bool SupportsFormat(Texture2D texture)
+        {
+            return texture.format != TextureFormat.BC7 && TextureEncryptManager.IsSupportedTexture(texture);
+        }
+
         // False for a shader injected before emission support; it has to be injected again.
         public static bool SupportsEmission(Shader shader)
         {
@@ -125,7 +131,7 @@ namespace Shell.Protector
                 if ((emissionMask & (1 << slot)) == 0) continue;
                 string map = maps[slot];
                 if (!source.HasProperty(map) || source.GetTexture(map) == null) continue;
-                if (!(source.GetTexture(map) is Texture2D texture) || !TextureEncryptManager.IsSupportedTexture(texture))
+                if (!(source.GetTexture(map) is Texture2D texture) || !SupportsFormat(texture))
                     throw new InvalidOperationException(source.name + ": unsupported emission texture in " + map);
                 if (!target.HasProperty(TextureProperty(slot)))
                     throw new InvalidOperationException("Encrypted shader is missing emission support. Regenerate the shader: " + source.name);

@@ -10,7 +10,7 @@ namespace Shell.Protector
     // Per material: encrypt the main texture, inject the decryption into a copy of the shader, and write the encrypted material.
     public sealed partial class Pipeline
     {
-        readonly Dictionary<int, Texture2D> mipTextures = new Dictionary<int, Texture2D>();
+        readonly Dictionary<(int, int, bool), Texture2D> mipTextures = new Dictionary<(int, int, bool), Texture2D>();
 
         void EncryptMaterials()
         {
@@ -68,7 +68,7 @@ namespace Shell.Protector
             Texture2D mipTexture;
             using (timings.Measure("textures"))
             {
-                mipTexture = GetMipTexture(Math.Max(mainTexture.width, mainTexture.height));
+                mipTexture = GetMipTexture(mainTexture);
 
                 TextureSettings.SetRWEnableTexture(mainTexture);
                 TextureSettings.SetCrunchCompression(mainTexture, false);
@@ -147,7 +147,7 @@ namespace Shell.Protector
         Shader GetEncryptedShader(Material mat, Injector injector, Texture2D encryptedTexture, AuxiliaryTextures auxiliary, ShaderSecrets secrets)
         {
             Shader encryptedShader = shaderManager.IsLilToon(mat.shader) ? null : history.IsEncryptedBefore(mat.shader, secrets);
-            if (EmissionEncryption.SupportsEmission(encryptedShader))
+            if (EmissionEncryption.SupportsEmission(encryptedShader) && BC7Format.SupportsShader(encryptedShader))
                 return encryptedShader;
 
             try
@@ -200,19 +200,23 @@ namespace Shell.Protector
             return others;
         }
 
-        // One reference mip texture per size, shared by the materials whose main textures have that size.
-        Texture2D GetMipTexture(int size)
+        // One reference mip texture per size, shared by the materials whose main textures have that size. BC7 decodes every
+        // level of the texture's own size, the other formats use a square of the longer side.
+        Texture2D GetMipTexture(Texture2D mainTexture)
         {
-            if (mipTextures.TryGetValue(size, out Texture2D mip))
+            bool fullChain = mainTexture.format == TextureFormat.BC7;
+            int width = fullChain ? mainTexture.width : Math.Max(mainTexture.width, mainTexture.height);
+            int height = fullChain ? mainTexture.height : width;
+            if (mipTextures.TryGetValue((width, height, fullChain), out Texture2D mip))
                 return mip;
 
-            string fileName = paths.MipTextureName(size);
-            mip = TextureEncryptManager.GenerateRefMipmap(size, size, settings.UseSmallMipTexture);
+            string fileName = fullChain ? paths.MipTextureName(width, height) : paths.MipTextureName(width);
+            mip = TextureEncryptManager.GenerateRefMipmap(width, height, settings.UseSmallMipTexture, fullChain);
             if (mip == null)
-                Debug.LogErrorFormat("{0} : Can't generate mip tex{1}.", fileName, size);
+                Debug.LogErrorFormat("{0} : Can't generate mip tex{1}x{2}.", fileName, width, height);
             else
                 writer.CreateAssetInFolder(mip, paths.Folders.TexGuid, fileName);
-            mipTextures[size] = mip;
+            mipTextures[(width, height, fullChain)] = mip;
             return mip;
         }
 

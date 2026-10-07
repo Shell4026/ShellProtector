@@ -506,7 +506,9 @@ namespace Shell.Protector
 
                     TextureSettings.SetRWEnableTexture(texture);
 
-                    var result = TextureEncryptManager.EncryptTexture(texture, root.GetKeyBytes(), new XXTEA());
+                    // BC7 can only be encrypted with ChaCha.
+                    IEncryptor cipher = texture.format == TextureFormat.BC7 ? new Chacha20() : new XXTEA();
+                    var result = TextureEncryptManager.EncryptTexture(texture, root.GetKeyBytes(), cipher);
                     if (result.Texture1 == null)
                         continue;
 

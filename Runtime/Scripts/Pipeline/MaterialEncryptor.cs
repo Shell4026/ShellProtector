@@ -65,6 +65,8 @@ namespace Shell.Protector
 
             injector.SetKeywords(result, auxiliary.LimTexture != null);
             TextureEncryptManager.SetFormatKeywords(result, originalTex);
+            if (texture.Encrypted.Layout != null)
+                BC7Format.SetLayoutProperties(result, texture.Encrypted.Layout);
             EmissionEncryption.Apply(source, result, keyBytes, encryptor, secrets, writer, folderGuid, emissionMask);
             writer.CreateAssetInFolder(result, folderGuid, fileName);
             return result;

@@ -19,7 +19,15 @@
 #elif _SHELL_PROTECTOR_FORMAT0 && !_SHELL_PROTECTOR_FORMAT1
     #define _SHELL_PROTECTOR_RGB
 #else
-    #error "Unsupported format"
+    #define _SHELL_PROTECTOR_BC7
+#endif
+
+// BC7 is ChaCha only. Unity still compiles the XXTEA variant, so that one decrypts with ChaCha too.
+#ifdef _SHELL_PROTECTOR_BC7
+    #undef _SHELL_PROTECTOR_XXTEA
+    #ifndef _SHELL_PROTECTOR_CHACHA
+        #define _SHELL_PROTECTOR_CHACHA
+    #endif
 #endif
 
 static const uint mw[13] = { 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1 };
@@ -67,9 +75,13 @@ uint _HashMagic;
 	#include "DXT.cginc"
 #endif
 
+#ifdef _SHELL_PROTECTOR_BC7
+	#include "BC7.cginc"
+#endif
+
 void DecryptData(inout uint data[_SHELL_PROTECTOR_DATA_LENGTH], Texture2D tex0, Texture2D tex1, SamplerState tex0Sampler, float2 uv, int m)
 {
-#if defined(_SHELL_PROTECTOR_DXT) || defined(_SHELL_PROTECTOR_BLOCK_STREAM)
+#if defined(_SHELL_PROTECTOR_DXT) || defined(_SHELL_PROTECTOR_BLOCK_STREAM) || defined(_SHELL_PROTECTOR_BC7)
 	const int idx = GetBlockIndex(uv, m);
 #else
 	const int idx = GetIndex(uv, m);
@@ -96,6 +108,80 @@ float4 DecryptTexture(Texture2D tex0, Texture2D tex1, SamplerState tex0Sampler, 
 	DecryptData(data, tex0, tex1, tex0Sampler, uv, m);
     return GetPixel(tex0, tex1, tex0Sampler, data, uv, m);
 }
+
+#ifdef _SHELL_PROTECTOR_BC7
+
+// The mip reference covers the full chain of the texture's own size (Pipeline.GetMipTexture), and BC7 keeps every level
+// down to 1x1, so the level only has to stay below the texture's mip count.
+int GetBC7Mip(Texture2D mipTex, SamplerState mipSamp, float2 uv)
+{
+	const int mip = round(mipTex.Sample(mipSamp, uv).r * 255 / 10);
+	return clamp(mip, 0, (int)_ShellSourceSampling.x - 1);
+}
+
+float4 DecryptTextureBox(Texture2D tex0, Texture2D tex1, SamplerState texSampler, float4 texSize, Texture2D mipTex, SamplerState mipSamp, float2 uv)
+{
+	return DecryptTexture(tex0, tex1, texSampler, uv, GetBC7Mip(mipTex, mipSamp, uv));
+}
+
+// Taps on the texel centers of the selected mip level; texSize is the atlas's and unused. A decrypted record is a whole 4x4
+// block, so the taps in a block already decrypted are decoded from it and only taps in another block decrypt again.
+float4 DecryptTextureBilinear(Texture2D tex0, Texture2D tex1, SamplerState texSampler, float4 texSize, Texture2D mipTex, SamplerState mipSamp, float2 uv)
+{
+	const int mip = GetBC7Mip(mipTex, mipSamp, uv);
+	const float2 size = BC7MipSize(mip);
+	const float2 position = uv * size - 0.5;
+	const float2 uv00 = (floor(position) + 0.5) / size;
+	const float2 uv10 = uv00 + float2(1.0 / size.x, 0);
+	const float2 uv01 = uv00 + float2(0, 1.0 / size.y);
+	const float2 uv11 = uv00 + 1.0 / size;
+
+	const int unit00 = GetBlockIndex(uv00, mip);
+	const int unit10 = GetBlockIndex(uv10, mip);
+	const int unit01 = GetBlockIndex(uv01, mip);
+	const int unit11 = GetBlockIndex(uv11, mip);
+
+	uint data[_SHELL_PROTECTOR_DATA_LENGTH];
+	DecryptData(data, tex0, tex1, texSampler, uv00, mip);
+	const float4 c00 = GetPixel(tex0, tex1, texSampler, data, uv00, mip);
+	float4 c10 = 0;
+	float4 c01 = 0;
+	float4 c11 = 0;
+	if (unit10 == unit00)
+		c10 = GetPixel(tex0, tex1, texSampler, data, uv10, mip);
+	if (unit01 == unit00)
+		c01 = GetPixel(tex0, tex1, texSampler, data, uv01, mip);
+	if (unit11 == unit00)
+		c11 = GetPixel(tex0, tex1, texSampler, data, uv11, mip);
+
+	[branch]
+	if (unit10 != unit00)
+	{
+		DecryptData(data, tex0, tex1, texSampler, uv10, mip);
+		c10 = GetPixel(tex0, tex1, texSampler, data, uv10, mip);
+		if (unit11 == unit10)
+			c11 = GetPixel(tex0, tex1, texSampler, data, uv11, mip);
+	}
+	[branch]
+	if (unit01 != unit00)
+	{
+		DecryptData(data, tex0, tex1, texSampler, uv01, mip);
+		c01 = GetPixel(tex0, tex1, texSampler, data, uv01, mip);
+		if (unit11 == unit01)
+			c11 = GetPixel(tex0, tex1, texSampler, data, uv11, mip);
+	}
+	[branch]
+	if (unit11 != unit00 && unit11 != unit10 && unit11 != unit01)
+	{
+		DecryptData(data, tex0, tex1, texSampler, uv11, mip);
+		c11 = GetPixel(tex0, tex1, texSampler, data, uv11, mip);
+	}
+
+	const float2 f = frac(position);
+	return lerp(lerp(c00, c10, f.x), lerp(c01, c11, f.x), f.y);
+}
+
+#else
 
 float4 DecryptTextureBox(Texture2D tex0, Texture2D tex1, SamplerState texSampler, float4 texSize, Texture2D mipTex, SamplerState mipSamp, float2 uv)
 {
@@ -193,6 +279,8 @@ float4 DecryptTextureBilinear(Texture2D tex0, Texture2D tex1, SamplerState texSa
 	return bilinear;
 #endif
 }
+
+#endif
 
 inline uint SimpleHash(int data[16])
 {

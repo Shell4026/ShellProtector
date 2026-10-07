@@ -14,7 +14,8 @@ namespace Shell.Protector
             { TextureFormat.DXT5, new DXT5Format() },
             { TextureFormat.DXT5Crunched, new DXT5Format() },
             { TextureFormat.RGB24, new RGB24Format() },
-            { TextureFormat.RGBA32, new RGBA32Format() }
+            { TextureFormat.RGBA32, new RGBA32Format() },
+            { TextureFormat.BC7, new BC7Format() }
         };
 
         public static bool HasAlpha(Texture2D texture)
@@ -27,12 +28,15 @@ namespace Shell.Protector
             return false;
         }
 
-        public static Texture2D GenerateRefMipmap(int width, int height, bool small = false)
+        // fullChain: every mip level down to 1x1, for BC7, which keeps them all. The other formats stop earlier.
+        public static Texture2D GenerateRefMipmap(int width, int height, bool small = false, bool fullChain = false)
         {
-            int mip_lv = GetCanMipmapLevel(width, height);
+            int mip_lv = fullChain ? 1 + (int)Mathf.Log(Mathf.Max(width, height), 2) : GetCanMipmapLevel(width, height);
             Debug.LogFormat("mip {0}, {1} : {2}", width, height, mip_lv);
 
-            Texture2D mip = new Texture2D(width, (small == false) ? height : 1, TextureFormat.RGB24, mip_lv, true);
+            // A one-row reference still needs the longer side to hold every level of a tall texture.
+            int referenceWidth = small && fullChain ? Mathf.Max(width, height) : width;
+            Texture2D mip = new Texture2D(referenceWidth, (small == false) ? height : 1, TextureFormat.RGB24, mip_lv, true);
             mip.filterMode = FilterMode.Bilinear;
             mip.anisoLevel = (small == false) ? 1 : 0;
 
@@ -136,7 +140,7 @@ namespace Shell.Protector
             var format = GetFormat(texture);
             if (format == null)
             {
-                Debug.LogErrorFormat("{0} is not supported texture format! supported type:DXT1, DXT5, RGB, RGBA", texture.name);
+                Debug.LogErrorFormat("{0} is not supported texture format! supported type:DXT1, DXT5, RGB, RGBA, BC7", texture.name);
                 return new EncryptResult();
             }
 

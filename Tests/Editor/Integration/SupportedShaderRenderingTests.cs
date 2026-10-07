@@ -129,9 +129,43 @@ namespace Shell.Protector.Tests.Integration
             AssertTamperedKeyRendersCorruptedOutput(encryptedMaterial, reference, "Poiyomi");
         }
 
-        private Fixture CreateFixture(string name, Shader shader)
+        // lilToon only: custom.hlsl always takes the bilinear path.
+        [TestCase("lilToon", ShellProtectorTextureFilter.Bilinear)]
+        [TestCase(".poiyomi/Poiyomi Toon", ShellProtectorTextureFilter.Point)]
+        [TestCase(".poiyomi/Poiyomi Toon", ShellProtectorTextureFilter.Bilinear)]
+        public void Bc7EncryptedMaterial_RendersLikeOriginal(string shaderName, ShellProtectorTextureFilter filter)
+        {
+            Shader shader = FindSupportedShader(shaderName);
+            Fixture fixture = CreateFixture("Bc7Smoke", shader, TextureFormat.BC7);
+            SetSerializedField(fixture.Protector, "filter", (int)filter);
+            fixture.Material.mainTexture.filterMode = filter == ShellProtectorTextureFilter.Point ? FilterMode.Point : FilterMode.Bilinear;
+            Color32[] reference = RenderMaterial(fixture.Material);
+
+            GameObject encryptedAvatar = fixture.Protector.Encrypt(false);
+            sceneObjects.Add(encryptedAvatar);
+
+            Material encryptedMaterial = GetBodyMaterial(encryptedAvatar);
+            Assert.That(encryptedMaterial.shader.isSupported, Is.True, "Encrypted shader should be supported: " + encryptedMaterial.shader.name);
+            Assert.That(encryptedMaterial.IsKeywordEnabled(ShaderProperties.ChachaKeyword), Is.True);
+            Assert.That(encryptedMaterial.IsKeywordEnabled(ShaderProperties.Format0Keyword), Is.True, "BC7 enables both format keywords.");
+            Assert.That(encryptedMaterial.IsKeywordEnabled(ShaderProperties.Format1Keyword), Is.True, "BC7 enables both format keywords.");
+            Assert.That(encryptedMaterial.GetVector(ShaderProperties.SourceTexelSize).z, Is.EqualTo(TextureSize), "The BC7 layout must be stored in the material.");
+            var atlas = (Texture2D)encryptedMaterial.GetTexture(ShaderProperties.EncryptTexture0);
+            Assert.That(atlas.GetRawTextureData().Length, Is.LessThan(TextureSize * TextureSize * 4), "The atlas must stay smaller than RGBA32.");
+
+            ApplyUserKey(encryptedMaterial, fixture.Protector);
+            Color32[] actual = RenderMaterial(encryptedMaterial);
+            AssertRenderedRgbClose(reference, actual, "BC7 " + shaderName + " " + filter);
+        }
+
+        private Fixture CreateFixture(string name, Shader shader, TextureFormat format = TextureFormat.RGBA32)
         {
             Texture2D texture = CreateSrgbPatternTexture(TextureSize, TextureSize, true);
+            if (format == TextureFormat.BC7)
+            {
+                EditorUtility.CompressTexture(texture, TextureFormat.BC7, TextureCompressionQuality.Normal);
+                texture.Apply(false, false);
+            }
             texture.name = name + "Texture";
             string texturePath = TestAssetScope.CreateAsset(texture, name + "/texture.asset");
             texture = AssetDatabase.LoadAssetAtPath<Texture2D>(texturePath);
