@@ -43,6 +43,8 @@ namespace Shell.Protector
         SerializedProperty turnOnAllSafetyFallback;
         ShellProtectorEditorViewModel viewModel;
         bool forceProgress = false;
+        string memoryEstimate = "";
+        double memoryEstimateTime;
         bool showPassword = false;
 
         string currentVersion = "";
@@ -292,6 +294,7 @@ namespace Shell.Protector
 
             if (GUILayout.Button(new GUIContent(Lang("Material advanced settings"), Lang("Filter, fallback and emission encryption per material."))))
                 MaterialAdvancedSettings.ShowWindow(root);
+            DrawMemoryEstimate();
             // Checked on layout only: the repaint that follows must draw the same boxes.
             if (Event.current.type == EventType.Layout)
                 materialWarnings = CollectMaterialWarnings();
@@ -340,6 +343,18 @@ namespace Shell.Protector
                 case MaterialIssues.Issue.OddMainTextureSize: return "There are textures whose size is not a multiple of 2.";
                 default: return "";
             }
+        }
+
+        // Recomputed at most once a second, and on layout only so the repaint that follows draws the same text.
+        void DrawMemoryEstimate()
+        {
+            if (Event.current.type == EventType.Layout && EditorApplication.timeSinceStartup - memoryEstimateTime > 1)
+            {
+                memoryEstimateTime = EditorApplication.timeSinceStartup;
+                var estimate = TextureMemoryEstimate.Calculate(root, bUseSmallMipTexture.boolValue);
+                memoryEstimate = string.Format(Lang("Texture memory after encryption: {0}"), TextureMemoryEstimate.FormatDelta(estimate.Delta));
+            }
+            Hint(memoryEstimate);
         }
 
         void DrawObfuscation()
