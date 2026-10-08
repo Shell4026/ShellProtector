@@ -199,13 +199,16 @@ namespace Shell.Protector.Tests.Integration
                 Assert.That(target.GetTexture(map), Is.EqualTo(emission));
                 Assert.That(target.GetVector(EmissionEncryption.SettingsProperty(slot)).x, Is.Zero);
                 Assert.That(AssetDatabase.FindAssets("t:Texture", new[] { root }).Length, Is.EqualTo(assetCount));
+                // On a copy: the cleanup changes the encrypted material itself, and target is rendered below.
+                var cleaned = Object.Instantiate(target);
+                objects.Add(cleaned);
                 var avatar = new GameObject("Cleanup regression");
                 objects.Add(avatar);
-                avatar.AddComponent<MeshRenderer>().sharedMaterial = target;
+                avatar.AddComponent<MeshRenderer>().sharedMaterial = cleaned;
                 var protector = avatar.AddComponent<ShellProtector>();
                 protector.AssetDir = root + "/Pipeline";
                 var pipeline = new Pipeline(new BuildRequest(avatar, false), protector.CreateSettings());
-                pipeline.Result.encryptedMaterials[source] = target;
+                pipeline.Result.encryptedMaterials[source] = cleaned;
                 pipeline.Result.processedTextures[emission] = new ProcessedTexture
                 {
                     Encrypted = encryptedMain,
@@ -213,7 +216,8 @@ namespace Shell.Protector.Tests.Integration
                     FallbackOptions = new List<int> { 0 }
                 };
                 pipeline.ReplaceProtectedTextures();
-                Assert.That(avatar.GetComponent<MeshRenderer>().sharedMaterial.GetTexture(map), Is.EqualTo(emission), "Fallback cleanup must preserve unselected emission maps shared with protected main maps.");
+                Assert.That(avatar.GetComponent<MeshRenderer>().sharedMaterial, Is.SameAs(cleaned), "Material swaps point at the encrypted material, so it must not be replaced by a copy.");
+                Assert.That(cleaned.GetTexture(map), Is.EqualTo(Texture2D.blackTexture), "An unselected emission map that holds a protected texture must take its fallback.");
             }
             Color32[] actual = SupportedShaderRenderingTests.RenderMaterial(target);
             Assert.That(ShaderUtil.ShaderHasError(encryptedShader), Is.False, encryptedShader.name);

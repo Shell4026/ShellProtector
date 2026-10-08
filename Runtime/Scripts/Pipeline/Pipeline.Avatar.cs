@@ -95,13 +95,21 @@ namespace Shell.Protector
 
                 foreach (var name in mat.GetTexturePropertyNames())
                 {
-                    if (EmissionEncryption.IsEmissionMap(mat, name))
-                        continue;
                     if (!(mat.GetTexture(name) is Texture2D mainTexture) || !processedTextures.TryGetValue(mainTexture, out ProcessedTexture processed))
                         continue;
 
                     Texture2D encrypted0 = processed.Encrypted.Texture1;
                     Texture2D bigFallbackTexture = GetLargestFallback(processed);
+
+                    // A selected emission slot already holds black (EmissionEncryption.Apply). An unselected one keeps its map
+                    // unless the map is protected. This changes the encrypted material itself, not a copy: material swaps
+                    // in animations point at it.
+                    if (EmissionEncryption.IsEmissionMap(mat, name))
+                    {
+                        mat.SetTexture(name, bigFallbackTexture);
+                        EditorUtility.SetDirty(mat);
+                        continue;
+                    }
 
                     if (otherTex.LimTexture != null)
                     {
@@ -161,9 +169,6 @@ namespace Shell.Protector
                     Material duplicatedMaterial = null;
                     foreach (string name in sourceMaterial.GetTexturePropertyNames())
                     {
-                        // Emission is opt-in, even if an unselected slot shares
-                        // a texture encrypted as another material's main map.
-                        if (EmissionEncryption.IsEmissionMap(sourceMaterial, name)) continue;
                         Texture2D texture = sourceMaterial.GetTexture(name) as Texture2D;
                         if (texture == null || !Result.processedTextures.TryGetValue(texture, out ProcessedTexture processedTexture))
                             continue;
