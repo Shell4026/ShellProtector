@@ -186,7 +186,7 @@ namespace Shell.Protector
                         mask ^= 1 << slot;
                 }
                 GUILayout.Space(6);
-                if (selected && texture != null && !MaterialIssues.IsSupportedEmission(texture))
+                if (selected && !MaterialIssues.IsSupportedEmission(material, slot))
                     unsupported.Add(name);
             }
             EditorGUI.indentLevel = indent;

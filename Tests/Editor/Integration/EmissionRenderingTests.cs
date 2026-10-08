@@ -54,16 +54,28 @@ namespace Shell.Protector.Tests.Integration
             RenderEmission(poiyomi, 0, false, FilterMode.Bilinear, TextureFormat.RGBA32, false);
         }
 
-        void RenderEmission(bool poiyomi, int slot, bool xxtea, FilterMode filter, TextureFormat format, bool encrypt)
+        // The emission map is the main texture at the main UV, so the shader takes the main texture's decrypted color. XXTEA
+        // also compresses the main texture, which covers a DXT main texture.
+        [TestCase(false, 0, false)]
+        [TestCase(false, 1, true)]
+        [TestCase(true, 0, false)]
+        [TestCase(true, 3, true)]
+        public void Emission_SameAsMainTexture_ReusesMainDecryption(bool poiyomi, int slot, bool xxtea)
+        {
+            RenderEmission(poiyomi, slot, xxtea, FilterMode.Bilinear, TextureFormat.RGBA32, true, true);
+        }
+
+        void RenderEmission(bool poiyomi, int slot, bool xxtea, FilterMode filter, TextureFormat format, bool encrypt, bool shareMain = false)
         {
             Shader shader = Shader.Find(poiyomi ? ".poiyomi/Poiyomi Toon" : "lilToon");
             Assert.That(shader, Is.Not.Null, "Install the supported shader to run this integration test.");
             var source = new Material(shader);
             source.name = "EmissionTest";
             objects.Add(source);
-            var main = Pattern(128, 128, false);
-            var emission = Pattern(64, 32, true, format);
-            emission.wrapMode = TextureWrapMode.Mirror;
+            var main = Pattern(128, 128, shareMain);
+            var emission = shareMain ? main : Pattern(64, 32, true, format);
+            // The main decryption repeats.
+            emission.wrapMode = shareMain ? TextureWrapMode.Repeat : TextureWrapMode.Mirror;
             emission.filterMode = filter;
             main.filterMode = filter;
             // Compare supported isotropic filtering even when the host project's
@@ -98,6 +110,11 @@ namespace Shell.Protector.Tests.Integration
             source.SetTexture(unselected, emission);
             source.SetTextureScale(map, filter == FilterMode.Trilinear ? new Vector2(5.3f, 4.7f) : new Vector2(1.3f, 0.7f));
             source.SetTextureOffset(map, new Vector2(-0.1f, 0.2f));
+            if (shareMain)
+            {
+                source.SetTextureScale("_MainTex", source.GetTextureScale(map));
+                source.SetTextureOffset("_MainTex", source.GetTextureOffset(map));
+            }
             if (poiyomi)
             {
                 string suffix = slot == 0 ? "" : slot.ToString();
@@ -161,7 +178,14 @@ namespace Shell.Protector.Tests.Integration
                 Assert.That(target.GetTexture(unselected), Is.EqualTo(source.GetTexture(unselected)), "Unselected slot must remain untouched.");
             Assert.That(source.GetTexture(map), Is.EqualTo(emission));
             Assert.That(target.GetTextureScale(map), Is.EqualTo(source.GetTextureScale(map)));
-            if (encrypt)
+            if (encrypt && shareMain)
+            {
+                Assert.That(EmissionEncryption.ReusesMainTexture(source, slot), Is.True);
+                Assert.That(target.GetTexture(map), Is.Not.EqualTo(emission));
+                Assert.That(target.GetVector(EmissionEncryption.SettingsProperty(slot)).x, Is.EqualTo(EmissionEncryption.ReusedMainTexture));
+                Assert.That(AssetDatabase.FindAssets("t:Texture", new[] { root }).Length, Is.EqualTo(assetCount), "Reusing the main texture writes no emission texture.");
+            }
+            else if (encrypt)
             {
                 Assert.That(target.GetTexture(map), Is.Not.EqualTo(emission));
                 var encryptedEmission = (Texture2D)target.GetTexture(EmissionEncryption.TextureProperty(slot));

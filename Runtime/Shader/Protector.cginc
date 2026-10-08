@@ -103,6 +103,16 @@ void DecryptData(inout uint data[_SHELL_PROTECTOR_DATA_LENGTH], Texture2D tex0, 
 	Decrypt(data, key);
 }
 
+// The decrypted main color, for an emission slot that holds the main texture at the main UV (Emission.cginc). It stays 0
+// where the main texture isn't decrypted: while locked, and in a pass without the main texture.
+static float4 _ShellMainColor = 0;
+
+float4 ShellStoreMainColor(float4 color)
+{
+	_ShellMainColor = color;
+	return color;
+}
+
 float4 DecryptTexture(Texture2D tex0, Texture2D tex1, SamplerState tex0Sampler, float2 uv, int m)
 {
 	uint data[_SHELL_PROTECTOR_DATA_LENGTH];
@@ -122,7 +132,7 @@ int GetBC7Mip(Texture2D mipTex, SamplerState mipSamp, float2 uv)
 
 float4 DecryptTextureBox(Texture2D tex0, Texture2D tex1, SamplerState texSampler, float4 texSize, Texture2D mipTex, SamplerState mipSamp, float2 uv)
 {
-	return DecryptTexture(tex0, tex1, texSampler, uv, GetBC7Mip(mipTex, mipSamp, uv));
+	return ShellStoreMainColor(DecryptTexture(tex0, tex1, texSampler, uv, GetBC7Mip(mipTex, mipSamp, uv)));
 }
 
 // Taps on the texel centers of the selected mip level; texSize is the code texture's and unused. One keystream covers a
@@ -182,7 +192,7 @@ float4 DecryptTextureBilinear(Texture2D tex0, Texture2D tex1, SamplerState texSa
 	const float4 c01 = BC7DecodeTexel(tex0, tex1, stream01, p01, mip);
 	const float4 c11 = BC7DecodeTexel(tex0, tex1, stream11, p11, mip);
 	const float2 f = frac(position);
-	return lerp(lerp(c00, c10, f.x), lerp(c01, c11, f.x), f.y);
+	return ShellStoreMainColor(lerp(lerp(c00, c10, f.x), lerp(c01, c11, f.x), f.y));
 }
 
 #else
@@ -196,7 +206,7 @@ float4 DecryptTextureBox(Texture2D tex0, Texture2D tex1, SamplerState texSampler
 
     float4 c00 = DecryptTexture(tex0, tex1, texSampler, uv, m[mip]);
 
-	return c00;
+	return ShellStoreMainColor(c00);
 }
 
 float4 DecryptTextureBilinear(Texture2D tex0, Texture2D tex1, SamplerState texSampler, float4 originalTexSize, Texture2D mipTex, SamplerState mipSamp, float2 uv)
@@ -265,7 +275,7 @@ float4 DecryptTextureBilinear(Texture2D tex0, Texture2D tex1, SamplerState texSa
 		const float2 f = frac(uvBilinear * originalTexSize.zw);
 		const float4 c0 = lerp(c00, c10, f.x);
 		const float4 c1 = lerp(c01, c11, f.x);
-		return lerp(c0, c1, f.y);
+		return ShellStoreMainColor(lerp(c0, c1, f.y));
 	}
 #else
 	float4 c00 = DecryptTexture(tex0, tex1, texSampler, uv00, m[mip]);
@@ -280,7 +290,7 @@ float4 DecryptTextureBilinear(Texture2D tex0, Texture2D tex1, SamplerState texSa
 
 	float4 bilinear = lerp(c0, c1, f.y);
 
-	return bilinear;
+	return ShellStoreMainColor(bilinear);
 #endif
 }
 

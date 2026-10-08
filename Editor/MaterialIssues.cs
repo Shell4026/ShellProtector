@@ -63,13 +63,20 @@ namespace Shell.Protector
             string[] maps = EmissionMaps(material);
             for (int slot = 0; slot < maps.Length; slot++)
             {
-                if ((mask & (1 << slot)) == 0 || !material.HasProperty(maps[slot]))
-                    continue;
-                Texture texture = material.GetTexture(maps[slot]);
-                if (texture != null && !IsSupportedEmission(texture))
+                if ((mask & (1 << slot)) != 0 && !IsSupportedEmission(material, slot))
                     return true;
             }
             return false;
+        }
+
+        // An empty slot has nothing to encrypt. A slot that reuses the main texture's decryption needs no encryption of its
+        // own, so it takes any main texture format.
+        public static bool IsSupportedEmission(Material material, int slot)
+        {
+            string map = EmissionMaps(material)[slot];
+            if (!material.HasProperty(map) || material.GetTexture(map) == null)
+                return true;
+            return IsSupportedEmission(material.GetTexture(map)) || EmissionEncryption.ReusesMainTexture(material, slot);
         }
 
         // The conditions EmissionEncryption.Encrypt checks at build time, except readability, which the build sets itself.

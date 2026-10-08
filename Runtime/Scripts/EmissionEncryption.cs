@@ -18,6 +18,8 @@ namespace Shell.Protector
         public static string BlocksProperty(int slot) => TextureProperty(slot) + "Blocks";
         public static string SettingsProperty(int slot) => TextureProperty(slot) + "Settings";
         public static string WrapProperty(int slot) => TextureProperty(slot) + "Wrap";
+        // Settings.x of a slot that takes the main texture's decrypted color (ReusesMainTexture).
+        public const int ReusedMainTexture = 4;
 
         // The main texture formats except BC7, which Emission.cginc can't decode.
         public static bool SupportsFormat(Texture2D texture)
@@ -36,6 +38,39 @@ namespace Shell.Protector
             string[] maps = AssetManager.GetInstance().IsPoiyomi(material.shader) ? PoiyomiMaps : LilToonMaps;
             return material.HasProperty(SettingsProperty(0)) && Array.IndexOf(maps, property) >= 0;
         }
+
+        // Whether the slot samples the main texture at the main UV, so Emission.cginc can take the main texture's decrypted
+        // color instead of decrypting a copy. Only the material's values are compared: an animation that changes the UV of
+        // one side alone isn't detected.
+        public static bool ReusesMainTexture(Material material, int slot)
+        {
+            bool poiyomi = AssetManager.GetInstance().IsPoiyomi(material.shader);
+            string map = (poiyomi ? PoiyomiMaps : LilToonMaps)[slot];
+            Texture main = material.mainTexture;
+            if (main == null || !material.HasProperty(map) || material.GetTexture(map) != main)
+                return false;
+            if (material.GetTextureScale(map) != material.GetTextureScale("_MainTex") || material.GetTextureOffset(map) != material.GetTextureOffset("_MainTex"))
+                return false;
+            if (poiyomi)
+            {
+                // The injected main decryption samples without _MainTexPan, the emission sample with its own panning.
+                return GetFloat(material, map + "UV") == GetFloat(material, "_MainTexUV")
+                    && GetVector(material, map + "Pan") == Vector4.zero
+                    && GetFloat(material, "_EmissionCenterOutEnabled" + (slot == 0 ? "" : slot.ToString())) == 0
+                    && GetFloat(material, "_MainPixelMode") == 0;
+            }
+            // lilToon animates the emission UV even where the main UV isn't (custom.hlsl), and shifts only the main UV for
+            // backfaces and parallax.
+            return GetFloat(material, map + "_UVMode") == 0
+                && GetFloat(material, (slot == 0 ? "_Emission" : "_Emission2nd") + "ParallaxDepth") == 0
+                && GetVector(material, map + "_ScrollRotate") == Vector4.zero
+                && GetVector(material, "_MainTex_ScrollRotate") == Vector4.zero
+                && GetFloat(material, "_ShiftBackfaceUV") == 0
+                && GetFloat(material, "_UseParallax") == 0;
+        }
+
+        static float GetFloat(Material material, string name) => material.HasProperty(name) ? material.GetFloat(name) : 0;
+        static Vector4 GetVector(Material material, string name) => material.HasProperty(name) ? material.GetVector(name) : Vector4.zero;
 
         // The slot goes in key word 0 and the map's own domain in key word 1. Materials that share a main texture also
         // share its nonce and secrets, so without the domain the same slot of both would reuse one keystream.
@@ -144,10 +179,16 @@ namespace Shell.Protector
                 if ((emissionMask & (1 << slot)) == 0) continue;
                 string map = maps[slot];
                 if (!source.HasProperty(map) || source.GetTexture(map) == null) continue;
-                if (!(source.GetTexture(map) is Texture2D texture) || !SupportsFormat(texture))
-                    throw new InvalidOperationException(source.name + ": unsupported emission texture in " + map);
                 if (!target.HasProperty(TextureProperty(slot)))
                     throw new InvalidOperationException("Encrypted shader is missing emission support. Regenerate the shader: " + source.name);
+                if (ReusesMainTexture(source, slot))
+                {
+                    target.SetVector(SettingsProperty(slot), new Vector4(ReusedMainTexture, 0, 0, 0));
+                    target.SetTexture(map, Texture2D.blackTexture);
+                    continue;
+                }
+                if (!(source.GetTexture(map) is Texture2D texture) || !SupportsFormat(texture))
+                    throw new InvalidOperationException(source.name + ": unsupported emission texture in " + map);
 
                 var importer = AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(texture)) as TextureImporter;
                 bool readable = importer != null && importer.isReadable;
