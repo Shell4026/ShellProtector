@@ -8,20 +8,17 @@ namespace Shell.Protector
     internal sealed class ShellProtectorEditorViewModel
     {
         readonly ShellProtector protector;
-        readonly SerializedProperty keySize;
         readonly SerializedProperty syncSize;
         readonly ReorderableList gameobjectList;
         readonly ReorderableList materialList;
 
         public ShellProtectorEditorViewModel(
             ShellProtector protector,
-            SerializedProperty keySize,
             SerializedProperty syncSize,
             ReorderableList gameobjectList,
             ReorderableList materialList)
         {
             this.protector = protector;
-            this.keySize = keySize;
             this.syncSize = syncSize;
             this.gameobjectList = gameobjectList;
             this.materialList = materialList;
@@ -40,7 +37,7 @@ namespace Shell.Protector
             FreeParameter = HasParameterAsset ? 256 - parameters.CalcTotalCost() : -1;
 
             int lockSize = 1;
-            int switchCount = keySize.intValue > 0 ? ShellProtector.GetRequiredSwitchCount(keySize.intValue, syncSize.intValue) : 0;
+            int switchCount = ShellProtector.GetRequiredSwitchCount(ShellProtector.KeySize, syncSize.intValue);
             UsedParameter = switchCount + lockSize + syncSize.intValue * 8;
         }
     }

@@ -322,7 +322,6 @@ namespace Shell.Protector.Tests.Integration
             SetSerializedField(protector, "algorithm", 1);
             SetSerializedField(protector, "filter", 0);
             SetSerializedField(protector, "fallback", 5);
-            SetSerializedField(protector, "keySize", 12);
             SetSerializedField(protector, "syncSize", 1);
             protector.Init();
 

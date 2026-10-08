@@ -34,14 +34,6 @@ namespace Shell.Protector
             GUILayout.Space(10);
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label(Lang("Max password length"));
-            GUILayout.FlexibleSpace();
-            root.UserKeyLength = EditorGUILayout.IntField(root.UserKeyLength, GUILayout.Width(50));
-            GUILayout.EndHorizontal();
-
-            GUILayout.Space(10);
-
-            GUILayout.BeginHorizontal();
             GUILayout.Label(Lang("Languages: "));
             GUILayout.FlexibleSpace();
 
@@ -64,17 +56,10 @@ namespace Shell.Protector
             
             GUILayout.Space(10);
 
-            if (root.UserKeyLength == 0)
-            {
-                GUILayout.Label(Lang("It's okay for the 0-digit password to be the same as the original."));
-            }
-            else
-            {
-                GUILayout.Label(Lang("If it looks like its original appearance when pressed, it's a success."));
-                GUILayout.Label(Lang("It looks strange, try restarting Unity and checking back."));
-                if (GUILayout.Button(Lang("Check encryption success")))
-                    root.CheckEncryption();
-            }
+            GUILayout.Label(Lang("If it looks like its original appearance when pressed, it's a success."));
+            GUILayout.Label(Lang("It looks strange, try restarting Unity and checking back."));
+            if (GUILayout.Button(Lang("Check encryption success")))
+                root.CheckEncryption();
             GUILayout.Label(Lang("Press it before uploading."));
             if (GUILayout.Button(Lang("Done & Reset")))
             {

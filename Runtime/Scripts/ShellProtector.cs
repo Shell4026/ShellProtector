@@ -19,6 +19,9 @@ namespace Shell.Protector
         const string WrongRuntimeOutputDir = "Assets/ShellProtector/Runtime";
         const string DefaultOutputDir = "Assets/ShellProtector/Generated";
 
+        // The whole 16-byte key comes from the user password.
+        public const int KeySize = 16;
+
         // The underscored names are those of 2.6.0 to 2.7.0.
         [FormerlySerializedAs("gameobjectList")]
         [FormerlySerializedAs("_gameObjectList")]
@@ -97,13 +100,6 @@ namespace Shell.Protector
         [SerializeField] int fallback = 5;
         [FormerlySerializedAs("_algorithm")]
         [SerializeField] int algorithm = 1;
-#pragma warning disable CS0414
-        [FormerlySerializedAs("keySizeIdx")]
-        [FormerlySerializedAs("_keySizeIndex")]
-        [SerializeField] int keySizeIndex = 3;
-#pragma warning restore CS0414
-        [FormerlySerializedAs("_keySize")]
-        [SerializeField] int keySize = 12;
         [FormerlySerializedAs("_syncSize")]
         [SerializeField] int syncSize = 1;
         [FormerlySerializedAs("_deleteFolders")]
@@ -264,7 +260,7 @@ namespace Shell.Protector
                 Filter = filter,
                 Fallback = fallback,
                 Algorithm = algorithm,
-                KeySize = keySize,
+                KeySize = KeySize,
                 SyncSize = syncSize,
                 DeleteFolders = deleteFolders,
                 UseSmallMipTexture = useSmallMipTexture,
@@ -299,9 +295,9 @@ namespace Shell.Protector
         public UserKey GetUserKey()
         {
             EnsureParameterSalt();
-            if (userKey == null || userKeyPassword != userPassword || userKey.Salt != parameterSalt || userKey.Length != keySize)
+            if (userKey == null || userKeyPassword != userPassword || userKey.Salt != parameterSalt || userKey.Length != KeySize)
             {
-                userKey = UserKey.Derive(userPassword, parameterSalt, keySize);
+                userKey = UserKey.Derive(userPassword, parameterSalt, KeySize);
                 userKeyPassword = userPassword;
             }
             return userKey;
@@ -328,10 +324,6 @@ namespace Shell.Protector
         public int GetDefaultFallback()
         {
             return fallback;
-        }
-        public int GetKeySize()
-        {
-            return keySize;
         }
         public static int GetRequiredSwitchCount(int keyLength, int syncSize)
         {

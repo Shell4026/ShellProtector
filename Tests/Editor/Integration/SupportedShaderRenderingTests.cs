@@ -217,7 +217,6 @@ namespace Shell.Protector.Tests.Integration
             SetSerializedField(protector, "algorithm", (int)ShellProtectorAlgorithm.Chacha);
             SetSerializedField(protector, "filter", (int)ShellProtectorTextureFilter.Bilinear);
             SetSerializedField(protector, "fallback", (int)ShellProtectorFallback.Size32);
-            SetSerializedField(protector, "keySize", 12);
             SetSerializedField(protector, "syncSize", 1);
             protector.Init();
 
@@ -372,7 +371,7 @@ namespace Shell.Protector.Tests.Integration
         private static void ApplyUserKey(Material material, ShellProtector protector)
         {
             byte[] key = protector.GetKeyBytes();
-            for (int i = 16 - protector.GetKeySize(); i < 16; i++)
+            for (int i = 16 - ShellProtector.KeySize; i < 16; i++)
                 material.SetFloat(ShaderProperties.KeyPrefix + i, key[i]);
         }
 

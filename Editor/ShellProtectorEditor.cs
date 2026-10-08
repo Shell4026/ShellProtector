@@ -17,14 +17,6 @@ namespace Shell.Protector
         static readonly string[] languageCodes = { "eng", "kor", "jp" };
         static readonly int[] syncSizes = { 1, 2, 4 };
         static readonly GUIContent[] syncSizeLabels = { new GUIContent("1"), new GUIContent("2"), new GUIContent("4") };
-        static readonly string[] keyLengthTexts =
-        {
-            "0 (Minimal security)",
-            "4 (Low security)",
-            "8 (Middle security)",
-            "12 (Hight security)",
-            "16 (Unbreakable security)"
-        };
 
         // Foldout states are kept for the editor session, across every ShellProtector inspector.
         static bool advancedOption;
@@ -44,8 +36,6 @@ namespace Shell.Protector
         SerializedProperty userPassword;
         SerializedProperty filter;
         SerializedProperty fallback;
-        SerializedProperty keySize;
-        SerializedProperty keySizeIdx;
         SerializedProperty syncSize;
         SerializedProperty deleteFolders;
         SerializedProperty bUseSmallMipTexture;
@@ -96,15 +86,13 @@ namespace Shell.Protector
             userPassword = serializedObject.FindProperty("userPassword");
             filter = serializedObject.FindProperty("filter");
             fallback = serializedObject.FindProperty("fallback");
-            keySize = serializedObject.FindProperty("keySize");
-            keySizeIdx = serializedObject.FindProperty("keySizeIndex");
             syncSize = serializedObject.FindProperty("syncSize");
             deleteFolders = serializedObject.FindProperty("deleteFolders");
             bUseSmallMipTexture = serializedObject.FindProperty("useSmallMipTexture");
             bPreserveMMD = serializedObject.FindProperty("preserveMmd");
             turnOnAllSafetyFallback = serializedObject.FindProperty("turnOnAllSafetyFallback");
             #endregion
-            viewModel = new ShellProtectorEditorViewModel(root, keySize, syncSize, gameobjectList, materialList);
+            viewModel = new ShellProtectorEditorViewModel(root, syncSize, gameobjectList, materialList);
 
             foreach (var t in targets)
             {
@@ -374,38 +362,25 @@ namespace Shell.Protector
         {
             BeginSection(Lang("Password"));
 
-            var keyLengthLabels = new string[keyLengthTexts.Length];
-            for (int i = 0; i < keyLengthTexts.Length; i++)
-                keyLengthLabels[i] = Lang(keyLengthTexts[i]);
-            int sizeIndex = Mathf.Clamp(keySizeIdx.intValue, 0, keyLengthTexts.Length - 1);
-            sizeIndex = EditorGUILayout.Popup(Lang("Max password length"), sizeIndex, keyLengthLabels);
-            if (keySizeIdx.intValue != sizeIndex)
-                keySizeIdx.intValue = sizeIndex;
-            if (keySize.intValue != sizeIndex * 4)
-                keySize.intValue = sizeIndex * 4;
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.PrefixLabel(Lang("User password"));
+            if (showPassword)
+                userPassword.stringValue = GUILayout.TextField(userPassword.stringValue, ShellProtector.KeySize, EditorStyles.textField);
+            else
+                userPassword.stringValue = GUILayout.PasswordField(userPassword.stringValue, '*', ShellProtector.KeySize, EditorStyles.textField);
+            showPassword = GUILayout.Toggle(showPassword, Lang("Show"), GUI.skin.button, GUILayout.Width(80));
+            EditorGUILayout.EndHorizontal();
 
-            if (keySize.intValue > 0)
-            {
-                EditorGUILayout.BeginHorizontal();
-                EditorGUILayout.PrefixLabel(Lang("User password"));
-                if (showPassword)
-                    userPassword.stringValue = GUILayout.TextField(userPassword.stringValue, keySize.intValue, EditorStyles.textField);
-                else
-                    userPassword.stringValue = GUILayout.PasswordField(userPassword.stringValue, '*', keySize.intValue, EditorStyles.textField);
-                showPassword = GUILayout.Toggle(showPassword, Lang("Show"), GUI.skin.button, GUILayout.Width(80));
-                EditorGUILayout.EndHorizontal();
-
-                EditorGUILayout.Space(4);
-                int syncIndex = Math.Max(0, Array.IndexOf(syncSizes, syncSize.intValue));
-                var syncLabel = new GUIContent(Lang("Sync speed"), Lang("Number of key bytes synced at once. At 2 or higher the key syncs faster and is saved in the avatar, so the OSC program only has to run once, but more parameters are used."));
-                syncIndex = EditorGUILayout.Popup(syncLabel, syncIndex, syncSizeLabels);
-                if (syncSize.intValue != syncSizes[syncIndex])
-                    syncSize.intValue = syncSizes[syncIndex];
-                if (syncSize.intValue >= 2)
-                    Hint(Lang("The key is saved in the avatar, so the OSC program only has to run once. Uses more parameters."));
-                else
-                    Hint(Lang("The OSC program must keep running while you play. Uses the fewest parameters."));
-            }
+            EditorGUILayout.Space(4);
+            int syncIndex = Math.Max(0, Array.IndexOf(syncSizes, syncSize.intValue));
+            var syncLabel = new GUIContent(Lang("Sync speed"), Lang("Number of key bytes synced at once. At 2 or higher the key syncs faster and is saved in the avatar, so the OSC program only has to run once, but more parameters are used."));
+            syncIndex = EditorGUILayout.Popup(syncLabel, syncIndex, syncSizeLabels);
+            if (syncSize.intValue != syncSizes[syncIndex])
+                syncSize.intValue = syncSizes[syncIndex];
+            if (syncSize.intValue >= 2)
+                Hint(Lang("The key is saved in the avatar, so the OSC program only has to run once. Uses more parameters."));
+            else
+                Hint(Lang("The OSC program must keep running while you play. Uses the fewest parameters."));
 
             viewModel.Refresh();
             if (!viewModel.HasParameterAsset)
@@ -428,9 +403,6 @@ namespace Shell.Protector
         // Only the user password goes through the OSC program, and older OSC versions derive different keys.
         void DrawOsc()
         {
-            if (keySize.intValue <= 0)
-                return;
-
             BeginSection(Lang("OSC program"));
 
             // One label holds both the icon and the text: GUILayout can measure wrapped text in a horizontal group
