@@ -266,14 +266,6 @@ namespace Shell.Protector
 
             if (shaders.Count == 0)
                 EditorGUILayout.HelpBox(Lang("No supported shader (lilToon, Poiyomi) was found in the project."), MessageType.Warning);
-            else
-            {
-                var detected = new List<string>(shaders);
-#if MODULAR
-                detected.Add("Modular Avatar");
-#endif
-                Hint(Lang("Detected: ") + string.Join(", ", detected));
-            }
             EditorGUILayout.Space(SectionSpacing);
         }
 
@@ -505,6 +497,16 @@ namespace Shell.Protector
             if (!debug)
                 return;
 
+            Hint(Lang("Detected: ") + string.Join(", ", DetectedTools()));
+            if (GUILayout.Button(Lang("Create bug report")))
+            {
+                serializedObject.ApplyModifiedProperties();
+                BugReport.Save(root, DetectedTools(), Lang("Save bug report"));
+                GUIUtility.ExitGUI();
+            }
+            Hint(Lang("The report includes the avatar's key bytes. Send it only to the developer."));
+            GUILayout.Space(10);
+
 #if MODULAR
             using (new EditorGUI.DisabledScope(!CanEncrypt()))
             {
@@ -553,6 +555,15 @@ namespace Shell.Protector
                 if (last != null)
                     Selection.activeObject = last;
             }
+        }
+
+        List<string> DetectedTools()
+        {
+            var detected = new List<string>(shaders);
+#if MODULAR
+            detected.Add("Modular Avatar");
+#endif
+            return detected;
         }
 
         static GUIContent[] ToContents(string[] texts)
