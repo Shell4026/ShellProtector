@@ -63,6 +63,7 @@ namespace Shell.Protector
         // Not serialized: Unity keeps an editor's serializable fields across script reloads, so the styles would never be rebuilt.
         [NonSerialized] GUIStyle titleStyle;
         [NonSerialized] GUIStyle versionStyle;
+        [NonSerialized] GUIStyle newVersionStyle;
         [NonSerialized] GUIStyle sectionStyle;
         [NonSerialized] GUIStyle warningStyle;
 
@@ -169,6 +170,7 @@ namespace Shell.Protector
             titleStyle = new GUIStyle(EditorStyles.boldLabel) { fontSize = 19, fixedHeight = 0 };
             // A fixed height keeps the version on the title's baseline without stretching the header row.
             versionStyle = new GUIStyle(EditorStyles.miniLabel) { alignment = TextAnchor.LowerLeft, fixedHeight = titleStyle.CalcSize(new GUIContent("ShellProtector")).y };
+            newVersionStyle = new GUIStyle(versionStyle) { fontStyle = FontStyle.Bold };
             sectionStyle = new GUIStyle(EditorStyles.boldLabel) { fontSize = 16, fixedHeight = 0 };
             warningStyle = new GUIStyle(EditorStyles.helpBox) { fontSize = EditorStyles.boldLabel.fontSize, fontStyle = FontStyle.Bold, wordWrap = true };
         }
@@ -238,6 +240,10 @@ namespace Shell.Protector
             EditorGUILayout.BeginHorizontal();
             GUILayout.Label("ShellProtector", titleStyle);
             GUILayout.Label("v" + currentVersion, versionStyle);
+            string latestVersion = VersionManager.GetInstance().GetGithubVersion();
+            bool hasNewVersion = IsNewerVersion(latestVersion, currentVersion);
+            if (!string.IsNullOrEmpty(latestVersion))
+                GUILayout.Label(Lang("Latest: ") + "v" + latestVersion, hasNewVersion ? newVersionStyle : versionStyle);
             GUILayout.FlexibleSpace();
             int index = Mathf.Clamp(languageIndex.intValue, 0, languages.Length - 1);
             index = EditorGUILayout.Popup(index, languages, GUILayout.Width(90));
@@ -247,8 +253,7 @@ namespace Shell.Protector
                 language.stringValue = languageCodes[index];
             EditorGUILayout.EndHorizontal();
 
-            string latestVersion = VersionManager.GetInstance().GetGithubVersion();
-            if (IsNewerVersion(latestVersion, currentVersion))
+            if (hasNewVersion)
             {
                 EditorGUILayout.BeginHorizontal(EditorStyles.helpBox);
                 GUILayout.Label(Lang("A new version is available: ") + latestVersion);
