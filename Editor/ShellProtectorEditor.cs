@@ -170,7 +170,7 @@ namespace Shell.Protector
             // A fixed height keeps the version on the title's baseline without stretching the header row.
             versionStyle = new GUIStyle(EditorStyles.miniLabel) { alignment = TextAnchor.LowerLeft, fixedHeight = titleStyle.CalcSize(new GUIContent("ShellProtector")).y };
             sectionStyle = new GUIStyle(EditorStyles.boldLabel) { fontSize = 16, fixedHeight = 0 };
-            warningStyle = new GUIStyle(EditorStyles.boldLabel) { wordWrap = true, alignment = TextAnchor.MiddleLeft };
+            warningStyle = new GUIStyle(EditorStyles.helpBox) { fontSize = EditorStyles.boldLabel.fontSize, fontStyle = FontStyle.Bold, wordWrap = true };
         }
 
         // Sections are told apart by their headers and the space between them, not by boxes.
@@ -251,7 +251,7 @@ namespace Shell.Protector
             if (IsNewerVersion(latestVersion, currentVersion))
             {
                 EditorGUILayout.BeginHorizontal(EditorStyles.helpBox);
-                GUILayout.Label(Lang("A new version is available: ") + latestVersion, EditorStyles.wordWrappedLabel);
+                GUILayout.Label(Lang("A new version is available: ") + latestVersion);
                 if (GUILayout.Button(Lang("Releases page"), GUILayout.Width(110)))
                     Application.OpenURL(VersionManager.ReleasesUrl);
                 EditorGUILayout.EndHorizontal();
@@ -428,10 +428,10 @@ namespace Shell.Protector
 
             BeginSection(Lang("OSC program"));
 
-            EditorGUILayout.BeginHorizontal(EditorStyles.helpBox);
-            GUILayout.Label(EditorGUIUtility.IconContent("console.warnicon"), GUILayout.Width(36), GUILayout.Height(36));
-            GUILayout.Label(Lang("This version requires ShellProtectorOSC 1.7 or later. Older OSC versions can't unlock the avatar, so make sure to update the OSC program to the latest version."), warningStyle);
-            EditorGUILayout.EndHorizontal();
+            // One label holds both the icon and the text: GUILayout can measure wrapped text in a horizontal group
+            // differently per event, which shifts the click areas of everything below.
+            var warning = new GUIContent(Lang("This version requires ShellProtectorOSC 1.7 or later. Older OSC versions can't unlock the avatar, so make sure to update the OSC program to the latest version."), EditorGUIUtility.IconContent("console.warnicon").image);
+            GUILayout.Label(warning, warningStyle);
 
             EditorGUILayout.BeginHorizontal();
             using (new EditorGUI.DisabledScope(OscDownloader.IsBusy))
