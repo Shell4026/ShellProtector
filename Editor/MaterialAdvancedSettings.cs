@@ -111,7 +111,7 @@ namespace Shell.Protector
 
         void DrawMaterial(Material material, ShellProtector.MatOption option)
         {
-            Texture2D mainTex = material.mainTexture as Texture2D;
+            Texture2D mainTex = MaterialIssues.MainTexture(material) as Texture2D;
             bool supported = assetManager.IsSupportShader(material.shader);
 
             if (option.Filter == -1)

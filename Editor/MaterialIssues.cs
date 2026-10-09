@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace Shell.Protector
 {
@@ -47,6 +48,23 @@ namespace Shell.Protector
                 case Issue.OddMainTextureSize: return "The main texture size must be a multiple of 2.";
                 default: return "";
             }
+        }
+
+        // Material.mainTexture logs an error when the shader has no main texture property ([MainTexture] or _MainTex), which
+        // an unsupported shader in the material list may lack.
+        public static Texture MainTexture(Material material)
+        {
+            Shader shader = material.shader;
+            if (shader == null)
+                return null;
+            for (int i = 0; i < shader.GetPropertyCount(); i++)
+            {
+                if (shader.GetPropertyType(i) != ShaderPropertyType.Texture)
+                    continue;
+                if ((shader.GetPropertyFlags(i) & ShaderPropertyFlags.MainTexture) != 0 || shader.GetPropertyName(i) == "_MainTex")
+                    return material.mainTexture;
+            }
+            return null;
         }
 
         // The emission maps of the shader, indexed by EmissionMask slot.
