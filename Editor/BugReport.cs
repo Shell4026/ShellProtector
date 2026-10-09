@@ -4,20 +4,23 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using UnityEditor;
 using UnityEngine;
 using VRC.SDK3.Avatars.Components;
+using VRC.SDKBase.Editor.BuildPipeline;
 
 namespace Shell.Protector
 {
-    // A text file a user attaches to a bug report: the environment, the avatar, the settings, the key and every
-    // material and texture the next build would encrypt. It is written in English for the developer.
+    // A text file a user attaches to a bug report: the environment and the other build tools, the avatar, the settings,
+    // the key, every material and texture the next build would encrypt, and the renderers its key animations must reach.
+    // It is written in English for the developer.
     internal static class BugReport
     {
         static readonly AssetManager assetManager = AssetManager.GetInstance();
-        static readonly string[] packagePrefixes = { "com.vrchat.", "nadena.dev.", "jp.lilxyzw.liltoon", "shell.protector" };
         const int LogLines = 80;
+        const int AnimationLines = 200;
         const int LogTailBytes = 4 * 1024 * 1024;
 
         public static void Save(ShellProtector protector, IEnumerable<string> detectedShaders, string title)
@@ -42,12 +45,15 @@ namespace Shell.Protector
 
             BuildSettings settings = protector.CreateSettings();
             Section(report, "Environment", () => AppendEnvironment(report, detectedShaders));
+            Section(report, "Build plugins", () => AppendBuildPlugins(report));
             Section(report, "Avatar", () => AppendAvatar(report, protector));
             Section(report, "Settings", () => AppendSettings(report, protector, settings));
             Section(report, "Key", () => AppendKey(report, protector));
             Section(report, "Encryption targets", () => AppendTargets(report, protector, settings));
             Section(report, "Materials", () => AppendMaterials(report, protector, settings));
             Section(report, "Textures", () => AppendTextures(report, settings));
+            Section(report, "Key targets", () => AppendKeyTargets(report, protector));
+            Section(report, "Material animations", () => AppendMaterialAnimations(report, protector));
             Section(report, "Recent log", () => AppendLog(report));
             return report.ToString();
         }
@@ -80,12 +86,61 @@ namespace Shell.Protector
             var defines = symbols.Split(';').Where(s => s == "MODULAR" || s == "LILTOON" || s.StartsWith("POIYOMI"));
             report.AppendLine("Defines: " + string.Join(", ", defines));
 
-            report.AppendLine("Packages:");
+            report.AppendLine("Packages (except com.unity.*):");
             var packages = UnityEditor.PackageManager.PackageInfo.GetAllRegisteredPackages()
-                .Where(p => packagePrefixes.Any(prefix => p.name.StartsWith(prefix)))
+                .Where(p => !p.name.StartsWith("com.unity."))
                 .OrderBy(p => p.name);
             foreach (var package in packages)
                 report.AppendLine("  " + package.name + " " + package.version);
+        }
+
+        // Other tools that change the avatar during the build. Tools installed under Assets aren't packages, so the plugins
+        // are found by their attributes and interfaces. NDMF is read by name: this assembly doesn't reference it.
+        static void AppendBuildPlugins(StringBuilder report)
+        {
+            var plugins = new List<string>();
+            foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                IList<CustomAttributeData> attributes;
+                try
+                {
+                    attributes = assembly.GetCustomAttributesData();
+                }
+                catch (Exception)
+                {
+                    continue;
+                }
+                foreach (CustomAttributeData attribute in attributes)
+                {
+                    if (attribute.AttributeType.FullName == "nadena.dev.ndmf.ExportsPlugin" && attribute.ConstructorArguments.Count > 0 &&
+                        attribute.ConstructorArguments[0].Value is Type type)
+                        plugins.Add(type.FullName + " (" + assembly.GetName().Name + ")");
+                }
+            }
+            report.AppendLine("NDMF plugins:");
+            foreach (string plugin in plugins.OrderBy(p => p))
+                report.AppendLine("  " + plugin);
+
+            // The SDK creates each callback the same way before every build to sort them by order.
+            var callbacks = new List<(int order, string name)>();
+            foreach (Type type in TypeCache.GetTypesDerivedFrom<IVRCSDKPreprocessAvatarCallback>())
+            {
+                if (type.IsAbstract || type.IsInterface || type.ContainsGenericParameters)
+                    continue;
+                int order = int.MinValue;
+                try
+                {
+                    if (Activator.CreateInstance(type, true) is IVRCSDKPreprocessAvatarCallback callback)
+                        order = callback.callbackOrder;
+                }
+                catch (Exception)
+                {
+                }
+                callbacks.Add((order, type.FullName + " (" + type.Assembly.GetName().Name + ")"));
+            }
+            report.AppendLine("VRChat preprocess callbacks, in build order:");
+            foreach (var (order, name) in callbacks.OrderBy(c => c.order).ThenBy(c => c.name))
+                report.AppendLine("  " + (order == int.MinValue ? "?" : order.ToString()) + " " + name);
         }
 
         static void AppendAvatar(StringBuilder report, ShellProtector protector)
@@ -100,6 +155,18 @@ namespace Shell.Protector
 
             report.AppendLine("Descriptor: " + HierarchyPath(descriptor.transform) + (descriptor.gameObject.activeInHierarchy ? "" : " (inactive)"));
             report.AppendLine("Prefab instance: " + PrefabUtility.IsPartOfPrefabInstance(descriptor));
+
+            report.AppendLine("Root components:");
+            foreach (Component component in descriptor.GetComponents<Component>())
+                report.AppendLine("  " + ComponentName(component));
+            report.AppendLine("Components in the avatar (except UnityEngine):");
+            var components = descriptor.GetComponentsInChildren<Component>(true)
+                .Select(ComponentName)
+                .Where(name => !name.StartsWith("UnityEngine."))
+                .GroupBy(name => name)
+                .OrderBy(group => group.Key);
+            foreach (var group in components)
+                report.AppendLine("  " + group.Key + " x" + group.Count());
 
             var parameters = descriptor.expressionParameters;
             if (parameters == null)
@@ -211,7 +278,7 @@ namespace Shell.Protector
 
                 MaterialIssues.Issue issue = MaterialIssues.Check(material);
                 report.AppendLine("  Issue: " + (issue == MaterialIssues.Issue.None ? "none" : MaterialIssues.Message(issue)));
-                report.AppendLine("  Main texture: " + TextureName(material.mainTexture));
+                report.AppendLine("  Main texture: " + TextureName(MaterialIssues.MainTexture(material)));
 
                 string[] maps = MaterialIssues.EmissionMaps(material);
                 for (int slot = 0; slot < maps.Length; slot++)
@@ -235,7 +302,7 @@ namespace Shell.Protector
             {
                 if (material == null)
                     continue;
-                textures.Add(material.mainTexture);
+                textures.Add(MaterialIssues.MainTexture(material));
                 foreach (string map in MaterialIssues.EmissionMaps(material))
                 {
                     if (material.HasProperty(map))
@@ -264,6 +331,173 @@ namespace Shell.Protector
                 }
                 report.AppendLine(line.ToString());
             }
+        }
+
+        // The renderers the key animations write to (AnimatorManager.AddKeyCurve): every renderer with a material the build
+        // encrypts, bound by its path. An earlier object with the same path takes the key instead. The paths are the ones
+        // before the build; a tool that moves or renames the renderer later breaks the binding too.
+        static void AppendKeyTargets(StringBuilder report, ShellProtector protector)
+        {
+            VRCAvatarDescriptor descriptor = protector.Descriptor;
+            if (descriptor == null)
+            {
+                report.AppendLine("(no descriptor)");
+                return;
+            }
+
+            HashSet<Material> encrypted = EncryptedMaterials(protector);
+            foreach (Renderer renderer in KeyTargets(descriptor, encrypted))
+            {
+                string path = RelativePath(renderer.transform, descriptor.transform);
+                var line = new StringBuilder("  " + path + " [" + renderer.GetType().Name + "]");
+                if (!renderer.gameObject.activeInHierarchy)
+                    line.Append(" (inactive)");
+                Transform bound = renderer.transform == descriptor.transform ? descriptor.transform : FindFirst(descriptor.transform, path);
+                if (bound != renderer.transform)
+                {
+                    string components = bound != null ? string.Join(", ", bound.GetComponents<Component>().Select(ComponentName)) : "";
+                    line.Append(", KEY BINDS TO ANOTHER OBJECT: " + (bound != null ? RelativePath(bound, descriptor.transform) + " (" + components + ")" : "none"));
+                }
+                line.Append(", slots: " + string.Join(", ", renderer.sharedMaterials.Select((m, i) => i + " " + MaterialName(m, encrypted, null))));
+                report.AppendLine(line.ToString());
+            }
+        }
+
+        // Animations that swap the materials of the key targets or swap in an encrypted material or one that uses a protected
+        // texture, and the material properties the avatar's own animations set on the key targets.
+        static void AppendMaterialAnimations(StringBuilder report, ShellProtector protector)
+        {
+            VRCAvatarDescriptor descriptor = protector.Descriptor;
+            if (descriptor == null)
+            {
+                report.AppendLine("(no descriptor)");
+                return;
+            }
+
+            HashSet<Material> encrypted = EncryptedMaterials(protector);
+            var protectedTextures = new HashSet<Texture>(encrypted.Select(MaterialIssues.MainTexture).Where(t => t != null));
+            var targetPaths = new HashSet<string>(KeyTargets(descriptor, encrypted).Select(r => RelativePath(r.transform, descriptor.transform)));
+
+            var swaps = new List<string>();
+            var properties = new SortedDictionary<string, SortedSet<string>>();
+            foreach (var (label, controller, prefix) in Controllers(descriptor))
+            {
+                foreach (AnimationClip clip in controller.animationClips.Where(c => c != null).Distinct())
+                {
+                    foreach (EditorCurveBinding binding in AnimationUtility.GetObjectReferenceCurveBindings(clip))
+                    {
+                        if (!typeof(Renderer).IsAssignableFrom(binding.type) || !binding.propertyName.StartsWith("m_Materials"))
+                            continue;
+                        string path = prefix + binding.path;
+                        var materials = AnimationUtility.GetObjectReferenceCurve(clip, binding).Select(k => k.value as Material).Distinct().ToList();
+                        bool relevant = targetPaths.Contains(path) ||
+                            materials.Any(m => m != null && (encrypted.Contains(m) || UsesTexture(m, protectedTextures)));
+                        if (relevant)
+                            swaps.Add("  " + label + " / " + clip.name + ": " + path + " " + binding.propertyName + " -> " +
+                                string.Join(", ", materials.Select(m => MaterialName(m, encrypted, protectedTextures))));
+                    }
+
+                    foreach (EditorCurveBinding binding in AnimationUtility.GetCurveBindings(clip))
+                    {
+                        string path = prefix + binding.path;
+                        if (!typeof(Renderer).IsAssignableFrom(binding.type) || !binding.propertyName.StartsWith("material.") || !targetPaths.Contains(path))
+                            continue;
+                        if (!properties.TryGetValue(path, out SortedSet<string> names))
+                            properties[path] = names = new SortedSet<string>();
+                        names.Add(binding.propertyName.Substring("material.".Length).Split('.')[0]);
+                    }
+                }
+            }
+
+            report.AppendLine("Material swaps:");
+            foreach (string swap in swaps.Take(AnimationLines))
+                report.AppendLine(swap);
+            if (swaps.Count > AnimationLines)
+                report.AppendLine("  (" + (swaps.Count - AnimationLines) + " more)");
+            report.AppendLine("Material properties animated on the key targets:");
+            foreach (var pair in properties)
+                report.AppendLine("  " + pair.Key + ": " + string.Join(", ", pair.Value));
+        }
+
+        // The playable layers and Modular Avatar's merged animators, with the prefix that makes their paths relative to the
+        // avatar. A relative merge animator is taken to be relative to its own object (an empty relativePathRoot).
+        // Modular Avatar is read by name: this assembly doesn't reference it.
+        static IEnumerable<(string label, RuntimeAnimatorController controller, string prefix)> Controllers(VRCAvatarDescriptor descriptor)
+        {
+            var layers = (descriptor.baseAnimationLayers ?? Array.Empty<VRCAvatarDescriptor.CustomAnimLayer>())
+                .Concat(descriptor.specialAnimationLayers ?? Array.Empty<VRCAvatarDescriptor.CustomAnimLayer>());
+            foreach (var layer in layers)
+            {
+                if (!layer.isDefault && layer.animatorController != null)
+                    yield return (layer.type + " " + layer.animatorController.name, layer.animatorController, "");
+            }
+
+            foreach (Component component in descriptor.GetComponentsInChildren<Component>(true))
+            {
+                if (component == null || component.GetType().FullName != "nadena.dev.modular_avatar.core.ModularAvatarMergeAnimator")
+                    continue;
+                Type type = component.GetType();
+                if (!(type.GetField("animator")?.GetValue(component) is RuntimeAnimatorController controller))
+                    continue;
+                string objectPath = RelativePath(component.transform, descriptor.transform);
+                bool relative = type.GetField("pathMode")?.GetValue(component)?.ToString() == "Relative";
+                string prefix = relative && component.transform != descriptor.transform ? objectPath + "/" : "";
+                yield return ("MA Merge Animator on " + objectPath + " " + controller.name, controller, prefix);
+            }
+        }
+
+        // The materials the next build encrypts: active, and without an issue that makes the build skip them.
+        static HashSet<Material> EncryptedMaterials(ShellProtector protector)
+        {
+            return new HashSet<Material>(protector.GetActiveMaterials()
+                .Select(pair => pair.material)
+                .Where(m => MaterialIssues.Check(m) == MaterialIssues.Issue.None));
+        }
+
+        static IEnumerable<Renderer> KeyTargets(VRCAvatarDescriptor descriptor, HashSet<Material> encrypted)
+        {
+            return descriptor.GetComponentsInChildren<Renderer>(true)
+                .Where(r => (r is SkinnedMeshRenderer || r is MeshRenderer) && r.sharedMaterials.Any(m => m != null && encrypted.Contains(m)));
+        }
+
+        // The object an animation path binds to: the first child with each name, as Transform.Find takes it.
+        static Transform FindFirst(Transform root, string path)
+        {
+            Transform current = root;
+            foreach (string name in path.Split('/'))
+            {
+                Transform next = null;
+                for (int i = 0; i < current.childCount && next == null; i++)
+                {
+                    if (current.GetChild(i).name == name)
+                        next = current.GetChild(i);
+                }
+                if (next == null)
+                    return null;
+                current = next;
+            }
+            return current;
+        }
+
+        static bool UsesTexture(Material material, HashSet<Texture> textures)
+        {
+            return material.GetTexturePropertyNames().Any(name => textures.Contains(material.GetTexture(name)));
+        }
+
+        static string MaterialName(Material material, HashSet<Material> encrypted, HashSet<Texture> protectedTextures)
+        {
+            if (material == null)
+                return "none";
+            if (encrypted.Contains(material))
+                return material.name + " (encrypted)";
+            if (protectedTextures != null && UsesTexture(material, protectedTextures))
+                return material.name + " (not encrypted, uses a protected texture)";
+            return material.name;
+        }
+
+        static string ComponentName(Component component)
+        {
+            return component == null ? "(missing script)" : component.GetType().FullName;
         }
 
         // The ShellProtector lines and shader errors at the end of the editor log, read without loading the whole file.
