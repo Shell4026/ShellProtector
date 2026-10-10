@@ -1,6 +1,8 @@
 #if UNITY_EDITOR
+using System;
 using System.IO;
 using NUnit.Framework;
+using UnityEngine;
 
 namespace Shell.Protector.Tests.Unit
 {
@@ -43,9 +45,12 @@ namespace Shell.Protector.Tests.Unit
         }
 
         [Test]
-        public void GetDefaultFile_IsInLocalLow()
+        public void GetDefaultFile_IsWhereTheOSCAppLooks()
         {
-            string expected = Path.Combine("LocalLow", "ShellProtector", "salts.txt");
+            string baseDir = Application.platform == RuntimePlatform.WindowsEditor
+                ? "LocalLow"
+                : Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            string expected = Path.Combine(baseDir, "ShellProtector", "salts.txt");
             Assert.That(SaltRegistry.GetDefaultFile(), Does.EndWith(expected));
         }
     }

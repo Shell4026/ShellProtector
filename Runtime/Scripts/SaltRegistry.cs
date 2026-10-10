@@ -7,7 +7,8 @@ using UnityEngine;
 
 namespace Shell.Protector
 {
-    // Lists the salts of built avatars in LocalLow/ShellProtector/salts.txt, one "SP_SALT_<salt>" per line.
+    // Lists the salts of built avatars in ShellProtector/salts.txt (in LocalLow on Windows, ~/.local/share on Linux),
+    // one "SP_SALT_<salt>" per line.
     // The OSC app reads it next to VRChat's OSC configs, so avatars that VRChat has never loaded
     // (for example in Gesture Manager before the first upload) still get their key. Salts are not secret.
     public static class SaltRegistry
@@ -22,7 +23,7 @@ namespace Shell.Protector
 
         public static string GetDefaultFile()
         {
-            return Path.Combine(GetLocalLowDir(), "ShellProtector", "salts.txt");
+            return Path.Combine(GetBaseDir(), "ShellProtector", "salts.txt");
         }
 
         public static void Register(string salt)
@@ -52,10 +53,14 @@ namespace Shell.Protector
             File.AppendAllText(file, line + Environment.NewLine);
         }
 
-        static string GetLocalLowDir()
+        // LocalLow on Windows. Elsewhere $XDG_DATA_HOME (~/.local/share), where the Linux OSC app looks.
+        static string GetBaseDir()
         {
-            if (Application.platform == RuntimePlatform.WindowsEditor &&
-                SHGetKnownFolderPath(LocalAppDataLow, 0, IntPtr.Zero, out IntPtr path) == 0)
+            string local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            if (Application.platform != RuntimePlatform.WindowsEditor)
+                return local;
+
+            if (SHGetKnownFolderPath(LocalAppDataLow, 0, IntPtr.Zero, out IntPtr path) == 0)
             {
                 try
                 {
@@ -67,7 +72,6 @@ namespace Shell.Protector
                 }
             }
             // LocalLow sits next to Local
-            string local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
             return Path.Combine(Path.GetDirectoryName(local), "LocalLow");
         }
     }
