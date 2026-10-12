@@ -322,26 +322,24 @@ namespace Shell.Protector
                     {
                         var binding = maBlendshapeSync.Bindings[i];
 
-                        GameObject targetObject = binding.ReferenceMesh.Get(maBlendshapeSync);
+                        GameObject targetObject = binding.ReferenceMesh?.Get(maBlendshapeSync);
+                        if (targetObject == null)
+                            continue;
                         SkinnedMeshRenderer targetRenderer = targetObject.GetComponent<SkinnedMeshRenderer>();
                         SkinnedMeshRenderer syncRenderer = maBlendshapeSync.GetComponent<SkinnedMeshRenderer>();
 
-                        if (targetRenderer == null)
-                            continue;
-                        if (targetRenderer == selectRenderer)
+                        if (targetRenderer != null && targetRenderer == selectRenderer)
                         {
                             string obfuscatedShape = obfuscator.GetOriginalBlendShapeName(binding.Blendshape);
                             if (obfuscatedShape != null)
                                 binding.Blendshape = obfuscatedShape;
                         }
 
-                        if (syncRenderer == null)
-                            continue;
-                        if (syncRenderer == selectRenderer)
+                        if (syncRenderer != null && syncRenderer == selectRenderer)
                         {
                             string obfuscatedShape = obfuscator.GetOriginalBlendShapeName(binding.LocalBlendshape);
                             if (obfuscatedShape != null)
-                                binding.LocalBlendshape = obfuscator.GetOriginalBlendShapeName(binding.LocalBlendshape);
+                                binding.LocalBlendshape = obfuscatedShape;
                         }
 
                         maBlendshapeSync.Bindings[i] = binding;
