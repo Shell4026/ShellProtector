@@ -105,6 +105,15 @@ namespace Shell.Protector
             paths.PrepareFolders(writer, settings.DeleteFolders && AssetDatabase.IsValidFolder(paths.Avatar));
             encryptor = CreateEncryptor(Result.keyBytes);
             history = LoadOrCreateHistory();
+
+            // Without its own animators the copy would edit the original's, so the build stops here and leaves the original as it is.
+            if (request.Clone && !DuplicateAnimators())
+            {
+                Debug.LogError("[ShellProtector] Encryption stopped: the avatar's animators couldn't be copied.");
+                UnityEngine.Object.DestroyImmediate(Avatar);
+                Avatar = null;
+                return false;
+            }
             return true;
         }
 

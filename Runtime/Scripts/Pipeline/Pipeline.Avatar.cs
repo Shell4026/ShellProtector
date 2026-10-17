@@ -28,11 +28,10 @@ namespace Shell.Protector
                 {
                     request.Avatar.SetActive(false);
                     AddTester();
-                    DuplicateMergeAnimators();
                 }
             }
             using (timings.Measure("animations"))
-                AddKeyAnimations(clone);
+                AddKeyAnimations();
             using (timings.Measure("blendshapes"))
                 ObfuscateBlendShapes(clone);
             using (timings.Measure("animations"))
@@ -222,36 +221,41 @@ namespace Shell.Protector
             tester.UserKeyLength = settings.KeySize;
         }
 
-        // The copy must not change the original's merged animators, so it gets its own.
-        void DuplicateMergeAnimators()
-        {
-#if MODULAR
-            foreach (var maMergeAnim in Avatar.GetComponentsInChildren<ModularAvatarMergeAnimator>(true))
-                maMergeAnim.animator = AnimatorManager.DuplicateAnimator(maMergeAnim.animator, paths, writer);
-#endif
-        }
-
-        void AddKeyAnimations(bool clone)
+        // The copy must not change the original's animators, so it gets its own copy of every controller the build edits:
+        // the playable layers and the merged animators. This runs before anything else is changed, and fails if a
+        // controller can't be copied.
+        bool DuplicateAnimators()
         {
             var av3 = Avatar.GetComponent<VRCAvatarDescriptor>();
-            AnimatorController fx;
-            if (clone)
+            VRCAvatarDescriptor.CustomAnimLayer[] layers = av3.baseAnimationLayers ?? new VRCAvatarDescriptor.CustomAnimLayer[0];
+            AnimatorController[] layerCopies = AnimatorManager.DuplicateAnimators(layers.Select(l => l.animatorController).ToArray(), paths, writer);
+            if (layerCopies == null)
+                return false;
+
+#if MODULAR
+            // Copied separately from the layers: a merged animator that is also a layer must not get the key layers.
+            var mergeAnimators = Avatar.GetComponentsInChildren<ModularAvatarMergeAnimator>(true);
+            AnimatorController[] mergeCopies = AnimatorManager.DuplicateAnimators(mergeAnimators.Select(m => m.animator).ToArray(), paths, writer);
+            if (mergeCopies == null)
+                return false;
+
+            for (int i = 0; i < mergeCopies.Length; ++i)
             {
-                var sourceControllers = new RuntimeAnimatorController[av3.baseAnimationLayers.Length];
-                for (int i = 0; i < av3.baseAnimationLayers.Length; ++i)
-                    sourceControllers[i] = av3.baseAnimationLayers[i].animatorController;
-
-                AnimatorController[] duplicatedLayers = AnimatorManager.DuplicateAnimators(sourceControllers, paths, writer);
-                for (int i = 0; i < duplicatedLayers.Length; ++i)
-                {
-                    if (duplicatedLayers[i] != null)
-                        av3.baseAnimationLayers[i].animatorController = duplicatedLayers[i];
-                }
-
-                fx = duplicatedLayers[4];
+                if (mergeCopies[i] != null)
+                    mergeAnimators[i].animator = mergeCopies[i];
             }
-            else
-                fx = av3.baseAnimationLayers[4].animatorController as AnimatorController;
+#endif
+            for (int i = 0; i < layerCopies.Length; ++i)
+            {
+                if (layerCopies[i] != null)
+                    layers[i].animatorController = layerCopies[i];
+            }
+            return true;
+        }
+
+        void AddKeyAnimations()
+        {
+            AnimatorController fx = GetFx(Avatar);
 
             string animationDir = writer.ResolveFolderPath(paths.Folders.AnimGuid);
             AnimatorManager.CreateKeyAnimations(OutputPaths.Combine(settings.RuntimeDir, "Animations"), paths, writer, Result.meshes.ToArray());

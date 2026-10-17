@@ -15,47 +15,130 @@ namespace Shell.Protector
     {
         Dictionary<AnimationClip, AnimationClip> encryptedClip = new Dictionary<AnimationClip, AnimationClip>();
 
-        public static AnimatorController DuplicateAnimator(RuntimeAnimatorController anim, OutputPaths paths, AssetWriter writer)
-        {
-            return DuplicateAnimators(new[] { anim }, paths, writer)[0];
-        }
-
+        // Copies each AnimatorController, with its own copy of every blend tree it uses. Override controllers aren't
+        // edited by the build, so their entries stay null. Returns null if a controller can't be copied: the build
+        // would then edit the original.
         public static AnimatorController[] DuplicateAnimators(RuntimeAnimatorController[] animators, OutputPaths paths, AssetWriter writer)
         {
-            var sourcePaths = new string[animators.Length];
             var targetPaths = new Dictionary<string, string>();
+            var duplicatedAnimators = new AnimatorController[animators.Length];
+            var copiedBlendTrees = new HashSet<AnimatorController>();
 
             for (int i = 0; i < animators.Length; ++i)
             {
-                RuntimeAnimatorController animator = animators[i];
-                if (animator == null)
+                if (!(animators[i] is AnimatorController animator))
                     continue;
 
                 string sourcePath = AssetDatabase.GetAssetPath(animator);
-                sourcePaths[i] = sourcePath;
-                if (targetPaths.ContainsKey(sourcePath))
-                    continue;
-
-                // CopyAsset copies the file, so unsaved changes have to be written first.
-                AssetDatabase.SaveAssetIfDirty(animator);
-
-                if (!writer.CopyAssetToFolder(sourcePath, paths.Folders.AnimGuid, paths.ControllerName(animator), out string targetPath))
+                if (string.IsNullOrEmpty(sourcePath))
                 {
-                    Debug.LogErrorFormat("Failed to copy a animator: {0}", animator.name);
-                    continue;
+                    Debug.LogErrorFormat("[ShellProtector] The animator {0} isn't saved as an asset, so it can't be copied.", animator.name);
+                    return null;
                 }
 
-                targetPaths.Add(sourcePath, targetPath);
-            }
+                if (!targetPaths.TryGetValue(sourcePath, out string targetPath))
+                {
+                    // CopyAsset copies the file, so unsaved changes have to be written first.
+                    AssetDatabase.SaveAssetIfDirty(animator);
 
-            var duplicatedAnimators = new AnimatorController[animators.Length];
-            for (int i = 0; i < sourcePaths.Length; ++i)
-            {
-                if (!string.IsNullOrEmpty(sourcePaths[i]) && targetPaths.TryGetValue(sourcePaths[i], out string targetPath))
-                    duplicatedAnimators[i] = AssetDatabase.LoadAssetAtPath<AnimatorController>(targetPath);
+                    if (!writer.CopyAssetToFolder(sourcePath, paths.Folders.AnimGuid, paths.ControllerName(animator), out targetPath))
+                    {
+                        Debug.LogErrorFormat("[ShellProtector] Failed to copy the animator {0}.", animator.name);
+                        return null;
+                    }
+                    targetPaths.Add(sourcePath, targetPath);
+                }
+
+                AnimatorController copy = LoadCopy(animator, targetPath);
+                if (copy == null)
+                {
+                    Debug.LogErrorFormat("[ShellProtector] Failed to load the copy of the animator {0}.", animator.name);
+                    return null;
+                }
+
+                if (copiedBlendTrees.Add(copy))
+                    CopyExternalBlendTrees(copy);
+                duplicatedAnimators[i] = copy;
             }
 
             return duplicatedAnimators;
+        }
+
+        // CopyAsset keeps the file's local IDs, so a controller stored inside another asset is found in the copy by its ID.
+        static AnimatorController LoadCopy(AnimatorController source, string targetPath)
+        {
+            if (!AssetDatabase.TryGetGUIDAndLocalFileIdentifier(source, out string _, out long sourceId))
+                return null;
+
+            return AssetDatabase.LoadAllAssetsAtPath(targetPath).OfType<AnimatorController>().FirstOrDefault(c =>
+                AssetDatabase.TryGetGUIDAndLocalFileIdentifier(c, out string _, out long id) && id == sourceId);
+        }
+
+        // Blend trees saved in their own asset (locomotion trees, CGE's generated trees) aren't copied with the controller
+        // file, so the copy would still share them with the original and the build would change the original's animations.
+        // The copy gets its own, stored in the copied controller.
+        static void CopyExternalBlendTrees(AnimatorController controller)
+        {
+            string path = AssetDatabase.GetAssetPath(controller);
+            var copies = new Dictionary<BlendTree, BlendTree>();
+            foreach (AnimatorControllerLayer layer in controller.layers)
+                CopyExternalBlendTrees(layer.stateMachine, path, copies);
+        }
+
+        static void CopyExternalBlendTrees(AnimatorStateMachine stateMachine, string path, Dictionary<BlendTree, BlendTree> copies)
+        {
+            if (stateMachine == null)
+                return;
+
+            foreach (ChildAnimatorState child in stateMachine.states)
+            {
+                if (child.state.motion is BlendTree tree)
+                {
+                    BlendTree copy = CopyExternalBlendTree(tree, path, copies);
+                    if (copy != tree)
+                        child.state.motion = copy;
+                }
+            }
+
+            foreach (ChildAnimatorStateMachine child in stateMachine.stateMachines)
+                CopyExternalBlendTrees(child.stateMachine, path, copies);
+        }
+
+        // A tree inside the controller stays as it is, but its children may still be external trees.
+        static BlendTree CopyExternalBlendTree(BlendTree tree, string path, Dictionary<BlendTree, BlendTree> copies)
+        {
+            if (copies.TryGetValue(tree, out BlendTree copy))
+                return copy;
+
+            copy = tree;
+            if (AssetDatabase.GetAssetPath(tree) != path)
+            {
+                // Instantiate trips an engine assertion on blend trees, so the copy is made field by field.
+                copy = new BlendTree();
+                EditorUtility.CopySerialized(tree, copy);
+                copy.hideFlags = HideFlags.HideInHierarchy;
+                AssetDatabase.AddObjectToAsset(copy, path);
+            }
+            copies.Add(tree, copy);
+
+            ChildMotion[] children = copy.children;
+            bool changed = false;
+            for (int i = 0; i < children.Length; ++i)
+            {
+                if (!(children[i].motion is BlendTree child))
+                    continue;
+
+                BlendTree childCopy = CopyExternalBlendTree(child, path, copies);
+                if (childCopy == child)
+                    continue;
+
+                children[i].motion = childCopy;
+                changed = true;
+            }
+            if (changed)
+                copy.children = children;
+
+            return copy;
         }
 
         public static void CreateKeyAnimations(string animationDir, OutputPaths paths, AssetWriter writer, GameObject[] objs)

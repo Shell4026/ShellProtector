@@ -2,11 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using NUnit.Framework;
 using Shell.Protector;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
+using UnityEngine.TestTools;
 using VRC.SDK3.Avatars.Components;
 using VRC.SDKBase;
 
@@ -85,6 +87,82 @@ namespace Shell.Protector.Tests.Integration
             Assert.That(AnimationUtility.GetCurveBindings(sourceClip).Single().propertyName, Is.EqualTo("blendShape.Smile"));
             Assert.That(AnimationUtility.GetCurveBindings(encryptedClip).Single().propertyName, Does.StartWith("blendShape."));
             Assert.That(AnimationUtility.GetCurveBindings(encryptedClip).Single().propertyName, Is.Not.EqualTo("blendShape.Smile"));
+        }
+
+        // Blend trees saved in their own asset (locomotion trees, CGE's generated trees) aren't part of the controller file,
+        // so the copy has to get its own before its clips are replaced.
+        [Test]
+        public void ManualEncrypt_LeavesExternalBlendTreesOfTheOriginalAsTheyAre()
+        {
+            const string name = "ExternalTree";
+            Fixture fixture = CreateFixture(name);
+            AnimatorController originalFx = Pipeline.GetFx(fixture.Avatar);
+            AnimatorState originalState = originalFx.layers[0].stateMachine.states[0].state;
+            AnimationClip materialClip = (AnimationClip)originalState.motion;
+            AnimationClip blendShapeClip = CreateBlendShapeClip(name);
+
+            BlendTree inner = new BlendTree { name = "Inner" };
+            TestAssetScope.CreateAsset(inner, name + "/inner.asset");
+            inner.AddChild(blendShapeClip);
+            BlendTree outer = new BlendTree { name = "Outer" };
+            TestAssetScope.CreateAsset(outer, name + "/outer.asset");
+            outer.AddChild(materialClip);
+            outer.AddChild(inner);
+            originalState.motion = outer;
+            AssetDatabase.SaveAssets();
+
+            GameObject encryptedAvatar = fixture.Protector.Encrypt(false);
+            sceneObjects.Add(encryptedAvatar);
+
+            Assert.That(originalState.motion, Is.SameAs(outer));
+            Assert.That(outer.children.Select(c => c.motion), Is.EqualTo(new Motion[] { materialClip, inner }));
+            Assert.That(inner.children.Single().motion, Is.SameAs(blendShapeClip));
+            Assert.That(AnimatorManager.IsMaterialInClip(materialClip, fixture.Material), Is.True);
+            Assert.That(AnimationUtility.GetCurveBindings(blendShapeClip).Single().propertyName, Is.EqualTo("blendShape.Smile"));
+
+            AnimatorController encryptedFx = Pipeline.GetFx(encryptedAvatar);
+            BlendTree encryptedOuter = encryptedFx.layers[0].stateMachine.states[0].state.motion as BlendTree;
+            Assert.That(encryptedOuter, Is.Not.Null.And.Not.SameAs(outer));
+            Assert.That(AssetDatabase.GetAssetPath(encryptedOuter), Is.EqualTo(AssetDatabase.GetAssetPath(encryptedFx)));
+            BlendTree encryptedInner = encryptedOuter.children[1].motion as BlendTree;
+            Assert.That(encryptedInner, Is.Not.Null.And.Not.SameAs(inner));
+            Assert.That(AssetDatabase.GetAssetPath(encryptedInner), Is.EqualTo(AssetDatabase.GetAssetPath(encryptedFx)));
+
+            Material encryptedMaterial = encryptedAvatar.transform.Find("Body").GetComponent<SkinnedMeshRenderer>().sharedMaterial;
+            Assert.That(AnimatorManager.IsMaterialInClip((AnimationClip)encryptedOuter.children[0].motion, encryptedMaterial), Is.True);
+            Assert.That(AnimationUtility.GetCurveBindings((AnimationClip)encryptedInner.children.Single().motion).Single().propertyName,
+                Is.Not.EqualTo("blendShape.Smile"));
+        }
+
+        // A controller that can't be copied would be edited in place, so the build stops before changing anything.
+        [Test]
+        public void ManualEncrypt_StopsWhenAnAnimatorCannotBeCopied()
+        {
+            const string name = "UnsavedController";
+            Fixture fixture = CreateFixture(name);
+            AnimationClip clip = CreateBlendShapeClip(name);
+            AnimatorController unsaved = new AnimatorController { name = "Unsaved" };
+            sceneObjects.Add(unsaved);
+            unsaved.AddLayer("Base");
+            AnimatorState state = unsaved.layers[0].stateMachine.AddState("BlendShape");
+            state.motion = clip;
+            fixture.Avatar.GetComponent<VRCAvatarDescriptor>().baseAnimationLayers[0] = new VRCAvatarDescriptor.CustomAnimLayer
+            {
+                type = VRCAvatarDescriptor.AnimLayerType.Base,
+                isDefault = false,
+                animatorController = unsaved
+            };
+
+            LogAssert.Expect(LogType.Error, new Regex("isn't saved as an asset"));
+            LogAssert.Expect(LogType.Error, new Regex("Encryption stopped"));
+            GameObject encryptedAvatar = fixture.Protector.Encrypt(false);
+
+            Assert.That(encryptedAvatar, Is.Null);
+            Assert.That(fixture.Avatar.activeSelf, Is.True);
+            Assert.That(GameObject.Find(fixture.Avatar.name + "_encrypted"), Is.Null);
+            Assert.That(fixture.Avatar.GetComponentInChildren<ShellProtector>(true), Is.Not.Null);
+            Assert.That(state.motion, Is.SameAs(clip));
+            Assert.That(AnimationUtility.GetCurveBindings(clip).Single().propertyName, Is.EqualTo("blendShape.Smile"));
         }
 
         [Test]
