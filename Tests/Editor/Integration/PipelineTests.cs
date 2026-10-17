@@ -195,9 +195,9 @@ namespace Shell.Protector.Tests.Integration
             SkinnedMeshRenderer renderer = fixture.Avatar.transform.Find("Body").GetComponent<SkinnedMeshRenderer>();
             Mesh originalMesh = renderer.sharedMesh;
 
-            BuildSettings settings = fixture.Protector.EncryptWithoutObfuscation();
+            DeferredObfuscation obfuscation = fixture.Protector.EncryptWithoutObfuscation();
 
-            Assert.That(settings, Is.Not.Null);
+            Assert.That(obfuscation, Is.Not.Null);
             Assert.That(fixture.Avatar.GetComponentInChildren<ShellProtector>(true), Is.Null);
             AssertEncryptedRenderer(fixture.Avatar, fixture.Material);
             Assert.That(renderer.sharedMesh, Is.SameAs(originalMesh));
@@ -209,7 +209,7 @@ namespace Shell.Protector.Tests.Integration
             TestAssetScope.CreateAsset(patched, "Deferred/patched.asset");
             renderer.sharedMesh = patched;
 
-            Pipeline.ObfuscateBlendShapesInPlace(fixture.Avatar, settings);
+            obfuscation.Run(fixture.Avatar);
 
             Mesh obfuscated = renderer.sharedMesh;
             Assert.That(obfuscated, Is.Not.SameAs(patched));
@@ -218,6 +218,19 @@ namespace Shell.Protector.Tests.Integration
             string[] names = Enumerable.Range(0, obfuscated.blendShapeCount).Select(obfuscated.GetBlendShapeName).ToArray();
             Assert.That(names, Does.Not.Contain("Smile"));
             Assert.That(names, Does.Not.Contain("EyeBlink"));
+        }
+
+        // Avatar Optimizer's automatic mesh merging replaces the renderers it merges before the obfuscation runs.
+        [Test]
+        public void NdmfEncrypt_WarnsWhenARendererIsGoneBeforeTheObfuscation()
+        {
+            Fixture fixture = CreateFixture("DeferredGone");
+            GameObject body = fixture.Avatar.transform.Find("Body").gameObject;
+            DeferredObfuscation obfuscation = fixture.Protector.EncryptWithoutObfuscation();
+            Object.DestroyImmediate(body.GetComponent<SkinnedMeshRenderer>());
+
+            LogAssert.Expect(LogType.Warning, new Regex("^\\[ShellProtector\\] Body was removed during the build"));
+            obfuscation.Run(fixture.Avatar);
         }
 
         // The face is a separate mesh whose shapes share names with the body's. Obfuscating the body must leave the

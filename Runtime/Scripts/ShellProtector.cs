@@ -234,11 +234,11 @@ namespace Shell.Protector
             return avatar;
         }
 
-        // The NDMF pass: encrypts the avatar in place like Encrypt(isModular: true), but leaves the blendshapes for
-        // Pipeline.ObfuscateBlendShapesInPlace. Returns the settings it needs, or null when the build stopped.
-        public BuildSettings EncryptWithoutObfuscation()
+        // The NDMF pass: encrypts the avatar in place like Encrypt(isModular: true), but leaves the blendshapes for a
+        // later pass. Returns what that pass runs, or null when the build stopped.
+        public DeferredObfuscation EncryptWithoutObfuscation()
         {
-            return Build(useSmallMipTexture, true, true, out BuildSettings settings) != null ? settings : null;
+            return Build(useSmallMipTexture, true, true, out BuildSettings settings) != null ? new DeferredObfuscation(settings) : null;
         }
 
         GameObject Build(bool useSmallMip, bool isModular, bool deferObfuscation, out BuildSettings settings)

@@ -8,10 +8,9 @@ using UnityEngine;
 
 public class NdmfPlugin : Plugin<NdmfPlugin>
 {
-    // What the Transforming pass leaves for the Optimizing pass. NDMF keeps one per build.
-    sealed class DeferredObfuscation
+    sealed class BuildState
     {
-        public BuildSettings Settings;
+        public DeferredObfuscation Obfuscation;
     }
 
     protected override void Configure()
@@ -23,17 +22,16 @@ public class NdmfPlugin : Plugin<NdmfPlugin>
                 Debug.Log("After encrypting Shell Protector");
                 var shellProtector = ctx.AvatarRootObject.GetComponentInChildren<ShellProtector>(true);
                 if (shellProtector)
-                    ctx.GetState<DeferredObfuscation>().Settings = shellProtector.EncryptWithoutObfuscation();
+                    ctx.GetState<BuildState>().Obfuscation = shellProtector.EncryptWithoutObfuscation();
             });
 
         InPhase(BuildPhase.Optimizing).
             AfterPlugin("FermataFT.Editor.NDMFPlugin").
             AfterPlugin("FermataFT.Editor.FaceBlendShapeOptimizationPlugin").
+            AfterPlugin("com.anatawa12.avatar-optimizer").
             Run("Obfuscating blendshapes", ctx =>
             {
-                BuildSettings settings = ctx.GetState<DeferredObfuscation>().Settings;
-                if (settings != null)
-                    Pipeline.ObfuscateBlendShapesInPlace(ctx.AvatarRootObject, settings);
+                ctx.GetState<BuildState>().Obfuscation?.Run(ctx.AvatarRootObject);
             });
     }
 }
