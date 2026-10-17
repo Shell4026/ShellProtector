@@ -186,6 +186,40 @@ namespace Shell.Protector.Tests.Integration
             AssertAnimationMaterialWasRewritten(avatar, fixture.Material);
         }
 
+        // The NDMF build obfuscates in the Optimizing phase, after tools such as FermataFT have patched the face mesh by
+        // its original shape names, so the obfuscation has to take the patched mesh and the shapes it added.
+        [Test]
+        public void NdmfEncrypt_ObfuscatesTheMeshALaterToolPatched()
+        {
+            Fixture fixture = CreateFixture("Deferred");
+            SkinnedMeshRenderer renderer = fixture.Avatar.transform.Find("Body").GetComponent<SkinnedMeshRenderer>();
+            Mesh originalMesh = renderer.sharedMesh;
+
+            BuildSettings settings = fixture.Protector.EncryptWithoutObfuscation();
+
+            Assert.That(settings, Is.Not.Null);
+            Assert.That(fixture.Avatar.GetComponentInChildren<ShellProtector>(true), Is.Null);
+            AssertEncryptedRenderer(fixture.Avatar, fixture.Material);
+            Assert.That(renderer.sharedMesh, Is.SameAs(originalMesh));
+
+            Mesh patched = Object.Instantiate(originalMesh);
+            patched.name = "Patched";
+            Vector3[] deltas = Enumerable.Repeat(Vector3.up, patched.vertexCount).ToArray();
+            patched.AddBlendShapeFrame("EyeBlink", 100f, deltas, null, null);
+            TestAssetScope.CreateAsset(patched, "Deferred/patched.asset");
+            renderer.sharedMesh = patched;
+
+            Pipeline.ObfuscateBlendShapesInPlace(fixture.Avatar, settings);
+
+            Mesh obfuscated = renderer.sharedMesh;
+            Assert.That(obfuscated, Is.Not.SameAs(patched));
+            Assert.That(AssetDatabase.GetAssetPath(obfuscated), Does.StartWith(TestAssetScope.GeneratedRoot));
+            Assert.That(obfuscated.blendShapeCount, Is.EqualTo(2));
+            string[] names = Enumerable.Range(0, obfuscated.blendShapeCount).Select(obfuscated.GetBlendShapeName).ToArray();
+            Assert.That(names, Does.Not.Contain("Smile"));
+            Assert.That(names, Does.Not.Contain("EyeBlink"));
+        }
+
         // The face is a separate mesh whose shapes share names with the body's. Obfuscating the body must leave the
         // face's eyelid indices and viseme names alone, and obfuscating the face must remap them to the same shapes.
         [TestCase(false)]

@@ -32,8 +32,11 @@ namespace Shell.Protector
             }
             using (timings.Measure("animations"))
                 AddKeyAnimations();
-            using (timings.Measure("blendshapes"))
-                ObfuscateBlendShapes(clone);
+            if (!request.DeferObfuscation)
+            {
+                using (timings.Measure("blendshapes"))
+                    ObfuscateBlendShapes(clone);
+            }
             using (timings.Measure("animations"))
                 ReplaceMaterialsInAnimations(clone);
 
@@ -260,6 +263,14 @@ namespace Shell.Protector
             string animationDir = writer.ResolveFolderPath(paths.Folders.AnimGuid);
             AnimatorManager.CreateKeyAnimations(OutputPaths.Combine(settings.RuntimeDir, "Animations"), paths, writer, Result.meshes.ToArray());
             AnimatorManager.AddKeyLayer(fx, animationDir, settings.KeySize, settings.SyncSize, 3.0f, settings.UserKey);
+        }
+
+        // The NDMF build obfuscates in the Optimizing phase (NdmfPlugin), after the tools that patch the blendshapes by
+        // their original names or order, with the settings of the encryption that ran in Transforming.
+        public static void ObfuscateBlendShapesInPlace(GameObject avatar, BuildSettings settings)
+        {
+            new Pipeline(new BuildRequest(avatar, false), settings).ObfuscateBlendShapes(false);
+            AssetDatabase.SaveAssets();
         }
 
         public void ObfuscateBlendShapes(bool clone)
