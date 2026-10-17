@@ -46,6 +46,7 @@ namespace Shell.Protector
             BuildSettings settings = protector.CreateSettings();
             Section(report, "Environment", () => AppendEnvironment(report, detectedShaders));
             Section(report, "Build plugins", () => AppendBuildPlugins(report));
+            Section(report, "NDMF passes", () => AppendNdmfPasses(report));
             Section(report, "Avatar", () => AppendAvatar(report, protector));
             Section(report, "Settings", () => AppendSettings(report, protector, settings));
             Section(report, "Key", () => AppendKey(report, protector));
@@ -141,6 +142,102 @@ namespace Shell.Protector
             report.AppendLine("VRChat preprocess callbacks, in build order:");
             foreach (var (order, name) in callbacks.OrderBy(c => c.order).ThenBy(c => c.name))
                 report.AppendLine("  " + (order == int.MinValue ? "?" : order.ToString()) + " " + name);
+        }
+
+        // The order NDMF runs its passes in on this platform, as its plugin sequence window shows it. The resolver is
+        // internal, so it is read by reflection: a version of NDMF that changed it loses only this section.
+        static void AppendNdmfPasses(StringBuilder report)
+        {
+            Type resolverType = Type.GetType("nadena.dev.ndmf.PluginResolver, nadena.dev.ndmf");
+            if (resolverType == null)
+            {
+                report.AppendLine("NDMF isn't installed.");
+                return;
+            }
+
+            // PluginResolver(platform = null, includeDisabled = false): the current platform, with disabled plugins kept
+            // so that they can be marked. Disabled passes are removed after sorting, so the order doesn't change.
+            ConstructorInfo constructor = resolverType.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                .FirstOrDefault(c => c.GetParameters().All(p => p.IsOptional));
+            if (constructor == null)
+            {
+                report.AppendLine("(unknown NDMF version: no PluginResolver constructor without arguments)");
+                return;
+            }
+            object[] arguments = constructor.GetParameters()
+                .Select(p => p.Name == "includeDisabled" ? true : p.HasDefaultValue ? p.DefaultValue : null)
+                .ToArray();
+            object resolver = constructor.Invoke(arguments);
+
+            if (!(Member(resolver, "Passes") is System.Collections.IEnumerable phases))
+            {
+                report.AppendLine("(unknown NDMF version: no PluginResolver.Passes)");
+                return;
+            }
+
+            report.AppendLine("Plugin: pass, in build order. [skipped] = not for this platform, [disabled] = turned off in NDMF.");
+            foreach (object phase in phases)
+            {
+                object buildPhase = Member(phase, "Item1");
+                report.AppendLine((Member(buildPhase, "Name") ?? buildPhase) + ":");
+                if (!(Member(phase, "Item2") is System.Collections.IEnumerable passes))
+                    continue;
+
+                int index = 0;
+                foreach (object pass in passes)
+                {
+                    string plugin = Member(Member(pass, "Plugin"), "QualifiedName") as string ?? "?";
+                    object instantiated = Member(pass, "InstantiatedPass");
+                    string name = Member(instantiated, "DisplayName") as string ?? Member(instantiated, "QualifiedName") as string ?? "?";
+
+                    var line = new StringBuilder();
+                    line.Append("  ").Append(++index).Append(". ").Append(plugin);
+                    if (plugin == typeof(ShellProtector).Assembly.GetType("NdmfPlugin")?.FullName)
+                        line.Append(" (ShellProtector)");
+                    line.Append(": ").Append(name);
+                    if (Member(pass, "Skipped") is bool skipped && skipped)
+                        line.Append(" [skipped]");
+                    if (SessionState.GetBool("nadena.dev.ndmf.plugin-disabled." + plugin, false))
+                        line.Append(" [disabled]");
+                    AppendExtensions(line, "opens", Member(pass, "ActivatePlugins"));
+                    AppendExtensions(line, "closes", Member(pass, "DeactivatePlugins"));
+                    report.AppendLine(line.ToString());
+                }
+            }
+        }
+
+        // The extension contexts (animator services, AAO's mesh info and so on) that NDMF opens or closes before a pass.
+        static void AppendExtensions(StringBuilder line, string verb, object extensions)
+        {
+            if (!(extensions is IEnumerable<Type> types))
+                return;
+            string[] names = types.Select(t => t.Name).ToArray();
+            if (names.Length > 0)
+                line.Append(" (").Append(verb).Append(' ').Append(string.Join(", ", names)).Append(')');
+        }
+
+        // A property or field of any visibility, also one implemented from an interface.
+        static object Member(object target, string name)
+        {
+            if (target == null)
+                return null;
+            const BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
+            for (Type type = target.GetType(); type != null; type = type.BaseType)
+            {
+                PropertyInfo property = type.GetProperty(name, flags | BindingFlags.DeclaredOnly);
+                if (property != null && property.GetIndexParameters().Length == 0)
+                    return property.GetValue(target);
+                FieldInfo field = type.GetField(name, flags | BindingFlags.DeclaredOnly);
+                if (field != null)
+                    return field.GetValue(target);
+            }
+            foreach (Type contract in target.GetType().GetInterfaces())
+            {
+                PropertyInfo property = contract.GetProperty(name);
+                if (property != null && property.GetIndexParameters().Length == 0)
+                    return property.GetValue(target);
+            }
+            return null;
         }
 
         static void AppendAvatar(StringBuilder report, ShellProtector protector)
