@@ -315,9 +315,22 @@ namespace Shell.Protector
             anim.AddParameter(parameter);
         }
 
+        static readonly string[] keyLayerNames = { "ShellProtector", "ShellProtectorMux", "ShellProtectorDemux" };
+
+        // Removes key layers left in the controller by an earlier build, for example when they were copied into the
+        // original FX. They would drive the parameters of another salt or key size, so they are always built again.
+        private static void RemoveKeyLayers(AnimatorController anim)
+        {
+            for (int i = anim.layers.Length - 1; i >= 0; --i)
+            {
+                if (keyLayerNames.Contains(anim.layers[i].name))
+                    anim.RemoveLayer(i);
+            }
+        }
+
         public static void AddKeyLayer(AnimatorController anim, string animationDir, int keyLength, int syncSize, float speed, UserKey key)
         {
-            if (anim.layers.Any(l => l.name == "ShellProtector")) return;
+            RemoveKeyLayers(anim);
 
             AddParameters(anim, keyLength, syncSize, key);
 
@@ -368,9 +381,6 @@ namespace Shell.Protector
         // waits have to be long enough for remote players to see every lock state.
         private static void AddMuxLayer(AnimatorController anim, int keyLength, int syncSize, float settleTime, float unlockedTime, float interval, float delay, UserKey key)
         {
-            if (anim.layers.Any(l => l.name == "ShellProtectorMux")) 
-                return;
-
             // With a sync speed of 1 the OSC app multiplexes the key itself.
             if (ParameterManager.IsOscMultiplexed(syncSize))
                 return;
@@ -488,8 +498,6 @@ namespace Shell.Protector
 
         private static void AddDemuxLayer(AnimatorController anim, int keyLength, int syncSize, UserKey key)
         {
-            if (anim.layers.Any(l => l.name == "ShellProtectorDemux")) return;
-
             var stateMachine = new AnimatorStateMachine
             {
                 name = anim.MakeUniqueLayerName("ShellProtectorDemux"),

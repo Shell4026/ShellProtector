@@ -353,6 +353,28 @@ namespace Shell.Protector.Tests.Integration
             Assert.That(controller.parameters.Count(p => p.name == ParameterManager.GetSyncSwitchName(0, 1, key)), Is.EqualTo(1));
         }
 
+        [Test]
+        public void AddKeyLayer_RebuildsKeyLayersLeftByAnotherSalt()
+        {
+            string controllerDir = TestAssetScope.GeneratedRoot + "/Leftover";
+            TestAssetScope.EnsureFolder(controllerDir);
+            AnimatorController controller = AnimatorController.CreateAnimatorControllerAtPath(controllerDir + "/fx.controller");
+            string animationDir = "Assets/ShellProtector/Runtime/Animations";
+
+            UserKey otherKey = UserKey.Derive(TestKeys.Password, "ffeeddccbbaa99887766554433221100", 12);
+            UserKey key = TestKeys.UserKey;
+            AnimatorManager.AddKeyLayer(controller, animationDir, 4, 2, 3.0f, otherKey);
+            AnimatorManager.AddKeyLayer(controller, animationDir, 4, 2, 3.0f, key);
+
+            foreach (string name in new[] { "ShellProtector", "ShellProtectorMux", "ShellProtectorDemux" })
+                Assert.That(controller.layers.Count(l => l.name == name), Is.EqualTo(1), name);
+
+            AnimatorStateMachine demux = controller.layers.Single(l => l.name == "ShellProtectorDemux").stateMachine;
+            var demuxCopies = demux.states.SelectMany(s => s.state.behaviours.OfType<VRCAvatarParameterDriver>()).SelectMany(d => d.parameters).ToArray();
+            Assert.That(demuxCopies.Select(p => p.name), Is.EquivalentTo(Enumerable.Range(0, 4).Select(i => ParameterManager.GetKeyName(i, key))));
+            Assert.That(controller.parameters.Select(p => p.name), Does.Contain(ParameterManager.GetKeyName(0, key)));
+        }
+
         [TestCase(8, 2)]
         [TestCase(4, 4)]
         public void AddKeyLayer_MuxSyncsSavedKeysAndKeepsCycling(int keyLength, int syncSize)
