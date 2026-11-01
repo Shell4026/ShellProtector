@@ -17,12 +17,12 @@ namespace Shell.Protector
 
         List<int> obfuscatedBlendShapeIndex = new List<int>();
         Dictionary<string, string> obfuscatedBlendShapeNames = new Dictionary<string, string>(); // before, after
-        Dictionary<AnimationClip, AnimationClip> obfuscatedClip = new Dictionary<AnimationClip, AnimationClip>(); // before, after
-        HashSet<AnimationClip> copiedClips = new HashSet<AnimationClip>();
         HashSet<string> mmdShapes = new HashSet<string>();
 
         [FormerlySerializedAs("bPreserveMMD")]
         public bool PreserveMmd = true;
+        // The build's clip copies: a clip with obfuscated shapes is copied before they are renamed.
+        public ClipCopies Copies;
 
         public Obfuscator()
         {
@@ -43,8 +43,7 @@ namespace Shell.Protector
                 mmdShapes.Add(str);
             }
         }
-        // Resets the per-renderer state. PreserveMmd is an option for the whole run and stays as it is. So do the clip
-        // copies: a later renderer renames its shapes in the copies instead of copying them again.
+        // Resets the per-renderer state. PreserveMmd and Copies belong to the whole run and stay as they are.
         public void Clean()
         {
             outputPaths = null;
@@ -254,15 +253,8 @@ namespace Shell.Protector
             }
 
             // Even the NDMF build's controllers can hold the user's own clips: VRCFury puts an original clip back into its
-            // controller when it didn't change it. So a clip with obfuscated shapes is copied before they are renamed.
-            AnimationClip newClip = clip;
-            if (!copiedClips.Contains(clip) && !obfuscatedClip.TryGetValue(clip, out newClip))
-            {
-                newClip = Instantiate(clip);
-                assetWriter.CreateAssetInFolder(newClip, outputPaths.Folders.AnimGuid, outputPaths.AnimationClipName(clip, "_obfuscated"));
-                obfuscatedClip.Add(clip, newClip);
-                copiedClips.Add(newClip);
-            }
+            // controller when it didn't change it.
+            AnimationClip newClip = Copies.GetWritable(clip, "_obfuscated", outputPaths, assetWriter);
 
             bindings = AnimationUtility.GetCurveBindings(newClip);
             foreach (EditorCurveBinding binding in bindings)

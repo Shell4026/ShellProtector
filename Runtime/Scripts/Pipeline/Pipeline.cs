@@ -27,13 +27,15 @@ namespace Shell.Protector
         Texture2D fallbackWhite;
         Texture2D fallbackBlack;
 
-        public Pipeline(BuildRequest request, BuildSettings settings)
+        // A deferred pass continues the result of the build it belongs to.
+        public Pipeline(BuildRequest request, BuildSettings settings, BuildResult result = null)
         {
             this.request = request;
             this.settings = settings;
+            Result = result ?? new BuildResult();
         }
 
-        public BuildResult Result { get; } = new BuildResult();
+        public BuildResult Result { get; }
 
         // The avatar being rewritten: the copy when cloning, otherwise the requested avatar.
         public GameObject Avatar { get; private set; }

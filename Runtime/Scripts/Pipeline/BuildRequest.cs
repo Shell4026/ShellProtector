@@ -19,7 +19,7 @@ namespace Shell.Protector
         public bool Clone { get; }
         // What the ShellProtectorTester of a copy points to, so it can set the user key in the editor.
         public ShellProtector Owner { get; }
-        // Leave the blendshapes as they are: the NDMF build obfuscates them later (Pipeline.ObfuscateBlendShapesInPlace).
+        // Leave the blendshapes as they are: the NDMF build obfuscates them later (Pipeline.RunDeferredPass).
         public bool DeferObfuscation { get; }
     }
 }

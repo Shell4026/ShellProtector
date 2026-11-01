@@ -34,6 +34,10 @@ namespace Shell.Protector
         // Extra encryptions of a processed texture for materials whose shaders bake other secrets, such as a lilToon and
         // a Poiyomi material sharing a main texture. Keyed by the texture and ShaderSecrets.ToDefines.
         public Dictionary<(Texture2D, string), EncryptResult> otherSecretsTextures { get; } = new Dictionary<(Texture2D, string), EncryptResult>();
+        // Each material that uses a protected texture and its copy with the fallbacks, for renderers and material swaps.
+        // A material that uses none maps to null.
+        public Dictionary<Material, Material> fallbackMaterials { get; } = new Dictionary<Material, Material>();
+        public ClipCopies clipCopies { get; } = new ClipCopies();
     }
 }
 #endif

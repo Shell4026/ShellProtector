@@ -228,20 +228,21 @@ namespace Shell.Protector
         // isModular encrypts the avatar in place, as the NDMF pass on upload does. Otherwise a copy is encrypted and the original is disabled.
         public GameObject Encrypt(bool useSmallMip, bool isModular = true)
         {
-            GameObject avatar = Build(useSmallMip, isModular, false, out _);
+            GameObject avatar = Build(useSmallMip, isModular, false, out _)?.avatar;
             if (!isModular && avatar != null)
                 Selection.activeObject = avatar.GetComponentInChildren<ShellProtectorTester>(true);
             return avatar;
         }
 
-        // The NDMF pass: encrypts the avatar in place like Encrypt(isModular: true), but leaves the blendshapes for a
-        // later pass. Returns what that pass runs, or null when the build stopped.
-        public DeferredObfuscation EncryptWithoutObfuscation()
+        // The NDMF pass: encrypts the avatar in place like Encrypt(isModular: true), but leaves the blendshapes and the
+        // material swaps that later tools add for a later pass. Returns what that pass runs, or null when the build stopped.
+        public DeferredPass EncryptWithoutObfuscation()
         {
-            return Build(useSmallMipTexture, true, true, out BuildSettings settings) != null ? new DeferredObfuscation(settings) : null;
+            BuildResult result = Build(useSmallMipTexture, true, true, out BuildSettings settings);
+            return result?.avatar != null ? new DeferredPass(settings, result) : null;
         }
 
-        GameObject Build(bool useSmallMip, bool isModular, bool deferObfuscation, out BuildSettings settings)
+        BuildResult Build(bool useSmallMip, bool isModular, bool deferObfuscation, out BuildSettings settings)
         {
             settings = null;
             if (descriptor == null)
@@ -255,7 +256,7 @@ namespace Shell.Protector
 
             settings = CreateSettings();
             settings.UseSmallMipTexture = useSmallMip;
-            return new Pipeline(new BuildRequest(descriptor.gameObject, !isModular, this, deferObfuscation), settings).Run().avatar;
+            return new Pipeline(new BuildRequest(descriptor.gameObject, !isModular, this, deferObfuscation), settings).Run();
         }
 
         public BuildSettings CreateSettings()

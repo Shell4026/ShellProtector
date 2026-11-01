@@ -10,7 +10,7 @@ public class NdmfPlugin : Plugin<NdmfPlugin>
 {
     sealed class BuildState
     {
-        public DeferredObfuscation Obfuscation;
+        public DeferredPass Deferred;
     }
 
     protected override void Configure()
@@ -22,16 +22,16 @@ public class NdmfPlugin : Plugin<NdmfPlugin>
                 Debug.Log("After encrypting Shell Protector");
                 var shellProtector = ctx.AvatarRootObject.GetComponentInChildren<ShellProtector>(true);
                 if (shellProtector)
-                    ctx.GetState<BuildState>().Obfuscation = shellProtector.EncryptWithoutObfuscation();
+                    ctx.GetState<BuildState>().Deferred = shellProtector.EncryptWithoutObfuscation();
             });
 
         InPhase(BuildPhase.Optimizing).
             AfterPlugin("FermataFT.Editor.NDMFPlugin").
             AfterPlugin("FermataFT.Editor.FaceBlendShapeOptimizationPlugin").
             AfterPlugin("com.anatawa12.avatar-optimizer").
-            Run("Obfuscating blendshapes", ctx =>
+            Run("Obfuscating blendshapes and rewriting material swaps", ctx =>
             {
-                ctx.GetState<BuildState>().Obfuscation?.Run(ctx.AvatarRootObject);
+                ctx.GetState<BuildState>().Deferred?.Run(ctx.AvatarRootObject);
             });
     }
 }

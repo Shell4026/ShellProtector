@@ -148,12 +148,11 @@ namespace Shell.Protector
                 }
             }
 
-            var duplicatedMaterials = new Dictionary<Material, Material>();
-            ReplaceProcessedTexturesWithFallbacks(Avatar.GetComponentsInChildren<MeshRenderer>(true), duplicatedMaterials);
-            ReplaceProcessedTexturesWithFallbacks(Avatar.GetComponentsInChildren<SkinnedMeshRenderer>(true), duplicatedMaterials);
+            ReplaceProcessedTexturesWithFallbacks(Avatar.GetComponentsInChildren<MeshRenderer>(true));
+            ReplaceProcessedTexturesWithFallbacks(Avatar.GetComponentsInChildren<SkinnedMeshRenderer>(true));
         }
 
-        void ReplaceProcessedTexturesWithFallbacks<T>(IEnumerable<T> renderers, Dictionary<Material, Material> duplicatedMaterials) where T : Renderer
+        void ReplaceProcessedTexturesWithFallbacks<T>(IEnumerable<T> renderers) where T : Renderer
         {
             foreach (T renderer in renderers)
             {
@@ -164,29 +163,11 @@ namespace Shell.Protector
                 bool rendererChanged = false;
                 for (int i = 0; i < mats.Length; ++i)
                 {
-                    Material sourceMaterial = mats[i];
-                    if (sourceMaterial == null)
+                    Material fallbackMaterial = mats[i] != null ? GetFallbackMaterial(mats[i]) : null;
+                    if (fallbackMaterial == null)
                         continue;
-
-                    Material duplicatedMaterial = null;
-                    foreach (string name in sourceMaterial.GetTexturePropertyNames())
-                    {
-                        Texture2D texture = sourceMaterial.GetTexture(name) as Texture2D;
-                        if (texture == null || !Result.processedTextures.TryGetValue(texture, out ProcessedTexture processedTexture))
-                            continue;
-
-                        if (duplicatedMaterial == null)
-                            duplicatedMaterial = GetOrCreateDuplicatedMaterial(sourceMaterial, duplicatedMaterials);
-
-                        duplicatedMaterial.SetTexture(name, GetLargestFallback(processedTexture));
-                        EditorUtility.SetDirty(duplicatedMaterial);
-                    }
-
-                    if (duplicatedMaterial != null)
-                    {
-                        mats[i] = duplicatedMaterial;
-                        rendererChanged = true;
-                    }
+                    mats[i] = fallbackMaterial;
+                    rendererChanged = true;
                 }
 
                 if (rendererChanged)
@@ -194,18 +175,32 @@ namespace Shell.Protector
             }
         }
 
-        Material GetOrCreateDuplicatedMaterial(Material source, Dictionary<Material, Material> duplicatedMaterials)
+        // The copy of a material with the largest fallback in place of each protected texture, or null if it uses none.
+        // Renderers and material swaps share the copies (BuildResult.fallbackMaterials).
+        Material GetFallbackMaterial(Material source)
         {
-            if (duplicatedMaterials.TryGetValue(source, out Material duplicatedMaterial))
-                return duplicatedMaterial;
+            if (Result.fallbackMaterials.TryGetValue(source, out Material copy))
+                return copy;
 
-            // Always a new copy: a file with this name can be an earlier build's copy, or the copy of another material
-            // with the same name, and its other properties would be wrong.
-            duplicatedMaterial = Object.Instantiate(source);
-            writer.CreateAssetInFolder(duplicatedMaterial, paths.Folders.MatGuid, paths.DuplicatedMaterialName(source));
+            foreach (string name in source.GetTexturePropertyNames())
+            {
+                if (!(source.GetTexture(name) is Texture2D texture) || !Result.processedTextures.TryGetValue(texture, out ProcessedTexture processedTexture))
+                    continue;
 
-            duplicatedMaterials[source] = duplicatedMaterial;
-            return duplicatedMaterial;
+                if (copy == null)
+                {
+                    // Always a new copy: a file with this name can be an earlier build's copy, or the copy of another material
+                    // with the same name, and its other properties would be wrong.
+                    copy = Object.Instantiate(source);
+                    writer.CreateAssetInFolder(copy, paths.Folders.MatGuid, paths.DuplicatedMaterialName(source));
+                }
+                copy.SetTexture(name, GetLargestFallback(processedTexture));
+            }
+
+            if (copy != null)
+                EditorUtility.SetDirty(copy);
+            Result.fallbackMaterials[source] = copy;
+            return copy;
         }
 
         static Texture2D GetLargestFallback(ProcessedTexture processedTexture)
@@ -265,12 +260,19 @@ namespace Shell.Protector
             AnimatorManager.AddKeyLayer(fx, animationDir, settings.KeySize, settings.SyncSize, 3.0f, settings.UserKey);
         }
 
-        // The NDMF build obfuscates in the Optimizing phase (NdmfPlugin), after the tools that patch the blendshapes by
-        // their original names or order, with the settings of the encryption that ran in Transforming.
-        public static void ObfuscateBlendShapesInPlace(GameObject avatar, BuildSettings settings)
+        // The NDMF build's Optimizing pass (DeferredPass), with the result of the encryption that ran in Transforming. It
+        // rewrites the material swaps that tools after Transforming added, such as VRCFury's toggles, and obfuscates the
+        // blendshapes after the tools that patch them by their original names or order.
+        public static void RunDeferredPass(GameObject avatar, BuildSettings settings, BuildResult result)
         {
-            new Pipeline(new BuildRequest(avatar, false), settings).ObfuscateBlendShapes(false);
-            AssetDatabase.SaveAssets();
+            var pipeline = new Pipeline(new BuildRequest(avatar, false), settings, result);
+            using (pipeline.timings.Measure("animations"))
+                pipeline.ReplaceMaterialsInAnimations(true);
+            using (pipeline.timings.Measure("blendshapes"))
+                pipeline.ObfuscateBlendShapes(false);
+            using (pipeline.timings.Measure("save"))
+                AssetDatabase.SaveAssets();
+            Debug.LogFormat("[ShellProtector] Deferred pass {0}: {1}", avatar.name, pipeline.timings);
         }
 
         public void ObfuscateBlendShapes(bool clone)
@@ -280,6 +282,7 @@ namespace Shell.Protector
 
             Obfuscator obfuscator = ScriptableObject.CreateInstance<Obfuscator>();
             obfuscator.PreserveMmd = settings.PreserveMMD;
+            obfuscator.Copies = Result.clipCopies;
 
             var childRenderers = Avatar.GetComponentsInChildren<SkinnedMeshRenderer>();
 
@@ -381,32 +384,37 @@ namespace Shell.Protector
             }
         }
 
-        void ReplaceMaterialsInAnimations(bool clone)
+        // Points the material swaps in the FX (and, for the copy, the merged animators) at what the renderers got: the
+        // encrypted material, or the copy with fallbacks of a material that uses a protected texture. With copyClips a clip is
+        // copied before it changes: the manual encryption's copy shares the original's clips, and the deferred pass finds
+        // clips that later tools added, such as the user's own clips that VRCFury puts back. The NDMF build's first pass
+        // changes Modular Avatar's copies in place.
+        void ReplaceMaterialsInAnimations(bool copyClips)
         {
-            var fx = GetFx(Avatar);
+            EnsureOutputs();
+            if (Result.encryptedMaterials.Count == 0 && Result.processedTextures.Count == 0)
+                return;
 
-            AnimatorManager animManager = ScriptableObject.CreateInstance<AnimatorManager>();
-            foreach (var pair in Result.encryptedMaterials)
-            {
-                Debug.LogFormat("{0}, {1}", pair.Key.name, pair.Value.name);
-                animManager.ChangeAnimationMaterial(fx, pair.Key, pair.Value, clone, paths, writer);
-            }
-
+            var controllers = new List<AnimatorController> { GetFx(Avatar) };
 #if MODULAR
-            if (clone)
+            if (request.Clone)
             {
-                var maMergeAnims = Avatar.GetComponentsInChildren<ModularAvatarMergeAnimator>(true);
-                foreach (var maMergeAnim in maMergeAnims)
-                {
-                    if (maMergeAnim.animator == null)
-                        continue;
-                    foreach (var pair in Result.encryptedMaterials)
-                    {
-                        animManager.ChangeAnimationMaterial(maMergeAnim.animator as AnimatorController, pair.Key, pair.Value, clone, paths, writer);
-                    }
-                }
+                foreach (var maMergeAnim in Avatar.GetComponentsInChildren<ModularAvatarMergeAnimator>(true))
+                    controllers.Add(maMergeAnim.animator as AnimatorController);
             }
 #endif
+            System.Func<AnimationClip, AnimationClip> getWritable = clip => clip;
+            if (copyClips)
+                getWritable = clip => Result.clipCopies.GetWritable(clip, "_encrypted", paths, writer);
+            AnimatorManager.ReplaceMaterials(controllers, ResolveAnimatedMaterial, getWritable);
+        }
+
+        // What a material swap must point to, as ReplaceMaterials and ReplaceProtectedTextures set it on the renderers.
+        Material ResolveAnimatedMaterial(Material material)
+        {
+            if (Result.encryptedMaterials.TryGetValue(material, out Material encrypted))
+                material = encrypted;
+            return GetFallbackMaterial(material) ?? material;
         }
     }
 }

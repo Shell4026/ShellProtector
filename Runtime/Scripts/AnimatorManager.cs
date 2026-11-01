@@ -13,8 +13,6 @@ namespace Shell.Protector
 {
     public class AnimatorManager : ScriptableObject
     {
-        Dictionary<AnimationClip, AnimationClip> encryptedClip = new Dictionary<AnimationClip, AnimationClip>();
-
         // Copies each AnimatorController, with its own copy of every blend tree it uses. Override controllers aren't
         // edited by the build, so their entries stay null. Returns null if a controller can't be copied: the build
         // would then edit the original.
@@ -542,143 +540,128 @@ namespace Shell.Protector
 
         public static bool IsMaterialInClip(AnimationClip clip, Material originalMaterial)
         {
-            EditorCurveBinding[] bindings = AnimationUtility.GetObjectReferenceCurveBindings(clip);
-            foreach (EditorCurveBinding binding in bindings)
+            foreach (EditorCurveBinding binding in AnimationUtility.GetObjectReferenceCurveBindings(clip))
             {
-                if ((binding.type == typeof(MeshRenderer) || binding.type == typeof(SkinnedMeshRenderer)) && binding.propertyName.StartsWith("m_Materials"))
-                {
-                    ObjectReferenceKeyframe[] keyframes = AnimationUtility.GetObjectReferenceCurve(clip, binding);
-
-                    for (int i = 0; i < keyframes.Length; i++)
-                    {
-                        if (keyframes[i].value == originalMaterial)
-                        {
-                            return true;
-                        }
-                    }
-                }
+                if (IsMaterialBinding(binding) && AnimationUtility.GetObjectReferenceCurve(clip, binding).Any(k => k.value == originalMaterial))
+                    return true;
             }
             return false;
         }
-        public static void ChangeMaterialInClip(AnimationClip clip, Material source, Material target)
+
+        static bool IsMaterialBinding(EditorCurveBinding binding)
         {
-            EditorCurveBinding[] bindings = AnimationUtility.GetObjectReferenceCurveBindings(clip);
-            foreach (EditorCurveBinding binding in bindings)
+            return (binding.type == typeof(MeshRenderer) || binding.type == typeof(SkinnedMeshRenderer)) && binding.propertyName.StartsWith("m_Materials");
+        }
+
+        // Points the material swaps of the controllers at resolve(material) in one walk over their states and blend trees,
+        // so each clip is read once however many states use it and however many materials the build replaces. A clip
+        // that changes is replaced by getWritable(clip), which is the clip itself when the build owns it.
+        public static void ReplaceMaterials(IEnumerable<AnimatorController> controllers, System.Func<Material, Material> resolve,
+            System.Func<AnimationClip, AnimationClip> getWritable)
+        {
+            var walk = new MaterialSwapWalk(resolve, getWritable);
+            foreach (AnimatorController controller in controllers.Where(c => c != null).Distinct())
             {
-                if ((binding.type == typeof(MeshRenderer) || binding.type == typeof(SkinnedMeshRenderer)) && binding.propertyName.StartsWith("m_Materials"))
+                foreach (AnimatorControllerLayer layer in controller.layers)
                 {
+                    if (layer.name == "ShellProtectorDriver" || layer.name == "ShellProtector" || layer.stateMachine == null)
+                        continue;
+                    walk.StateMachine(layer.stateMachine);
+                }
+            }
+        }
+
+        sealed class MaterialSwapWalk
+        {
+            readonly System.Func<Material, Material> resolve;
+            readonly System.Func<AnimationClip, AnimationClip> getWritable;
+            // Each clip seen and the clip that replaces it, which is the clip itself when nothing in it changes.
+            readonly Dictionary<AnimationClip, AnimationClip> clips = new Dictionary<AnimationClip, AnimationClip>();
+            readonly HashSet<AnimatorStateMachine> stateMachines = new HashSet<AnimatorStateMachine>();
+            readonly HashSet<BlendTree> blendTrees = new HashSet<BlendTree>();
+
+            public MaterialSwapWalk(System.Func<Material, Material> resolve, System.Func<AnimationClip, AnimationClip> getWritable)
+            {
+                this.resolve = resolve;
+                this.getWritable = getWritable;
+            }
+
+            public void StateMachine(AnimatorStateMachine stateMachine)
+            {
+                if (!stateMachines.Add(stateMachine))
+                    return;
+                foreach (ChildAnimatorState child in stateMachine.states)
+                {
+                    AnimatorState state = child.state;
+                    Motion motion = Replace(state.motion);
+                    if (motion != state.motion)
+                        state.motion = motion;
+                }
+                foreach (ChildAnimatorStateMachine child in stateMachine.stateMachines)
+                    StateMachine(child.stateMachine);
+            }
+
+            Motion Replace(Motion motion)
+            {
+                if (motion is AnimationClip clip)
+                    return Replace(clip);
+                if (motion is BlendTree tree && blendTrees.Add(tree))
+                {
+                    ChildMotion[] children = tree.children;
+                    bool changed = false;
+                    for (int i = 0; i < children.Length; ++i)
+                    {
+                        Motion child = Replace(children[i].motion);
+                        if (child == children[i].motion)
+                            continue;
+                        children[i].motion = child;
+                        changed = true;
+                    }
+                    if (changed)
+                        tree.children = children;
+                }
+                return motion;
+            }
+
+            AnimationClip Replace(AnimationClip clip)
+            {
+                if (clips.TryGetValue(clip, out AnimationClip result))
+                    return result;
+
+                var bindings = new List<EditorCurveBinding>();
+                var curves = new List<ObjectReferenceKeyframe[]>();
+                foreach (EditorCurveBinding binding in AnimationUtility.GetObjectReferenceCurveBindings(clip))
+                {
+                    if (!IsMaterialBinding(binding))
+                        continue;
                     ObjectReferenceKeyframe[] keyframes = AnimationUtility.GetObjectReferenceCurve(clip, binding);
-                    ObjectReferenceKeyframe[] newKeyframes = new ObjectReferenceKeyframe[keyframes.Length];
-
-                    bool curveChanged = false;
-                    for (int i = 0; i < keyframes.Length; i++)
+                    bool changed = false;
+                    for (int i = 0; i < keyframes.Length; ++i)
                     {
-                        newKeyframes[i] = new ObjectReferenceKeyframe
-                        {
-                            time = keyframes[i].time,
-                            value = keyframes[i].value == source ? target : keyframes[i].value
-                        };
-
-                        if (keyframes[i].value == source)
-                        {
-                            curveChanged = true;
-                        }
+                        if (!(keyframes[i].value is Material material))
+                            continue;
+                        Material replacement = resolve(material);
+                        if (replacement == material)
+                            continue;
+                        keyframes[i].value = replacement;
+                        changed = true;
                     }
-                    if (curveChanged)
+                    if (changed)
                     {
-                        AnimationUtility.SetObjectReferenceCurve(clip, binding, newKeyframes);
+                        bindings.Add(binding);
+                        curves.Add(keyframes);
                     }
                 }
-            }
-        }
 
-        void SearchStateMachine(AnimatorStateMachine stateMachine, Material targetMaterial, Material encrypted, bool clone, OutputPaths paths, AssetWriter writer)
-        {
-            for (int i = 0; i < stateMachine.states.Length; i++)
-            {
-                ChildAnimatorState state = stateMachine.states[i];
-                AnimationClip clip = SearchMotion(state.state.motion, targetMaterial, encrypted, clone, paths, writer);
-                if (clip != null)
+                result = clip;
+                if (bindings.Count > 0)
                 {
-                    state.state.motion = clip;
-                    stateMachine.states[i] = state;
+                    result = getWritable(clip);
+                    AnimationUtility.SetObjectReferenceCurves(result, bindings.ToArray(), curves.ToArray());
                 }
-            }
-
-            foreach (ChildAnimatorStateMachine childStateMachine in stateMachine.stateMachines)
-            {
-                SearchStateMachine(childStateMachine.stateMachine, targetMaterial, encrypted, clone, paths, writer);
-            }
-        }
-
-        AnimationClip SearchMotion(Motion motion, Material targetMaterial, Material encrypted, bool clone, OutputPaths paths, AssetWriter writer)
-        {
-            if (motion is AnimationClip clip)
-            {
-                if (IsMaterialInClip(clip, targetMaterial))
-                {
-                    Debug.LogFormat("{0} in {1}", targetMaterial.name, clip.name);
-                    if (clone)
-                    {
-                        string path = AssetDatabase.GetAssetPath(clip);
-
-                        if (encryptedClip.ContainsKey(clip))
-                        {
-                            clip = encryptedClip[clip];
-                        }
-                        else
-                        {
-                            // The clip may be one this build created and changed since, such as an obfuscated copy.
-                            AssetDatabase.SaveAssetIfDirty(clip);
-                            if (!writer.CopyAssetToFolder(path, paths.Folders.AnimGuid, paths.AnimationClipName(clip, "_encrypted"), out string copyPath))
-                            {
-                                Debug.LogError("Copy error: " + copyPath);
-                                return null;
-                            }
-                            var newClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(copyPath);
-                            encryptedClip.Add(clip, newClip);
-                            clip = newClip;
-                        }
-                    }
-                    ChangeMaterialInClip(clip, targetMaterial, encrypted);
-                    return clip;
-                }
-            }
-            else if (motion is BlendTree blendTree)
-            {
-                for (int i = 0; i < blendTree.children.Length; ++i)
-                {
-                    ChildMotion childMotion = blendTree.children[i];
-                    AnimationClip result = SearchMotion(childMotion.motion, targetMaterial, encrypted, clone, paths, writer);
-                    if (result != null)
-                    {
-                        childMotion.motion = result;
-                        ChildMotion[] newChildren = new ChildMotion[blendTree.children.Length];
-                        blendTree.children.CopyTo(newChildren, 0);
-                        newChildren[i] = childMotion;
-                        blendTree.children = newChildren;
-                    }
-                }
-            }
-            return null;
-        }
-
-        public void ChangeAnimationMaterial(AnimatorController anim, Material original, Material encrypted, bool clone, OutputPaths paths, AssetWriter writer)
-        {
-            if (anim == null || original == null)
-                return;
-
-            var layers = anim.layers;
-            foreach (var layer in layers)
-            {
-                if (layer.name == "ShellProtectorDriver")
-                    continue;
-                if (layer.name == "ShellProtector")
-                    continue;
-                var stateMachine = layer.stateMachine;
-                if (stateMachine == null)
-                    continue;
-                SearchStateMachine(stateMachine, original, encrypted, clone, paths, writer);
+                clips[clip] = result;
+                clips[result] = result;
+                return result;
             }
         }
     }

@@ -195,7 +195,7 @@ namespace Shell.Protector.Tests.Integration
             SkinnedMeshRenderer renderer = fixture.Avatar.transform.Find("Body").GetComponent<SkinnedMeshRenderer>();
             Mesh originalMesh = renderer.sharedMesh;
 
-            DeferredObfuscation obfuscation = fixture.Protector.EncryptWithoutObfuscation();
+            DeferredPass obfuscation = fixture.Protector.EncryptWithoutObfuscation();
 
             Assert.That(obfuscation, Is.Not.Null);
             Assert.That(fixture.Avatar.GetComponentInChildren<ShellProtector>(true), Is.Null);
@@ -226,7 +226,7 @@ namespace Shell.Protector.Tests.Integration
         {
             Fixture fixture = CreateFixture("DeferredGone");
             GameObject body = fixture.Avatar.transform.Find("Body").gameObject;
-            DeferredObfuscation obfuscation = fixture.Protector.EncryptWithoutObfuscation();
+            DeferredPass obfuscation = fixture.Protector.EncryptWithoutObfuscation();
             Object.DestroyImmediate(body.GetComponent<SkinnedMeshRenderer>());
 
             LogAssert.Expect(LogType.Warning, new Regex("^\\[ShellProtector\\] Body was removed during the build"));
@@ -240,7 +240,7 @@ namespace Shell.Protector.Tests.Integration
         {
             const string name = "DeferredClips";
             Fixture fixture = CreateFixture(name);
-            DeferredObfuscation obfuscation = fixture.Protector.EncryptWithoutObfuscation();
+            DeferredPass obfuscation = fixture.Protector.EncryptWithoutObfuscation();
 
             AnimationClip blendShapeClip = CreateBlendShapeClip(name);
             AnimatorController controller = CreateBlendShapeController(name, blendShapeClip);
@@ -266,6 +266,59 @@ namespace Shell.Protector.Tests.Integration
             Assert.That(AnimationUtility.GetCurveBindings(copy).Single().propertyName, Is.EqualTo("blendShape." + shapeName));
             Assert.That(AnimationUtility.GetCurveBindings(blendShapeClip).Single().propertyName, Is.EqualTo("blendShape.Smile"));
             Assert.That(states[1].state.motion, Is.SameAs(toggleClip));
+        }
+
+        // VRCFury adds its toggles to the FX after the encryption, with the original materials and sometimes the user's own
+        // clips. The deferred pass points them at the encrypted material through a copy and leaves the clip itself alone.
+        [Test]
+        public void NdmfEncrypt_RewritesMaterialSwapsAddedAfterTheEncryption()
+        {
+            const string name = "DeferredSwap";
+            Fixture fixture = CreateFixture(name);
+            DeferredPass deferred = fixture.Protector.EncryptWithoutObfuscation();
+            AnimatorController fx = Pipeline.GetFx(fixture.Avatar);
+            AnimationClip rewrittenByEncryption = GetFirstClip(fx);
+
+            AnimationClip userClip = CreateMaterialClip(name, fixture.Material, "toggle");
+            AnimatorState toggle = fx.layers[0].stateMachine.AddState("Toggle");
+            toggle.motion = userClip;
+
+            deferred.Run(fixture.Avatar);
+
+            Material encrypted = fixture.Avatar.transform.Find("Body").GetComponent<SkinnedMeshRenderer>().sharedMaterial;
+            AnimationClip copy = (AnimationClip)toggle.motion;
+            Assert.That(copy, Is.Not.SameAs(userClip));
+            Assert.That(AnimatorManager.IsMaterialInClip(copy, encrypted), Is.True);
+            Assert.That(AnimatorManager.IsMaterialInClip(userClip, fixture.Material), Is.True);
+            Assert.That(GetFirstClip(fx), Is.SameAs(rewrittenByEncryption));
+        }
+
+        // A toggle can swap in a material the build doesn't encrypt but that uses a protected texture. The swap gets the
+        // copy with fallbacks that a renderer with that material gets, so the original texture isn't uploaded.
+        [Test]
+        public void ManualEncrypt_PointsSwapsToMaterialsWithAProtectedTextureAtTheirFallbackCopy()
+        {
+            const string name = "FallbackSwap";
+            Fixture fixture = CreateFixture(name);
+            Texture protectedTexture = fixture.Material.mainTexture;
+            Material other = new Material(fixture.Material) { name = name + "Other" };
+            other = AssetDatabase.LoadAssetAtPath<Material>(TestAssetScope.CreateAsset(other, name + "/other.mat"));
+            AnimationClip otherClip = CreateMaterialClip(name, other, "other");
+            Pipeline.GetFx(fixture.Avatar).layers[0].stateMachine.AddState("Other").motion = otherClip;
+            AssetDatabase.SaveAssets();
+
+            GameObject encryptedAvatar = fixture.Protector.Encrypt(false);
+            sceneObjects.Add(encryptedAvatar);
+
+            AnimatorStateMachine stateMachine = Pipeline.GetFx(encryptedAvatar).layers[0].stateMachine;
+            var clip = (AnimationClip)stateMachine.states.Single(s => s.state.name == "Other").state.motion;
+            EditorCurveBinding binding = AnimationUtility.GetObjectReferenceCurveBindings(clip).Single();
+            var swapped = (Material)AnimationUtility.GetObjectReferenceCurve(clip, binding).Single().value;
+            Assert.That(clip, Is.Not.SameAs(otherClip));
+            Assert.That(swapped, Is.Not.SameAs(other));
+            Assert.That(swapped.mainTexture, Is.Not.Null.And.Not.SameAs(protectedTexture));
+            Assert.That(other.mainTexture, Is.SameAs(protectedTexture));
+            Assert.That(AnimatorManager.IsMaterialInClip(otherClip, other), Is.True);
         }
 
         // The face is a separate mesh whose shapes share names with the body's. Obfuscating the body must leave the
@@ -515,16 +568,16 @@ namespace Shell.Protector.Tests.Integration
             };
         }
 
-        private static AnimationClip CreateMaterialClip(string name, Material material)
+        private static AnimationClip CreateMaterialClip(string name, Material material, string fileName = "materialSwap")
         {
             AnimationClip clip = new AnimationClip();
-            clip.name = name + "MaterialSwap";
+            clip.name = name + fileName;
             EditorCurveBinding binding = EditorCurveBinding.PPtrCurve("Body", typeof(SkinnedMeshRenderer), "m_Materials.Array.data[0]");
             AnimationUtility.SetObjectReferenceCurve(clip, binding, new[]
             {
                 new ObjectReferenceKeyframe { time = 0f, value = material }
             });
-            string path = TestAssetScope.CreateAsset(clip, name + "/materialSwap.anim");
+            string path = TestAssetScope.CreateAsset(clip, name + "/" + fileName + ".anim");
             return AssetDatabase.LoadAssetAtPath<AnimationClip>(path);
         }
 
