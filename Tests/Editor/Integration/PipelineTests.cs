@@ -233,6 +233,41 @@ namespace Shell.Protector.Tests.Integration
             obfuscation.Run(fixture.Avatar);
         }
 
+        // VRCFury puts the user's own clip back into its controller when it didn't change it, so the Optimizing pass can
+        // find clips that are the user's assets. It copies those with obfuscated shapes and leaves the others alone.
+        [Test]
+        public void NdmfEncrypt_CopiesOnlyTheClipsWithObfuscatedShapes()
+        {
+            const string name = "DeferredClips";
+            Fixture fixture = CreateFixture(name);
+            DeferredObfuscation obfuscation = fixture.Protector.EncryptWithoutObfuscation();
+
+            AnimationClip blendShapeClip = CreateBlendShapeClip(name);
+            AnimatorController controller = CreateBlendShapeController(name, blendShapeClip);
+            AnimationClip toggleClip = new AnimationClip { name = name + "Toggle" };
+            AnimationUtility.SetEditorCurve(toggleClip, EditorCurveBinding.FloatCurve("Body", typeof(GameObject), "m_IsActive"),
+                AnimationCurve.Constant(0f, 1f, 1f));
+            toggleClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(TestAssetScope.CreateAsset(toggleClip, name + "/toggle.anim"));
+            controller.layers[0].stateMachine.AddState("Toggle").motion = toggleClip;
+            fixture.Avatar.GetComponent<VRCAvatarDescriptor>().baseAnimationLayers[0] = new VRCAvatarDescriptor.CustomAnimLayer
+            {
+                type = VRCAvatarDescriptor.AnimLayerType.Base,
+                isDefault = false,
+                animatorController = controller
+            };
+
+            obfuscation.Run(fixture.Avatar);
+
+            ChildAnimatorState[] states = controller.layers[0].stateMachine.states;
+            AnimationClip copy = (AnimationClip)states[0].state.motion;
+            string shapeName = fixture.Avatar.transform.Find("Body").GetComponent<SkinnedMeshRenderer>().sharedMesh.GetBlendShapeName(0);
+            Assert.That(copy, Is.Not.SameAs(blendShapeClip));
+            Assert.That(AssetDatabase.GetAssetPath(copy), Is.Not.EqualTo(AssetDatabase.GetAssetPath(blendShapeClip)));
+            Assert.That(AnimationUtility.GetCurveBindings(copy).Single().propertyName, Is.EqualTo("blendShape." + shapeName));
+            Assert.That(AnimationUtility.GetCurveBindings(blendShapeClip).Single().propertyName, Is.EqualTo("blendShape.Smile"));
+            Assert.That(states[1].state.motion, Is.SameAs(toggleClip));
+        }
+
         // The face is a separate mesh whose shapes share names with the body's. Obfuscating the body must leave the
         // face's eyelid indices and viseme names alone, and obfuscating the face must remap them to the same shapes.
         [TestCase(false)]

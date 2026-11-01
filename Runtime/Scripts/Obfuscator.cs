@@ -18,10 +18,9 @@ namespace Shell.Protector
         List<int> obfuscatedBlendShapeIndex = new List<int>();
         Dictionary<string, string> obfuscatedBlendShapeNames = new Dictionary<string, string>(); // before, after
         Dictionary<AnimationClip, AnimationClip> obfuscatedClip = new Dictionary<AnimationClip, AnimationClip>(); // before, after
+        HashSet<AnimationClip> copiedClips = new HashSet<AnimationClip>();
         HashSet<string> mmdShapes = new HashSet<string>();
 
-        [FormerlySerializedAs("clone")]
-        public bool Clone = true;
         [FormerlySerializedAs("bPreserveMMD")]
         public bool PreserveMmd = true;
 
@@ -44,14 +43,14 @@ namespace Shell.Protector
                 mmdShapes.Add(str);
             }
         }
-        // Resets the per-renderer state. Clone and PreserveMmd are options for the whole run and stay as they are.
+        // Resets the per-renderer state. PreserveMmd is an option for the whole run and stays as it is. So do the clip
+        // copies: a later renderer renames its shapes in the copies instead of copying them again.
         public void Clean()
         {
             outputPaths = null;
             assetWriter = null;
             obfuscatedBlendShapeNames.Clear();
             obfuscatedBlendShapeIndex.Clear();
-            obfuscatedClip.Clear();
         }
 
         static string GetAnimationPath(Transform transform)
@@ -254,17 +253,15 @@ namespace Shell.Protector
                 return clip;
             }
 
+            // Even the NDMF build's controllers can hold the user's own clips: VRCFury puts an original clip back into its
+            // controller when it didn't change it. So a clip with obfuscated shapes is copied before they are renamed.
             AnimationClip newClip = clip;
-            if (Clone)
+            if (!copiedClips.Contains(clip) && !obfuscatedClip.TryGetValue(clip, out newClip))
             {
-                if (obfuscatedClip.ContainsKey(clip))
-                    newClip = obfuscatedClip[clip];
-                else
-                {
-                    newClip = Instantiate(clip);
-                    assetWriter.CreateAssetInFolder(newClip, outputPaths.Folders.AnimGuid, outputPaths.AnimationClipName(clip, "_obfuscated"));
-                    obfuscatedClip.Add(clip, newClip);
-                }
+                newClip = Instantiate(clip);
+                assetWriter.CreateAssetInFolder(newClip, outputPaths.Folders.AnimGuid, outputPaths.AnimationClipName(clip, "_obfuscated"));
+                obfuscatedClip.Add(clip, newClip);
+                copiedClips.Add(newClip);
             }
 
             bindings = AnimationUtility.GetCurveBindings(newClip);

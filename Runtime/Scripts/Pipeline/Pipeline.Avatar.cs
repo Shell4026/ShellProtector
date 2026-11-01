@@ -279,7 +279,6 @@ namespace Shell.Protector
             var av3 = Avatar.GetComponent<VRCAvatarDescriptor>();
 
             Obfuscator obfuscator = ScriptableObject.CreateInstance<Obfuscator>();
-            obfuscator.Clone = clone;
             obfuscator.PreserveMmd = settings.PreserveMMD;
 
             var childRenderers = Avatar.GetComponentsInChildren<SkinnedMeshRenderer>();
