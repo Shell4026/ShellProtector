@@ -15,6 +15,8 @@ namespace Shell.Protector
     public interface ITextureFormat {
         bool CanHandle(TextureFormat format);
         EncryptResult Encrypt(Texture2D texture, byte[] key, IEncryptor algorithm);
+        // The format keywords that select this format in Protector.cginc; the other one is turned off.
+        string[] FormatKeywords { get; }
         void SetFormatKeywords(Material material);
         (int, int) CalculateOffsets(Texture2D texture);
     }
@@ -91,7 +93,14 @@ namespace Shell.Protector
 
         public abstract bool CanHandle(TextureFormat format);
         public abstract EncryptResult Encrypt(Texture2D texture, byte[] key, IEncryptor algorithm);
-        public abstract void SetFormatKeywords(Material material);
+        public abstract string[] FormatKeywords { get; }
+
+        public void SetFormatKeywords(Material material) {
+            material.DisableKeyword(ShaderProperties.Format0Keyword);
+            material.DisableKeyword(ShaderProperties.Format1Keyword);
+            foreach (string keyword in FormatKeywords)
+                material.EnableKeyword(keyword);
+        }
         public abstract (int, int) CalculateOffsets(Texture2D texture);
     }
 }

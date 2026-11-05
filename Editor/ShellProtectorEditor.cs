@@ -21,6 +21,7 @@ namespace Shell.Protector
         // Foldout states are kept for the editor session, across every ShellProtector inspector.
         static bool advancedOption;
         static bool debug;
+        static bool reportKeyBytes;
 
         ShellProtector root = null;
         readonly LanguageManager lang = LanguageManager.GetInstance();
@@ -516,10 +517,13 @@ namespace Shell.Protector
             if (GUILayout.Button(Lang("Create bug report")))
             {
                 serializedObject.ApplyModifiedProperties();
-                BugReport.Save(root, DetectedTools(), Lang("Save bug report"));
+                BugReport.Save(root, DetectedTools(), Lang("Save bug report"), reportKeyBytes);
                 GUIUtility.ExitGUI();
             }
-            Hint(Lang("The report includes the avatar's key bytes. Send it only to the developer."));
+            reportKeyBytes = EditorGUILayout.ToggleLeft(Lang("Include key bytes"), reportKeyBytes);
+            Hint(reportKeyBytes
+                ? Lang("The report includes the avatar's key bytes. Send it only to the developer.")
+                : Lang("The report leaves out the avatar's key bytes."));
             GUILayout.Space(10);
 
 #if MODULAR

@@ -90,10 +90,7 @@ namespace Shell.Protector
             return Math.Max(1, count);
         }
 
-        public override void SetFormatKeywords(Material material) {
-            material.DisableKeyword(ShaderProperties.Format0Keyword);
-            material.DisableKeyword(ShaderProperties.Format1Keyword);
-        }
+        public override string[] FormatKeywords => Array.Empty<string>();
 
         public override (int, int) CalculateOffsets(Texture2D texture) {
             int woffset = 13 - (int)Mathf.Log(texture.width, 2) - 1 + 2;

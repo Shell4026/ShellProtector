@@ -20,6 +20,39 @@ namespace Shell.Protector
         public Texture2D LimTexture2;
         public Texture2D OutlineTexture;
         public Texture2D LimShadeTexture;
+
+        // The rim and outline textures the injected shader samples through the decrypted main color. A rim texture turns
+        // on the rim light override (Injector.SetKeywords), whether or not the material uses its rim light.
+        public static AuxiliaryTextures Of(Material mat)
+        {
+            AssetManager shaderManager = AssetManager.GetInstance();
+            AuxiliaryTextures others = new AuxiliaryTextures();
+            if (shaderManager.IsPoiyomi(mat.shader))
+            {
+                foreach (var t in mat.GetTexturePropertyNames())
+                {
+                    if (t == "_RimTex")
+                        others.LimTexture = (Texture2D)mat.GetTexture(t);
+                    else if (t == "_Rim2Tex")
+                        others.LimTexture2 = (Texture2D)mat.GetTexture(t);
+                    else if (t == "_OutlineTexture")
+                        others.OutlineTexture = (Texture2D)mat.GetTexture(t);
+                }
+            }
+            else if (shaderManager.IsLilToon(mat.shader))
+            {
+                foreach (var t in mat.GetTexturePropertyNames())
+                {
+                    if (t == "_RimColorTex")
+                        others.LimTexture = (Texture2D)mat.GetTexture(t);
+                    else if (t == "_OutlineTex")
+                        others.OutlineTexture = (Texture2D)mat.GetTexture(t);
+                    else if (t == "_RimShadeMask")
+                        others.LimShadeTexture = (Texture2D)mat.GetTexture(t);
+                }
+            }
+            return others;
+        }
     }
 
     public sealed class BuildResult

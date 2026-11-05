@@ -45,9 +45,10 @@ namespace Shell.Protector
                 return true;
             return false;
         }
+        // A material moved from a locked Poiyomi shader to lilToon (whose variants are Hidden/ too) keeps the tag.
         public bool IsLockPoiyomi(Material mat)
         {
-            return mat.shader.name.StartsWith("Hidden/") && mat.GetTag("OriginalShader", false, "") != "";
+            return mat.shader.name.StartsWith("Hidden/") && !IsLilToon(mat.shader) && mat.GetTag("OriginalShader", false, "") != "";
         }
         public int GetShaderType(Shader shader)
         {

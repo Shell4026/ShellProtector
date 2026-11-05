@@ -179,36 +179,7 @@ namespace Shell.Protector
             }
         }
 
-        AuxiliaryTextures GetAuxiliaryTextures(Material mat)
-        {
-            // LimTexture, OutlineTexture...
-            AuxiliaryTextures others = new AuxiliaryTextures();
-            if (shaderManager.IsPoiyomi(mat.shader))
-            {
-                foreach (var t in mat.GetTexturePropertyNames())
-                {
-                    if (t == "_RimTex")
-                        others.LimTexture = (Texture2D)mat.GetTexture(t);
-                    else if (t == "_Rim2Tex")
-                        others.LimTexture2 = (Texture2D)mat.GetTexture(t);
-                    else if (t == "_OutlineTexture")
-                        others.OutlineTexture = (Texture2D)mat.GetTexture(t);
-                }
-            }
-            else if (shaderManager.IsLilToon(mat.shader))
-            {
-                foreach (var t in mat.GetTexturePropertyNames())
-                {
-                    if (t == "_RimColorTex")
-                        others.LimTexture = (Texture2D)mat.GetTexture(t);
-                    else if (t == "_OutlineTex")
-                        others.OutlineTexture = (Texture2D)mat.GetTexture(t);
-                    else if (t == "_RimShadeMask")
-                        others.LimShadeTexture = (Texture2D)mat.GetTexture(t);
-                }
-            }
-            return others;
-        }
+        AuxiliaryTextures GetAuxiliaryTextures(Material mat) => AuxiliaryTextures.Of(mat);
 
         // One reference mip texture per size, shared by the materials whose main textures have that size. BC7 decodes every
         // level of the texture's own size, the other formats use a square of the longer side.

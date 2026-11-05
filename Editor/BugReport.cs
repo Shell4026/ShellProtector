@@ -2,11 +2,14 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using UnityEditor;
+using UnityEditor.Rendering;
 using UnityEngine;
 using VRC.SDK3.Avatars.Components;
 using VRC.SDKBase.Editor.BuildPipeline;
@@ -22,8 +25,9 @@ namespace Shell.Protector
         const int LogLines = 80;
         const int AnimationLines = 200;
         const int LogTailBytes = 4 * 1024 * 1024;
+        const int ShaderErrorLines = 20;
 
-        public static void Save(ShellProtector protector, IEnumerable<string> detectedShaders, string title)
+        public static void Save(ShellProtector protector, IEnumerable<string> detectedShaders, string title, bool includeKeyBytes)
         {
             string avatarName = protector.Descriptor != null ? protector.Descriptor.name : protector.name;
             string fileName = string.Format("ShellProtector_Report_{0}_{1:yyyyMMdd_HHmmss}.txt", OutputPaths.Sanitize(avatarName), DateTime.Now);
@@ -32,16 +36,17 @@ namespace Shell.Protector
             if (string.IsNullOrEmpty(path))
                 return;
 
-            File.WriteAllText(path, Build(protector, detectedShaders), new UTF8Encoding(false));
+            File.WriteAllText(path, Build(protector, detectedShaders, includeKeyBytes), new UTF8Encoding(false));
             EditorUtility.RevealInFinder(path);
         }
 
-        public static string Build(ShellProtector protector, IEnumerable<string> detectedShaders)
+        public static string Build(ShellProtector protector, IEnumerable<string> detectedShaders, bool includeKeyBytes)
         {
             var report = new StringBuilder();
             report.AppendLine("ShellProtector bug report");
             report.AppendLine("Created: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss zzz"));
-            report.AppendLine("WARNING: This report contains the key bytes of this avatar. Send it only to the ShellProtector developer.");
+            if (includeKeyBytes)
+                report.AppendLine("WARNING: This report contains the key bytes of this avatar. Send it only to the ShellProtector developer.");
 
             BuildSettings settings = protector.CreateSettings();
             Section(report, "Environment", () => AppendEnvironment(report, detectedShaders));
@@ -49,12 +54,14 @@ namespace Shell.Protector
             Section(report, "NDMF passes", () => AppendNdmfPasses(report));
             Section(report, "Avatar", () => AppendAvatar(report, protector));
             Section(report, "Settings", () => AppendSettings(report, protector, settings));
-            Section(report, "Key", () => AppendKey(report, protector));
+            Section(report, "lilToon shader settings", () => AppendLilToonSettings(report));
+            Section(report, "Key", () => AppendKey(report, protector, includeKeyBytes));
             Section(report, "Encryption targets", () => AppendTargets(report, protector, settings));
             Section(report, "Materials", () => AppendMaterials(report, protector, settings));
             Section(report, "Textures", () => AppendTextures(report, settings));
             Section(report, "Key targets", () => AppendKeyTargets(report, protector));
             Section(report, "Material animations", () => AppendMaterialAnimations(report, protector));
+            Section(report, "Generated shaders", () => AppendGeneratedShaders(report, settings));
             Section(report, "Recent log", () => AppendLog(report));
             return report.ToString();
         }
@@ -84,8 +91,11 @@ namespace Shell.Protector
             report.AppendLine("Detected: " + string.Join(", ", detectedShaders));
 
             string symbols = PlayerSettings.GetScriptingDefineSymbolsForGroup(EditorUserBuildSettings.selectedBuildTargetGroup);
-            var defines = symbols.Split(';').Where(s => s == "MODULAR" || s == "LILTOON" || s.StartsWith("POIYOMI"));
+            var defines = symbols.Split(';').Where(s => s == "MODULAR" || s == "LILTOON" || s.StartsWith("POIYOMI") || s == "LILTOON_DISABLE_OPTIMIZATION");
             report.AppendLine("Defines: " + string.Join(", ", defines));
+            // Off: a material whose shader variant failed to compile renders with the closest variant that compiled (for
+            // an encrypted texture, possibly another format's decoder) instead of pink.
+            report.AppendLine("Strict shader variant matching: " + PlayerSettings.strictShaderVariantMatching);
 
             report.AppendLine("Packages (except com.unity.*):");
             var packages = UnityEditor.PackageManager.PackageInfo.GetAllRegisteredPackages()
@@ -317,13 +327,40 @@ namespace Shell.Protector
             report.AppendLine("Language: " + settings.Language);
         }
 
-        static void AppendKey(StringBuilder report, ShellProtector protector)
+        // The lilToon features the ShellProtector lilToon shader (custom.hlsl) is compiled against. While it builds an
+        // avatar, lilToon turns off every feature no material of the avatar uses (lilToonSetting.SetShaderSettingBeforeBuild),
+        // so an upload can compile other variants than the editor.
+        static void AppendLilToonSettings(StringBuilder report)
+        {
+            const string path = "ProjectSettings/lilToonSetting.json";
+            if (!File.Exists(path))
+            {
+                report.AppendLine("(no " + path + ")");
+                return;
+            }
+
+            string text = File.ReadAllText(path);
+            var on = new List<string>();
+            var off = new List<string>();
+            foreach (Match match in Regex.Matches(text, "\"LIL_FEATURE_(\\w+)\"\\s*:\\s*(true|false)"))
+                (match.Groups[2].Value == "true" ? on : off).Add(match.Groups[1].Value);
+            report.AppendLine("Features off: " + (off.Count == 0 ? "none" : string.Join(", ", off)));
+            report.AppendLine("Features on: " + (on.Count == 0 ? "none" : string.Join(", ", on)));
+            foreach (string option in new[] { "isLocked", "isOptimizeInTestBuild", "isOptimizeInNDMF" })
+            {
+                Match match = Regex.Match(text, "\"" + option + "\"\\s*:\\s*(true|false)");
+                if (match.Success)
+                    report.AppendLine(option + ": " + match.Groups[1].Value);
+            }
+        }
+
+        static void AppendKey(StringBuilder report, ShellProtector protector, bool includeKeyBytes)
         {
             UserKey userKey = protector.GetUserKey();
             report.AppendLine("Key size: " + ShellProtector.KeySize);
             report.AppendLine("Password length: " + (protector.UserPassword ?? "").Length);
             report.AppendLine("Salt: " + userKey.Salt);
-            report.AppendLine("Key bytes: " + string.Join(" ", protector.GetKeyBytes().Select(b => b.ToString("x2"))));
+            report.AppendLine("Key bytes: " + (includeKeyBytes ? string.Join(" ", protector.GetKeyBytes().Select(b => b.ToString("x2"))) : "(left out)"));
         }
 
         static void AppendTargets(StringBuilder report, ShellProtector protector, BuildSettings settings)
@@ -375,7 +412,16 @@ namespace Shell.Protector
 
                 MaterialIssues.Issue issue = MaterialIssues.Check(material);
                 report.AppendLine("  Issue: " + (issue == MaterialIssues.Issue.None ? "none" : MaterialIssues.Message(issue)));
-                report.AppendLine("  Main texture: " + TextureName(MaterialIssues.MainTexture(material)));
+                Texture mainTexture = MaterialIssues.MainTexture(material);
+                report.AppendLine("  Main texture: " + TextureName(mainTexture));
+                if (shader != null)
+                {
+                    AuxiliaryTextures auxiliary = AuxiliaryTextures.Of(material);
+                    report.AppendLine("  Auxiliary textures: " + AuxiliaryNames(auxiliary, mainTexture));
+                    if (assetManager.IsLilToon(shader))
+                        report.AppendLine("  Rim light: _UseRim " + FloatProperty(material, "_UseRim") + ", _RimDirStrength " + FloatProperty(material, "_RimDirStrength"));
+                    report.AppendLine("  Keywords the build sets: " + string.Join(", ", BuildKeywords(mainTexture, auxiliary, option, settings)));
+                }
 
                 string[] maps = MaterialIssues.EmissionMaps(material);
                 for (int slot = 0; slot < maps.Length; slot++)
@@ -390,6 +436,40 @@ namespace Shell.Protector
                         (MaterialIssues.IsSupportedEmission(map) ? "" : ", unsupported"));
                 }
             }
+        }
+
+        static string AuxiliaryNames(AuxiliaryTextures auxiliary, Texture mainTexture)
+        {
+            var names = new List<string>();
+            void Add(string label, Texture texture)
+            {
+                if (texture != null)
+                    names.Add(label + " " + texture.name + (texture == mainTexture ? " (the main texture)" : ""));
+            }
+            Add("rim", auxiliary.LimTexture);
+            Add("rim 2", auxiliary.LimTexture2);
+            Add("outline", auxiliary.OutlineTexture);
+            Add("rim shade mask", auxiliary.LimShadeTexture);
+            return names.Count == 0 ? "none" : string.Join(", ", names);
+        }
+
+        static string FloatProperty(Material material, string name)
+        {
+            return material.HasProperty(name) ? material.GetFloat(name).ToString("0.###", CultureInfo.InvariantCulture) : "-";
+        }
+
+        // The ShellProtector keywords Injector.SetKeywords gives the encrypted material: the format, the rim light override,
+        // the point filter and the cipher.
+        static IEnumerable<string> BuildKeywords(Texture mainTexture, AuxiliaryTextures auxiliary, ShellProtector.MatOption option, BuildSettings settings)
+        {
+            foreach (string keyword in TextureEncryptManager.FormatKeywords(mainTexture))
+                yield return keyword;
+            if (auxiliary.LimTexture != null)
+                yield return ShaderProperties.RimLightKeyword;
+            int filter = option != null ? option.Filter : settings.Filter;
+            if (filter == (int)ShellProtectorTextureFilter.Point)
+                yield return ShaderProperties.PointKeyword;
+            yield return settings.Algorithm == (int)ShellProtectorAlgorithm.Chacha ? ShaderProperties.ChachaKeyword : ShaderProperties.XXTEAKeyword;
         }
 
         static void AppendTextures(StringBuilder report, BuildSettings settings)
@@ -597,8 +677,49 @@ namespace Shell.Protector
             return component == null ? "(missing script)" : component.GetType().FullName;
         }
 
+        // The compile errors of the shaders the builds generated: the lilToon copy and the injected Poiyomi shaders. Unity
+        // keeps the messages of the variants it compiled in this editor session, so a variant no material in the editor used
+        // is missing. A variant that fails to compile is left out of an upload too.
+        static void AppendGeneratedShaders(StringBuilder report, BuildSettings settings)
+        {
+            string[] folders = new[] { LilToonShaders.Folder, settings.AssetDir }.Where(AssetDatabase.IsValidFolder).Distinct().ToArray();
+            if (folders.Length == 0)
+            {
+                report.AppendLine("(no generated shaders)");
+                return;
+            }
+
+            int clean = 0;
+            foreach (string path in AssetDatabase.FindAssets("t:Shader", folders).Select(AssetDatabase.GUIDToAssetPath).Distinct().OrderBy(p => p))
+            {
+                Shader shader = AssetDatabase.LoadAssetAtPath<Shader>(path);
+                if (shader == null)
+                    continue;
+                ShaderMessage[] messages = ShaderUtil.GetShaderMessages(shader);
+                var errors = messages
+                    .Where(m => m.severity == ShaderCompilerMessageSeverity.Error)
+                    .GroupBy(m => (m.platform, m.file, m.line, m.message))
+                    .ToList();
+                if (errors.Count == 0)
+                {
+                    clean++;
+                    continue;
+                }
+
+                int warnings = messages.Count(m => m.severity == ShaderCompilerMessageSeverity.Warning);
+                report.AppendLine(shader.name + " (" + path + "): " + errors.Count + " errors, " + warnings + " warnings");
+                foreach (var error in errors.Take(ShaderErrorLines))
+                    report.AppendLine("  " + error.Key.platform + " " + error.Key.file + "(" + error.Key.line + "): " + error.Key.message +
+                        (error.Count() > 1 ? " x" + error.Count() : ""));
+                if (errors.Count > ShaderErrorLines)
+                    report.AppendLine("  (" + (errors.Count - ShaderErrorLines) + " more)");
+            }
+            report.AppendLine(clean + " shaders without errors");
+        }
+
         // The ShellProtector lines and shader errors at the end of the editor log, read without loading the whole file.
-        // Other exceptions are left out: some packages log one in every editor update.
+        // Other exceptions are left out: some packages log one in every editor update. Shader warnings are left out too,
+        // and a repeated line is listed once, at its last occurrence, with its count.
         static void AppendLog(StringBuilder report)
         {
             string path = Application.consoleLogPath;
@@ -617,12 +738,21 @@ namespace Shell.Protector
                     text = reader.ReadToEnd();
             }
 
-            var lines = text.Split('\n')
-                .Select(l => l.TrimEnd('\r'))
-                .Where(l => l.Contains("ShellProtector") || l.Contains("Shell.Protector") || l.Contains("Shader error"))
-                .ToList();
-            foreach (string line in lines.Skip(Math.Max(0, lines.Count - LogLines)))
-                report.AppendLine(line);
+            var counts = new Dictionary<string, (int count, int last)>();
+            int index = 0;
+            foreach (string raw in text.Split('\n'))
+            {
+                string line = raw.TrimEnd('\r');
+                index++;
+                if (line.StartsWith("Shader warning") ||
+                    !(line.Contains("ShellProtector") || line.Contains("Shell.Protector") || line.Contains("Shader error")))
+                    continue;
+                counts[line] = (counts.TryGetValue(line, out var seen) ? seen.count + 1 : 1, index);
+            }
+
+            var lines = counts.OrderBy(pair => pair.Value.last).ToList();
+            foreach (var pair in lines.Skip(Math.Max(0, lines.Count - LogLines)))
+                report.AppendLine(pair.Key + (pair.Value.count > 1 ? " (x" + pair.Value.count + ")" : ""));
         }
 
         static IEnumerable<UnityEngine.Object> Elements(SerializedProperty list)

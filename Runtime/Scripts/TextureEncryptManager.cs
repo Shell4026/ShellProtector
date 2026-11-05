@@ -181,6 +181,12 @@ namespace Shell.Protector
             format.SetFormatKeywords(material);
         }
 
+        // The format keywords SetFormatKeywords turns on for a material with this main texture; none for an unsupported one.
+        public static string[] FormatKeywords(Texture texture)
+        {
+            return GetFormat(texture)?.FormatKeywords ?? new string[0];
+        }
+
         public static (int, int) CalculateOffsets(Texture2D texture)
         {
             var format = GetFormat(texture);

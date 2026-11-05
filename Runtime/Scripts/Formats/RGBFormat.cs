@@ -64,10 +64,7 @@ namespace Shell.Protector
             return result;
         }
 
-        public override void SetFormatKeywords(Material material) {
-            material.EnableKeyword(ShaderProperties.Format0Keyword);
-            material.DisableKeyword(ShaderProperties.Format1Keyword);
-        }
+        public override string[] FormatKeywords => new[] { ShaderProperties.Format0Keyword };
 
         public override (int, int) CalculateOffsets(Texture2D texture) {
             int woffset = 13 - (int)Mathf.Log(texture.width, 2) - 1;
@@ -120,10 +117,7 @@ namespace Shell.Protector
             return result;
         }
 
-        public override void SetFormatKeywords(Material material) {
-            material.DisableKeyword(ShaderProperties.Format0Keyword);
-            material.EnableKeyword(ShaderProperties.Format1Keyword);
-        }
+        public override string[] FormatKeywords => new[] { ShaderProperties.Format1Keyword };
 
         public override (int, int) CalculateOffsets(Texture2D texture) {
             int woffset = 13 - (int)Mathf.Log(texture.width, 2) - 1;

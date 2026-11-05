@@ -76,11 +76,7 @@ namespace Shell.Protector
             return new EncryptResult { Texture1 = codes, Texture2 = endpoints, Layout = layout };
         }
 
-        public override void SetFormatKeywords(Material material)
-        {
-            material.EnableKeyword(ShaderProperties.Format0Keyword);
-            material.EnableKeyword(ShaderProperties.Format1Keyword);
-        }
+        public override string[] FormatKeywords => new[] { ShaderProperties.Format0Keyword, ShaderProperties.Format1Keyword };
 
         // BC7.cginc addresses the textures with SetLayoutProperties instead of the mip offset tables.
         public override (int, int) CalculateOffsets(Texture2D texture) => (0, 0);
