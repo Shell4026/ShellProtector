@@ -57,7 +57,7 @@
 		#define OVERRIDE_RIMLIGHT \
 			lilGetRim(fd);
 	#else
-		#if !defined(LIL_FEATURE_RIMLIGHT_DIRECTION)
+		#if defined(LIL_FEATURE_RIMLIGHT_DIRECTION)
 			#define A1\
 				half4 rimColor = _RimColor;\
 				half4 rimIndirColor = _RimIndirColor;
