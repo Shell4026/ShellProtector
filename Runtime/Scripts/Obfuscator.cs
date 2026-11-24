@@ -17,6 +17,9 @@ namespace Shell.Protector
 
         List<int> obfuscatedBlendShapeIndex = new List<int>();
         Dictionary<string, string> obfuscatedBlendShapeNames = new Dictionary<string, string>(); // before, after
+        // Names given to the shapes of the face tracking meshes, for the whole run. The descriptor's face tracking
+        // settings name a shape once for all of those meshes, so a shape name gets the same new name on each of them.
+        Dictionary<string, string> sharedBlendShapeNames = new Dictionary<string, string>(); // before, after
         HashSet<string> mmdShapes = new HashSet<string>();
 
         [FormerlySerializedAs("bPreserveMMD")]
@@ -43,7 +46,7 @@ namespace Shell.Protector
                 mmdShapes.Add(str);
             }
         }
-        // Resets the per-renderer state. PreserveMmd and Copies belong to the whole run and stay as they are.
+        // Resets the per-renderer state. PreserveMmd, Copies and the shared names belong to the whole run and stay as they are.
         public void Clean()
         {
             outputPaths = null;
@@ -65,7 +68,8 @@ namespace Shell.Protector
             return string.Join("/", names);
         }
 
-        public Mesh ObfuscateBlendShapeMesh(Mesh mesh, OutputPaths paths, AssetWriter writer)
+        // With shareNames, a shape gets the name that a shape of the same name got on an earlier mesh with shareNames.
+        public Mesh ObfuscateBlendShapeMesh(Mesh mesh, OutputPaths paths, AssetWriter writer, bool shareNames = false)
         {
             Mesh obfuscatedMesh = Instantiate(mesh);
             obfuscatedMesh.ClearBlendShapes();
@@ -112,7 +116,13 @@ namespace Shell.Protector
                     }
                     else
                     {
-                        string obfuscatedBlendShapeName = GUID.Generate().ToString();
+                        string obfuscatedBlendShapeName;
+                        if (!shareNames || !sharedBlendShapeNames.TryGetValue(blendShapeName, out obfuscatedBlendShapeName))
+                        {
+                            obfuscatedBlendShapeName = GUID.Generate().ToString();
+                            if (shareNames)
+                                sharedBlendShapeNames.Add(blendShapeName, obfuscatedBlendShapeName);
+                        }
 
                         obfuscatedBlendShapeNames.Add(blendShapeName, obfuscatedBlendShapeName);
 
@@ -155,6 +165,82 @@ namespace Shell.Protector
                 for (int i = 0; i < eyeSettings.eyelidsBlendshapes.Length; i++)
                     eyeSettings.eyelidsBlendshapes[i] = obfuscatedBlendShapeIndex.IndexOf(eyeSettings.eyelidsBlendshapes[i]);
             }
+        }
+
+        public static bool IsFaceTrackingMesh(VRCAvatarDescriptor descriptor, SkinnedMeshRenderer renderer)
+        {
+#if SHELL_VRC_FACE_TRACKING // Define in .asmdef. Enabled for VRC SDK 3.10.6+
+            return descriptor != null && renderer != null && descriptor.faceTrackingMeshes != null && descriptor.faceTrackingMeshes.Contains(renderer);
+#else
+            return false;
+#endif
+        }
+
+        // Renames the shapes in the descriptor's face tracking settings (SDK 3.10.6 and later). They name a shape once for
+        // all face tracking meshes, so this runs after every renderer, with the names the face tracking meshes shared.
+        // A face tracking mesh that wasn't obfuscated keeps the old names, so a shape named for both loses one of them.
+        public void ChangeFaceTrackingNamesInDescriptor(VRCAvatarDescriptor descriptor, ICollection<SkinnedMeshRenderer> obfuscatedRenderers)
+        {
+#if SHELL_VRC_FACE_TRACKING
+            if (descriptor == null || sharedBlendShapeNames.Count == 0)
+                return;
+
+            var unobfuscatedShapes = new HashSet<string>();
+            if (descriptor.faceTrackingMeshes != null)
+            {
+                foreach (SkinnedMeshRenderer renderer in descriptor.faceTrackingMeshes)
+                {
+                    if (renderer == null || renderer.sharedMesh == null || obfuscatedRenderers.Contains(renderer))
+                        continue;
+                    for (int i = 0; i < renderer.sharedMesh.blendShapeCount; i++)
+                        unobfuscatedShapes.Add(renderer.sharedMesh.GetBlendShapeName(i));
+                }
+            }
+
+            var conflicts = new SortedSet<string>();
+            string Rename(string name)
+            {
+                if (string.IsNullOrEmpty(name) || !sharedBlendShapeNames.TryGetValue(name, out string renamed))
+                    return name;
+                if (unobfuscatedShapes.Contains(name))
+                    conflicts.Add(name);
+                return renamed;
+            }
+
+            if (descriptor.faceTrackingBlendshapesSetList != null)
+            {
+                foreach (var set in descriptor.faceTrackingBlendshapesSetList)
+                {
+                    if (set == null)
+                        continue;
+                    if (set.faceTrackingBlendshapeNames != null)
+                    {
+                        for (int i = 0; i < set.faceTrackingBlendshapeNames.Length; i++)
+                            set.faceTrackingBlendshapeNames[i] = Rename(set.faceTrackingBlendshapeNames[i]);
+                    }
+                    if (set.visemeBlendshapeNames != null)
+                    {
+                        for (int i = 0; i < set.visemeBlendshapeNames.Length; i++)
+                            set.visemeBlendshapeNames[i] = Rename(set.visemeBlendshapeNames[i]);
+                    }
+                }
+            }
+            if (descriptor.faceTrackingParameterBehaviors != null)
+            {
+                foreach (var behavior in descriptor.faceTrackingParameterBehaviors)
+                {
+                    if (behavior != null)
+                        behavior.targetBlendshapeName = Rename(behavior.targetBlendshapeName);
+                }
+            }
+
+            if (conflicts.Count > 0)
+            {
+                Debug.LogWarningFormat(descriptor,
+                    "[ShellProtector] Face tracking names blendshapes that are on both obfuscated and non-obfuscated face tracking meshes, so they only move on the obfuscated ones: {0}. Obfuscate all face tracking meshes or none of them.",
+                    string.Join(", ", conflicts));
+            }
+#endif
         }
 
         public void ObfuscateBlendshapeInAnim(AnimatorController anim, GameObject obj, OutputPaths paths, AssetWriter writer)

@@ -376,6 +376,87 @@ namespace Shell.Protector.Tests.Integration
             Assert.That(GetShapeId(face.sharedMesh, face.sharedMesh.GetBlendShapeIndex(descriptor.MouthOpenBlendShapeName)), Is.EqualTo(9));
         }
 
+#if SHELL_VRC_FACE_TRACKING
+        // SDK 3.10.6 face tracking names a shape once for all face tracking meshes. Obfuscating them must give a shape the
+        // same new name on each of them and rename it in the descriptor, while the body (not a face tracking mesh) gets its own names.
+        // With obfuscateExtra false, only one of the two face tracking meshes is obfuscated, which must be reported.
+        [TestCase(true)]
+        [TestCase(false)]
+        public void ObfuscateBlendShape_RenamesFaceTrackingShapesOnAllFaceTrackingMeshes(bool obfuscateExtra)
+        {
+            const int shapeCount = 16;
+            string name = obfuscateExtra ? "FaceTrackingAll" : "FaceTrackingPartial";
+            Fixture fixture = CreateFixture(name);
+            SkinnedMeshRenderer body = fixture.Avatar.transform.Find("Body").GetComponent<SkinnedMeshRenderer>();
+            body.sharedMesh = CreateShapesMesh(name + "/body.asset", shapeCount);
+            SkinnedMeshRenderer face = AddShapesRenderer(fixture.Avatar, "Face", name + "/face.asset", shapeCount);
+            SkinnedMeshRenderer extra = AddShapesRenderer(fixture.Avatar, "Teeth", name + "/teeth.asset", shapeCount);
+            Mesh originalExtraMesh = extra.sharedMesh;
+
+            VRCAvatarDescriptor descriptor = fixture.Avatar.GetComponent<VRCAvatarDescriptor>();
+            descriptor.enableFaceTracking = true;
+            descriptor.faceTrackingMeshes = new List<SkinnedMeshRenderer> { face, extra };
+            var set = new VRCAvatarDescriptor.FaceTrackingBlendshapesSet
+            {
+                setName = "unnamed1",
+                setWeight = 1f,
+                faceTrackingBlendshapeNames = new string[(int)VRCAvatarDescriptor.FaceTrackingKey.Max],
+                visemeBlendshapeNames = new string[(int)VRC_AvatarDescriptor.Viseme.Count],
+            };
+            set.faceTrackingBlendshapeNames[0] = "Shape3";
+            set.faceTrackingBlendshapeNames[1] = "NotAShape";
+            set.visemeBlendshapeNames[0] = "Shape5";
+            descriptor.faceTrackingBlendshapesSetList = new List<VRCAvatarDescriptor.FaceTrackingBlendshapesSet> { set };
+            var behavior = new VRCAvatarDescriptor.FaceTrackingParameterBehavior
+            {
+                targetMode = VRCAvatarDescriptor.ParameterBehaviorTargetMode.ApplyToBlendshape,
+                targetBlendshapeName = "Shape7",
+            };
+            descriptor.faceTrackingParameterBehaviors = new List<VRCAvatarDescriptor.FaceTrackingParameterBehavior> { behavior };
+
+            var renderers = obfuscateExtra
+                ? new List<SkinnedMeshRenderer> { face, body, extra }
+                : new List<SkinnedMeshRenderer> { face, body };
+            SetSerializedField(fixture.Protector, "obfuscationRenderers", renderers);
+            if (!obfuscateExtra)
+                LogAssert.Expect(LogType.Warning, new Regex(@"Face tracking names blendshapes .*Shape3, Shape5, Shape7"));
+
+            new Pipeline(new BuildRequest(fixture.Avatar, false), fixture.Protector.CreateSettings()).ObfuscateBlendShapes(false);
+
+            string shape3 = set.faceTrackingBlendshapeNames[0];
+            string shape5 = set.visemeBlendshapeNames[0];
+            string shape7 = behavior.targetBlendshapeName;
+            Assert.That(shape3, Is.Not.EqualTo("Shape3"));
+            Assert.That(shape5, Is.Not.EqualTo("Shape5"));
+            Assert.That(shape7, Is.Not.EqualTo("Shape7"));
+            Assert.That(set.faceTrackingBlendshapeNames[1], Is.EqualTo("NotAShape"));
+            Assert.That(set.faceTrackingBlendshapeNames[2], Is.Null.Or.Empty);
+
+            var faceMeshes = obfuscateExtra ? new[] { face.sharedMesh, extra.sharedMesh } : new[] { face.sharedMesh };
+            foreach (Mesh mesh in faceMeshes)
+            {
+                Assert.That(GetShapeId(mesh, mesh.GetBlendShapeIndex(shape3)), Is.EqualTo(3), mesh.name);
+                Assert.That(GetShapeId(mesh, mesh.GetBlendShapeIndex(shape5)), Is.EqualTo(5), mesh.name);
+                Assert.That(GetShapeId(mesh, mesh.GetBlendShapeIndex(shape7)), Is.EqualTo(7), mesh.name);
+            }
+            if (!obfuscateExtra)
+                Assert.That(extra.sharedMesh, Is.SameAs(originalExtraMesh));
+
+            // The body isn't a face tracking mesh, so it doesn't share the face's names.
+            Assert.That(body.sharedMesh.GetBlendShapeIndex("Shape3"), Is.EqualTo(-1));
+            Assert.That(body.sharedMesh.GetBlendShapeIndex(shape3), Is.EqualTo(-1));
+        }
+
+        private static SkinnedMeshRenderer AddShapesRenderer(GameObject avatar, string name, string meshPath, int shapeCount)
+        {
+            GameObject obj = new GameObject(name);
+            obj.transform.SetParent(avatar.transform, false);
+            SkinnedMeshRenderer renderer = obj.AddComponent<SkinnedMeshRenderer>();
+            renderer.sharedMesh = CreateShapesMesh(meshPath, shapeCount);
+            return renderer;
+        }
+#endif
+
         [Test]
         public void DefaultAssetDir_UsesGeneratedRootAndFolderGuids()
         {

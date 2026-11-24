@@ -285,6 +285,7 @@ namespace Shell.Protector
             obfuscator.Copies = Result.clipCopies;
 
             var childRenderers = Avatar.GetComponentsInChildren<SkinnedMeshRenderer>();
+            var obfuscatedRenderers = new HashSet<SkinnedMeshRenderer>();
 
 #if MODULAR
             //Check localblendshape is empty in MA Blendshape Sync
@@ -315,8 +316,10 @@ namespace Shell.Protector
                     Debug.LogErrorFormat("{0} haven't mesh", renderer.transform.name);
                     continue;
                 }
-                Mesh newMesh = obfuscator.ObfuscateBlendShapeMesh(mesh, paths, writer);
+                bool faceTracking = Obfuscator.IsFaceTrackingMesh(av3, selectRenderer);
+                Mesh newMesh = obfuscator.ObfuscateBlendShapeMesh(mesh, paths, writer, faceTracking);
                 selectRenderer.sharedMesh = newMesh;
+                obfuscatedRenderers.Add(selectRenderer);
 
                 ////////Change renderer component shape keys////////
                 List<float> weights = new List<float>();
@@ -382,6 +385,7 @@ namespace Shell.Protector
                 obfuscator.ChangeObfuscatedBlendShapeInDescriptor(av3, selectRenderer);
                 obfuscator.Clean();
             }
+            obfuscator.ChangeFaceTrackingNamesInDescriptor(av3, obfuscatedRenderers);
         }
 
         // Points the material swaps in the FX (and, for the copy, the merged animators) at what the renderers got: the
