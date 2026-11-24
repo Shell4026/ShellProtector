@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using NUnit.Framework;
 using Shell.Protector;
 using UnityEditor;
@@ -79,6 +80,7 @@ namespace Shell.Protector.Tests.Integration
         [TestCase(".poiyomi/Poiyomi Toon", -1)]
         [TestCase(".poiyomi/Poiyomi Toon", 1)]
         [TestCase(".poiyomi/Poiyomi Toon", 2)]
+        [TestCase(".poiyomi/Old Versions/10.0/Poiyomi Toon", 2)]
         [TestCase(".poiyomi/Old Versions/9.3/Poiyomi Toon", 2)]
         public void PoiyomiEncryptedMaterial_RendersLikeOriginal(string shaderName, int lightingMode)
         {
@@ -110,6 +112,41 @@ namespace Shell.Protector.Tests.Integration
             ApplyUserKey(encryptedMaterial, fixture.Protector);
             Color32[] actual = RenderMaterial(encryptedMaterial);
             AssertRenderedRgbClose(reference, actual, "Poiyomi");
+        }
+
+        // A rim texture that is the main texture holds the encrypted texture on the encrypted material, so the injected
+        // shader must take the decrypted main color instead of sampling it. 10.0+ declares the rim colors as half4, and
+        // 11.0 samples them outside frag, where mainTexture is out of scope.
+        [TestCase(".poiyomi/Poiyomi Toon")]
+        [TestCase(".poiyomi/Old Versions/10.0/Poiyomi Toon")]
+        public void PoiyomiRimTextureSharingMainTexture_UsesDecryptedMainColor(string shaderName)
+        {
+            Shader shader = FindSupportedShader(shaderName);
+            Fixture fixture = CreateFixture("PoiyomiRim", shader);
+            Material material = fixture.Material;
+            material.SetFloat("_EnableRimLighting", 1f);
+            material.SetFloat("_RimStyle", 0f);
+            material.SetFloat("_EnableRim2Lighting", 1f);
+            material.SetFloat("_Rim2Style", 0f);
+            foreach (string keyword in new[] { "_GLOSSYREFLECTIONS_OFF", "_RIMSTYLE_POIYOMI", "POI_RIM2", "_RIM2STYLE_POIYOMI" })
+                material.EnableKeyword(keyword);
+            material.SetTexture("_RimTex", material.mainTexture);
+            material.SetTexture("_Rim2Tex", material.mainTexture);
+            EditorUtility.SetDirty(material);
+            AssetDatabase.SaveAssets();
+
+            GameObject encryptedAvatar = fixture.Protector.Encrypt(false);
+            sceneObjects.Add(encryptedAvatar);
+
+            Material encryptedMaterial = GetBodyMaterial(encryptedAvatar);
+            AssertEncryptedMaterial(encryptedMaterial);
+            AssertPoiyomiShaderWasInjected(encryptedMaterial.shader);
+            Assert.That(encryptedMaterial.shader.isSupported, Is.True, "Encrypted shader should compile: " + encryptedMaterial.shader.name);
+
+            string shaderData = File.ReadAllText(AssetDatabase.GetAssetPath(encryptedMaterial.shader));
+            Assert.That(shaderData, Does.Contain("rimColor = _ShellMainColor;"));
+            Assert.That(shaderData, Does.Contain("rim2Color = _ShellMainColor;"));
+            Assert.That(Regex.IsMatch(shaderData, @"rim2?Color = [^;\r\n]*_Rim2?Tex\b"), Is.False, "The rim textures must not be sampled.");
         }
 
         [Test]

@@ -39,7 +39,7 @@ If someone rips the avatar from the cache, its textures come out as noise, so th
 | --- | --- |
 | Unity | 2022.3 |
 | VRChat SDK | Avatars 3.1 or later |
-| Shaders | Poiyomi 8.x, 9.x, 10.x (including Pro), PCSS4Poi (not recommended)<br>lilToon 1.3.8 – 2.3.4 |
+| Shaders | Poiyomi 8.x, 9.x, 10.x, 11.x (including Pro), PCSS4Poi (not recommended)<br>lilToon 1.3.8 – 2.3.4 |
 | Texture formats | RGB24, RGBA32, DXT1, DXT5, BC7 |
 
 - Crunch-compressed textures are converted to DXT1/DXT5 automatically.

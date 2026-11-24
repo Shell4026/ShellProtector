@@ -28,7 +28,8 @@ namespace Shell.Protector
             supportedVersions.Add("Poiyomi 9.1", 91);
             supportedVersions.Add("Poiyomi 9.2", 92);
             supportedVersions.Add("Poiyomi 9.3", 93);
-           supportedVersions.Add("Poiyomi 10.0", 100);
+            supportedVersions.Add("Poiyomi 10.0", 100);
+            supportedVersions.Add("Poiyomi 11.0", 110);
             supportedVersions.Add("lilToon", 0);
         }
         public bool IsPoiyomi(Shader shader)
@@ -61,6 +62,8 @@ namespace Shell.Protector
             if (poiyomiLabel != -1)
             {
                 var str = shader.GetPropertyDescription(poiyomiLabel);
+                if (str.Contains("Poiyomi 11.0"))
+                    return supportedVersions["Poiyomi 11.0"];
                 if (str.Contains("Poiyomi 10.0"))
                     return supportedVersions["Poiyomi 10.0"];
                 if (str.Contains("Poiyomi 9.3"))

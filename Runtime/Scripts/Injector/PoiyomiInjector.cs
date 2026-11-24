@@ -51,7 +51,6 @@ namespace Shell.Protector
                 return null;
 
             const string declare = @"
-            UNITY_DECLARE_TEX2D(_MainTex);
             UNITY_DECLARE_TEX2D(_MipTex);
             UNITY_DECLARE_TEX2D(_EncryptTex0);
             Texture2D _EncryptTex1;
@@ -70,7 +69,8 @@ namespace Shell.Protector
                 // The secrets go in front of every include: whichever include comes first in a pass is the one that counts.
                 string emissionDir = Path.Combine(Path.GetDirectoryName(decodeDir), "Emission.cginc").Replace('\\', '/');
                 string includeStr = Secrets.ToDefines() + string.Format("#include \"{0}\"\n#include \"{1}\"", decodeDir, emissionDir);
-                shaderData = Regex.Replace(shaderData, "UNITY_DECLARE_TEX2D\\(_MainTex\\);", declare);
+                // 11.0 declares _MainTex without a sampler when PROP_MAINTEX is off, so both branches declare the decryption's textures.
+                shaderData = Regex.Replace(shaderData, "UNITY_DECLARE_TEX2D(_NOSAMPLER)?\\(_MainTex\\);", "UNITY_DECLARE_TEX2D$1(_MainTex);" + declare);
 
                 shaderData = Regex.Replace(shaderData, "POI2D_SAMPLER_PAN\\((.*?), _MainTex", "POI2D_SAMPLER_PAN($1, _MipTex");
                 shaderData = Regex.Replace(shaderData, "UNITY_SAMPLE_TEX2D_SAMPLER_LOD\\((.*?), _MainTex", "UNITY_SAMPLE_TEX2D_SAMPLER_LOD($1, _MipTex");
@@ -86,20 +86,13 @@ namespace Shell.Protector
 
                 // Emission.cginc reuses the vertex stage's result instead of hashing the key again per pixel.
                 shaderData = Regex.Replace(shaderData, "float4 mainTexture = .*?;", string.Format("bool isDecrypted = i.isDecrypted == 1;\r\n_ShellDecryptedState = isDecrypted ? 1 : 0;\r\n{0}", shaderCode));
+                // 10.0+ declares the rim colors as half4, and 11.0 samples them in ApplySurfaceRimsAtStage, where mainTexture
+                // is out of scope. _ShellMainColor is the decrypted main color (0 while locked).
+                string rimMainColor = version == 80 ? "float4(poiFragData.baseColor, poiFragData.alpha)" : version >= 100 ? "_ShellMainColor" : "mainTexture";
                 if (hasLimTexture)
-                {
-                    if(version == 80)
-                        shaderData = Regex.Replace(shaderData, @"float4 rimColor = .*?_RimTex.*?;", "float4 rimColor = float4(poiFragData.baseColor, poiFragData.alpha);");
-                    else
-                        shaderData = Regex.Replace(shaderData, @"float4 rimColor = .*?_RimTex.*?;", "float4 rimColor = mainTexture;");
-                }
+                    shaderData = Regex.Replace(shaderData, @"\b(float4|half4) rimColor = .*?_RimTex.*?;", "$1 rimColor = " + rimMainColor + ";");
                 if (hasLimTexture2)
-                {
-                    if(version == 80)
-                        shaderData = Regex.Replace(shaderData, @"float4 rim2Color = .*?_Rim2Tex.*?;", "float4 rim2Color = float4(poiFragData.baseColor, poiFragData.alpha);");
-                    else
-                        shaderData = Regex.Replace(shaderData, @"float4 rim2Color = .*?_Rim2Tex.*?;", "float4 rim2Color = mainTexture;");
-                }
+                    shaderData = Regex.Replace(shaderData, @"\b(float4|half4) rim2Color = .*?_Rim2Tex.*?;", "$1 rim2Color = " + rimMainColor + ";");
                 if (outlineTex)
                     shaderData = Regex.Replace(shaderData, @"float4 col = .*?_OutlineTexture.*?\* float4(.*?);", "float4 col = float4(poiFragData.baseColor, poiFragData.alpha) * float4$1;");
 

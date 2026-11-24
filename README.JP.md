@@ -39,7 +39,7 @@ VRChatアバターのテクスチャをアップロード前に暗号化し、�
 | --- | --- |
 | Unity | 2022.3 |
 | VRChat SDK | Avatars 3.1以降 |
-| シェーダー | Poiyomi 8.x, 9.x, 10.x（Pro含む）、PCSS4Poi（非推奨）<br>lilToon 1.3.8〜2.3.4 |
+| シェーダー | Poiyomi 8.x, 9.x, 10.x, 11.x（Pro含む）、PCSS4Poi（非推奨）<br>lilToon 1.3.8〜2.3.4 |
 | テクスチャ形式 | RGB24, RGBA32, DXT1, DXT5, BC7 |
 
 - Crunch圧縮のテクスチャはDXT1/DXT5に自動で変換されます。
