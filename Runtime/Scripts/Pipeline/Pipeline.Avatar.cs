@@ -12,9 +12,6 @@ using nadena.dev.modular_avatar.core;
 
 namespace Shell.Protector
 {
-    // After the materials: point the avatar at the encrypted materials and add what drives the key. The same steps run for
-    // manual encryption, which rewrites a copy and duplicates the assets it changes (clone), and for the NDMF pass, which
-    // rewrites the build's avatar in place.
     public sealed partial class Pipeline
     {
         void ProcessAvatar()
@@ -82,9 +79,7 @@ namespace Shell.Protector
             }
         }
 
-        // Protected textures and encrypted emission maps must not stay readable elsewhere on the avatar. The encrypted
-        // materials' slots are changed in place, not on a copy, because material swaps in animations point at them
-        // (GetEncryptedMaterialSlot). Every other material gets a copy with the fallbacks (GetFallbackMaterial).
+        // The encrypted materials are changed in place, because material swaps in animations point at them.
         public void ReplaceProtectedTextures()
         {
             EnsureOutputs();
@@ -111,18 +106,16 @@ namespace Shell.Protector
             ReplaceProcessedTexturesWithFallbacks(Avatar.GetComponentsInChildren<SkinnedMeshRenderer>(true));
         }
 
-        // What a slot of an encrypted material holding a protected texture or an encrypted emission map gets instead, or
-        // null to leave it. mainTexture is the original material's main texture.
+        // null leaves the slot to the copy from GetFallbackMaterial.
         Texture GetEncryptedMaterialSlot(Material mat, string name, Texture2D texture, Texture mainTexture)
         {
             if (!Result.processedTextures.TryGetValue(texture, out ProcessedTexture processed))
             {
-                // Nothing reuses an emission map's decrypted color, so every slot that still holds one loses it. The
-                // selected slot itself already holds black (EmissionEncryption.Apply).
+                // Nothing reuses an emission map's decrypted color. The selected slot already holds black.
                 return Result.encryptedEmissionMaps.Contains(texture) ? EncryptionFallback : null;
             }
 
-            // An unselected emission slot whose map is protected. A selected one already holds black.
+            // An unselected emission slot. A selected one already holds black.
             if (EmissionEncryption.IsEmissionMap(mat, name))
                 return GetLargestFallback(processed);
 
@@ -137,7 +130,6 @@ namespace Shell.Protector
                 return isMain ? GetLargestFallback(processed) : EncryptionFallback;
             if (poiyomi && name == "_OutlineTexture" || lilToon && name == "_OutlineTex")
                 return GetLargestFallback(processed);
-            // Other slots: the renderers and swaps get a copy of the encrypted material with fallbacks (GetFallbackMaterial).
             return null;
         }
 
@@ -164,9 +156,6 @@ namespace Shell.Protector
             }
         }
 
-        // The copy of a material with the largest fallback in place of each protected texture and the encryption fallback in
-        // place of each encrypted emission map, or null if it uses none. Renderers and material swaps share the copies
-        // (BuildResult.fallbackMaterials).
         Material GetFallbackMaterial(Material source)
         {
             if (Result.fallbackMaterials.TryGetValue(source, out Material copy))
@@ -216,9 +205,7 @@ namespace Shell.Protector
             tester.UserKeyLength = settings.KeySize;
         }
 
-        // The copy must not change the original's animators, so it gets its own copy of every controller the build edits:
-        // the playable layers and the merged animators. This runs before anything else is changed, and fails if a
-        // controller can't be copied.
+        // Runs before anything changes, so the copy never edits the original's controllers.
         bool DuplicateAnimators()
         {
             var av3 = Avatar.GetComponent<VRCAvatarDescriptor>();
@@ -257,9 +244,7 @@ namespace Shell.Protector
             AnimatorManager.AddKeyLayer(fx, animationDir, settings.KeySize, settings.SyncSize, 3.0f, settings.UserKey);
         }
 
-        // The NDMF build's Optimizing pass (DeferredPass), with the result of the encryption that ran in Transforming. It
-        // rewrites the material swaps that tools after Transforming added, such as VRCFury's toggles, and obfuscates the
-        // blendshapes after the tools that patch them by their original names or order.
+        // Runs after the tools that add material swaps (VRCFury) or patch blendshapes by their original names.
         public static void RunDeferredPass(GameObject avatar, BuildSettings settings, BuildResult result)
         {
             var pipeline = new Pipeline(new BuildRequest(avatar, false), settings, result);
@@ -385,11 +370,8 @@ namespace Shell.Protector
             obfuscator.ChangeFaceTrackingNamesInDescriptor(av3, obfuscatedRenderers);
         }
 
-        // Points the material swaps in the FX (and, for the copy, the merged animators) at what the renderers got: the
-        // encrypted material, or the copy with fallbacks of a material that uses a protected texture. With copyClips a clip is
-        // copied before it changes: the manual encryption's copy shares the original's clips, and the deferred pass finds
-        // clips that later tools added, such as the user's own clips that VRCFury puts back. The NDMF build's first pass
-        // changes Modular Avatar's copies in place.
+        // With copyClips a clip is copied before it changes: the manual copy shares the original's clips, and the deferred
+        // pass also sees the user's own clips that VRCFury puts back.
         void ReplaceMaterialsInAnimations(bool copyClips)
         {
             EnsureOutputs();
@@ -410,7 +392,6 @@ namespace Shell.Protector
             AnimatorManager.ReplaceMaterials(controllers, ResolveAnimatedMaterial, getWritable);
         }
 
-        // What a material swap must point to, as ReplaceMaterials and ReplaceProtectedTextures set it on the renderers.
         Material ResolveAnimatedMaterial(Material material)
         {
             if (Result.encryptedMaterials.TryGetValue(material, out Material encrypted))

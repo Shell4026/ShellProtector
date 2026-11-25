@@ -168,7 +168,6 @@ namespace Shell.Protector
             warningStyle = new GUIStyle(EditorStyles.helpBox) { fontSize = EditorStyles.boldLabel.fontSize, fontStyle = FontStyle.Bold, wordWrap = true };
         }
 
-        // Sections are told apart by their headers and the space between them, not by boxes.
         const float SectionSpacing = 20;
 
         void BeginSection(string title)
@@ -183,7 +182,6 @@ namespace Shell.Protector
         }
 
         // EditorGUILayout.Foldout keeps a single-line rect whatever the font size, so a large title would miss its clicks.
-        // This draws the standard arrow next to a label of any style and toggles on a click anywhere in the row.
         static bool Foldout(bool expanded, string title, GUIStyle style)
         {
             Rect row = GUILayoutUtility.GetRect(new GUIContent(title), style, GUILayout.ExpandWidth(true));
@@ -309,7 +307,6 @@ namespace Shell.Protector
             EndSection();
         }
 
-        // One warning per kind of problem in the materials to encrypt, naming the materials. The details are in the material settings.
         List<string> CollectMaterialWarnings()
         {
             var materials = new Dictionary<string, List<string>>();

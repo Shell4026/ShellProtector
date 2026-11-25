@@ -10,9 +10,8 @@ using Debug = UnityEngine.Debug;
 
 namespace Shell.Protector
 {
-    // One encryption of an avatar. Run encrypts the materials (Pipeline.Materials.cs), adds the key parameters, and then
-    // rewrites the rest of the avatar (Pipeline.Avatar.cs). Assets are saved once at the end: everything is created
-    // through the AssetDatabase, which imports it right away, so nothing in between needs a save or a refresh.
+    // Assets are saved once at the end: everything is created through the AssetDatabase, which imports it right away,
+    // so nothing in between needs a save or a refresh.
     public sealed partial class Pipeline
     {
         readonly BuildRequest request;
@@ -41,9 +40,8 @@ namespace Shell.Protector
         // The avatar being rewritten: the copy when cloning, otherwise the requested avatar.
         public GameObject Avatar { get; private set; }
 
-        // Runtime/encryption_fallback.png: what a slot gets in place of a protected texture when it has no generated
-        // fallback of its own, such as an encrypted emission map, or a rim slot whose texture isn't the material's main
-        // texture. Loaded on first use, since the avatar steps and the deferred pass also run without Prepare.
+        // For a slot that has no generated fallback of its own. Loaded on first use, since the avatar steps and the deferred
+        // pass also run without Prepare.
         Texture2D EncryptionFallback
         {
             get

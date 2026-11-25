@@ -18,7 +18,6 @@ namespace Shell.Protector
             this.rounds = rounds;
         }
 
-        // obfuscator is null unless the material is obfuscated (locked Poiyomi with the option on).
         public Material CreateEncryptedMaterial(string folderGuid, string fileName, Material source, Shader shader, Texture2D fallback, Texture2D mip, AuxiliaryTextures auxiliary, ProcessedTexture texture, byte[] keyBytes, int fixedKeySize, IEncryptor encryptor, Injector injector, ShaderSecrets secrets, int emissionMask = 0, MaterialObfuscator obfuscator = null)
         {
             Material result = new Material(source.shader);

@@ -1,14 +1,9 @@
 #pragma once
 
-// Include after Protector.cginc. Settings.x: 0 = off, 1 = RGBA, 2 = DXT1,
-// 3 = DXT5, 4 = the main texture at the main UV, which takes the main
-// texture's decrypted color (_ShellMainColor) instead of decrypting a copy.
-// Format and dimensions are independent of the main texture.
-// The encrypted words are the texels of a data texture in the Blocks slot: the encrypted RGBA texture (the same one as the
-// main slot), or the endpoint texture (one texel per DXT block). It uses the main RGBA32 layout (EmissionEncryption): ChaCha
-// encrypts 4x4 data texels with one keystream block, XXTEA encrypts pairs of texels. The slot is mixed into key word 0, the
-// map's random domain (Wrap.w, see EmissionEncryption.NewDomain) into key word 1 and the mip level into key word 3. Every
-// size is a power of two.
+// Include after Protector.cginc. Settings.x: 0 = off, 1 = RGBA, 2 = DXT1, 3 = DXT5, 4 = the main texture at the main
+// UV, which takes _ShellMainColor instead of decrypting a copy. The Blocks slot holds the encrypted words in the main
+// RGBA32 layout. The slot is mixed into key word 0, the map's domain (Wrap.w) into key word 1 and the mip level into
+// key word 3. Every size is a power of two.
 #define SHELL_EMISSION_SLOT(n) Texture2D _ShellEmission##n; Texture2D _ShellEmission##n##Blocks; float4 _ShellEmission##n##Settings; float4 _ShellEmission##n##Wrap;
 SHELL_EMISSION_SLOT(0)
 SHELL_EMISSION_SLOT(1)

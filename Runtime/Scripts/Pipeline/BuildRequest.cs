@@ -13,7 +13,6 @@ namespace Shell.Protector
             DeferObfuscation = deferObfuscation;
         }
 
-        // The avatar root, with the VRCAvatarDescriptor and the ShellProtector component.
         public GameObject Avatar { get; }
         // Encrypt a copy and disable the original (manual encryption). Otherwise the avatar itself is encrypted (NDMF upload).
         public bool Clone { get; }

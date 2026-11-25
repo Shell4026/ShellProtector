@@ -10,27 +10,19 @@ using UnityEngine.Rendering;
 
 namespace Shell.Protector
 {
-    // Material obfuscation (Poiyomi only). Locking a Poiyomi material bakes the values of its properties into the code of
-    // the locked shader, so the material's copies are never read but would still show every setting in a ripped material.
-    // This resets them to the shader defaults on the encrypted material and drops what the shader doesn't have.
-    //
-    // A property keeps its value when the shader still reads it: a name in the shader's code (uniform branches,
-    // [DoNotLock] properties, the animated ones) or in its render state (ZWrite [_ZWrite]), a property that only the
-    // encrypted copy has (ShellProtector's own), one Thry marks as animated, or one in AlwaysKept. Which names the code
-    // reads is found by scanning the shader source (FindReadIdentifiers), so it works for every Poiyomi version without
-    // knowing its properties.
+    // Locking a Poiyomi material bakes its property values into the locked shader's code, so the material's copies
+    // are never read but would still show every setting in a ripped material. Which names the code still reads is
+    // found by scanning the shader source, so it works for every Poiyomi version without knowing its properties.
     public sealed class MaterialObfuscator
     {
-        // Read by VRChat's fallback shaders and by Unity's built-in includes, and Thry's lock state, which its upload
-        // check reads to leave the material alone.
+        // VRChat's fallback shaders and Unity's built-in includes read these. Thry's upload check reads its lock state.
         static readonly HashSet<string> AlwaysKept = new HashSet<string>
         {
             "_MainTex", "_Color", "_Cutoff", "_EmissionMap", "_EmissionColor", "_BumpMap", "_BumpScale",
             "_MetallicGlossMap", "_Metallic", "_Glossiness", "_GlossMapScale", "_OcclusionMap", "_OcclusionStrength",
             "_SpecColor", "_ShaderOptimizerEnabled"
         };
-        // Thry's editor-only tags. The original keywords list every enabled feature. OriginalShader stays: Thry and
-        // ShellProtector tell a locked material by it.
+        // OriginalShader stays: Thry and ShellProtector tell a locked material by it.
         static readonly string[] RemovedTags = { "OriginalKeywords", "AllLockedGUIDS" };
         const string TexturePackTag = "_texPack_";
 
@@ -45,11 +37,9 @@ namespace Shell.Protector
             @"|^\s*\w*(?:DECLARE|DEFINE_INSTANCED_PROP)\w*\s*\([^;]*\)\s*;?\s*$",
             RegexOptions.Compiled);
 
-        // Per build: the names each encrypted shader reads, null when its source can't be read.
         readonly Dictionary<Shader, HashSet<string>> readIdentifiers = new Dictionary<Shader, HashSet<string>>();
 
-        // Obfuscates the encrypted material of source. Returns the number of reset properties, or -1 when the shader
-        // source can't be read and the material is left as it is.
+        // Returns -1 when the shader source can't be read and the material is left as it is.
         public int Apply(Material material, Material source)
         {
             if (!readIdentifiers.TryGetValue(material.shader, out HashSet<string> read))
@@ -65,8 +55,7 @@ namespace Shell.Protector
             return Apply(material, source, read);
         }
 
-        // Resets every property of material that read doesn't contain, except those in the rules above. source is the
-        // material before encryption: its shader tells the copy's own properties apart, and its tags the animated ones.
+        // source's shader tells the encrypted copy's own properties apart, and its tags the animated ones.
         public static int Apply(Material material, Material source, HashSet<string> read)
         {
             Shader shader = material.shader;
@@ -130,8 +119,6 @@ namespace Shell.Protector
             return tag != "" && tag != "0";
         }
 
-        // Removes the saved values the shader doesn't have (left from other shaders or disabled Poiyomi modules), or has
-        // as another type, Thry's editor tags and the keywords the shader doesn't declare.
         static int RemoveStaleData(Material material, Dictionary<string, ShaderPropertyType> types)
         {
             var serialized = new SerializedObject(material);
@@ -154,7 +141,6 @@ namespace Shell.Protector
             return types.TryGetValue(name, out ShaderPropertyType type) && Array.IndexOf(allowed, type) >= 0;
         }
 
-        // Each element of a serialized map is a pair whose "first" is the key.
         static int RemoveEntries(SerializedProperty map, Func<string, bool> remove)
         {
             if (map == null || !map.isArray)
@@ -173,7 +159,7 @@ namespace Shell.Protector
         }
 
         // The encrypted copy lives in the output folder, and a locked shader's own includes next to the locked shader,
-        // so includes are looked up next to both and next to every file included so far.
+        // so includes are looked up next to both.
         static HashSet<string> ReadShaderIdentifiers(Shader shader, Shader originalShader)
         {
             string path = AssetDatabase.GetAssetPath(shader);
@@ -212,9 +198,8 @@ namespace Shell.Protector
             return null;
         }
 
-        // Every identifier that the shader's code reads: its passes, render state and the includes that loadInclude
-        // returns (null for one to skip). The Properties block, comments and lines that only declare a uniform don't
-        // count. A macro that pastes a suffix onto an argument (tex##_ST) adds that suffix to every name read.
+        // The Properties block, comments and lines that only declare a uniform don't count. A macro that pastes a suffix
+        // onto an argument (tex##_ST) adds that suffix to every name read.
         public static HashSet<string> FindReadIdentifiers(string shaderSource, Func<string, string> loadInclude)
         {
             var read = new HashSet<string>();
@@ -271,9 +256,9 @@ namespace Shell.Protector
             }
         }
 
-        // Removes the ShaderLab Properties block. Display names hold braces and other property names
-        // ("--{condition_showS:(_LightingMode==1)}") and can span lines, so braces inside strings and comments don't count.
-        // When the block's end isn't found, the source is returned whole: that only keeps more values.
+        // Display names hold braces and other property names ("--{condition_showS:(_LightingMode==1)}"), so braces
+        // inside strings and comments don't count. If the end isn't found the source is returned whole, which only
+        // keeps more values.
         public static string RemovePropertiesBlock(string shaderSource)
         {
             Match properties = Regex.Match(shaderSource, @"^[ \t]*Properties\s*(?=\{|$)", RegexOptions.Multiline);
@@ -318,7 +303,6 @@ namespace Shell.Protector
             return shaderSource;
         }
 
-        // Keeps line breaks so the code keeps its lines.
         static string RemoveComments(string source)
         {
             var result = new StringBuilder(source.Length);

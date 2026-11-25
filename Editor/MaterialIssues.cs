@@ -73,7 +73,6 @@ namespace Shell.Protector
             return assetManager.IsPoiyomi(material.shader) ? EmissionEncryption.PoiyomiMaps : EmissionEncryption.LilToonMaps;
         }
 
-        // Whether a selected slot holds a texture the build can't encrypt.
         public static bool HasUnsupportedEmission(Material material, int mask)
         {
             if (mask == 0 || !assetManager.IsSupportShader(material.shader))

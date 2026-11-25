@@ -16,9 +16,7 @@ using VRC.SDKBase.Editor.BuildPipeline;
 
 namespace Shell.Protector
 {
-    // A text file a user attaches to a bug report: the environment and the other build tools, the avatar, the settings,
-    // the key, every material and texture the next build would encrypt, and the renderers its key animations must reach.
-    // It is written in English for the developer.
+    // Written in English for the developer.
     internal static class BugReport
     {
         static readonly AssetManager assetManager = AssetManager.GetInstance();
@@ -66,7 +64,6 @@ namespace Shell.Protector
             return report.ToString();
         }
 
-        // A section that fails still leaves the rest of the report.
         static void Section(StringBuilder report, string name, Action append)
         {
             report.AppendLine();
@@ -105,8 +102,7 @@ namespace Shell.Protector
                 report.AppendLine("  " + package.name + " " + package.version);
         }
 
-        // Other tools that change the avatar during the build. Tools installed under Assets aren't packages, so the plugins
-        // are found by their attributes and interfaces. NDMF is read by name: this assembly doesn't reference it.
+        // Tools installed under Assets aren't packages, so they are found by their attributes and interfaces.
         static void AppendBuildPlugins(StringBuilder report)
         {
             var plugins = new List<string>();
@@ -154,8 +150,7 @@ namespace Shell.Protector
                 report.AppendLine("  " + (order == int.MinValue ? "?" : order.ToString()) + " " + name);
         }
 
-        // The order NDMF runs its passes in on this platform, as its plugin sequence window shows it. The resolver is
-        // internal, so it is read by reflection: a version of NDMF that changed it loses only this section.
+        // NDMF's resolver is internal, so it is read by reflection: a version that changed it loses only this section.
         static void AppendNdmfPasses(StringBuilder report)
         {
             Type resolverType = Type.GetType("nadena.dev.ndmf.PluginResolver, nadena.dev.ndmf");
@@ -216,7 +211,6 @@ namespace Shell.Protector
             }
         }
 
-        // The extension contexts (animator services, AAO's mesh info and so on) that NDMF opens or closes before a pass.
         static void AppendExtensions(StringBuilder line, string verb, object extensions)
         {
             if (!(extensions is IEnumerable<Type> types))
@@ -328,9 +322,8 @@ namespace Shell.Protector
             report.AppendLine("Language: " + settings.Language);
         }
 
-        // The lilToon features the ShellProtector lilToon shader (custom.hlsl) is compiled against. While it builds an
-        // avatar, lilToon turns off every feature no material of the avatar uses (lilToonSetting.SetShaderSettingBeforeBuild),
-        // so an upload can compile other variants than the editor.
+        // While it builds an avatar, lilToon turns off every feature no material of the avatar uses
+        // (lilToonSetting.SetShaderSettingBeforeBuild), so an upload can compile other variants than the editor.
         static void AppendLilToonSettings(StringBuilder report)
         {
             const string path = "ProjectSettings/lilToonSetting.json";
@@ -459,8 +452,7 @@ namespace Shell.Protector
             return material.HasProperty(name) ? material.GetFloat(name).ToString("0.###", CultureInfo.InvariantCulture) : "-";
         }
 
-        // The ShellProtector keywords Injector.SetKeywords gives the encrypted material: the format, the rim light override,
-        // the point filter and the cipher.
+        // Must match Injector.SetKeywords.
         static IEnumerable<string> BuildKeywords(Texture mainTexture, AuxiliaryTextures auxiliary, ShellProtector.MatOption option, BuildSettings settings)
         {
             foreach (string keyword in TextureEncryptManager.FormatKeywords(mainTexture))
@@ -511,9 +503,8 @@ namespace Shell.Protector
             }
         }
 
-        // The renderers the key animations write to (AnimatorManager.AddKeyCurve): every renderer with a material the build
-        // encrypts, bound by its path. An earlier object with the same path takes the key instead. The paths are the ones
-        // before the build; a tool that moves or renames the renderer later breaks the binding too.
+        // The key animations bind by path, so an earlier object with the same path takes the key instead, and a tool that
+        // moves or renames the renderer later breaks the binding.
         static void AppendKeyTargets(StringBuilder report, ShellProtector protector)
         {
             VRCAvatarDescriptor descriptor = protector.Descriptor;
@@ -541,8 +532,6 @@ namespace Shell.Protector
             }
         }
 
-        // Animations that swap the materials of the key targets or swap in an encrypted material or one that uses a protected
-        // texture, and the material properties the avatar's own animations set on the key targets.
         static void AppendMaterialAnimations(StringBuilder report, ShellProtector protector)
         {
             VRCAvatarDescriptor descriptor = protector.Descriptor;
@@ -597,9 +586,8 @@ namespace Shell.Protector
                 report.AppendLine("  " + pair.Key + ": " + string.Join(", ", pair.Value));
         }
 
-        // The playable layers and Modular Avatar's merged animators, with the prefix that makes their paths relative to the
-        // avatar. A relative merge animator is taken to be relative to its own object (an empty relativePathRoot).
-        // Modular Avatar is read by name: this assembly doesn't reference it.
+        // A relative merge animator is taken to be relative to its own object (an empty relativePathRoot). Modular Avatar
+        // is read by name: this assembly doesn't reference it.
         static IEnumerable<(string label, RuntimeAnimatorController controller, string prefix)> Controllers(VRCAvatarDescriptor descriptor)
         {
             var layers = (descriptor.baseAnimationLayers ?? Array.Empty<VRCAvatarDescriptor.CustomAnimLayer>())
@@ -624,7 +612,6 @@ namespace Shell.Protector
             }
         }
 
-        // The materials the next build encrypts: active, and without an issue that makes the build skip them.
         static HashSet<Material> EncryptedMaterials(ShellProtector protector)
         {
             return new HashSet<Material>(protector.GetActiveMaterials()
@@ -678,9 +665,8 @@ namespace Shell.Protector
             return component == null ? "(missing script)" : component.GetType().FullName;
         }
 
-        // The compile errors of the shaders the builds generated: the lilToon copy and the injected Poiyomi shaders. Unity
-        // keeps the messages of the variants it compiled in this editor session, so a variant no material in the editor used
-        // is missing. A variant that fails to compile is left out of an upload too.
+        // Unity keeps the messages of the variants it compiled in this editor session, so a variant no material in the
+        // editor used is missing.
         static void AppendGeneratedShaders(StringBuilder report, BuildSettings settings)
         {
             string[] folders = new[] { LilToonShaders.Folder, settings.AssetDir }.Where(AssetDatabase.IsValidFolder).Distinct().ToArray();
@@ -718,9 +704,7 @@ namespace Shell.Protector
             report.AppendLine(clean + " shaders without errors");
         }
 
-        // The ShellProtector lines and shader errors at the end of the editor log, read without loading the whole file.
-        // Other exceptions are left out: some packages log one in every editor update. Shader warnings are left out too,
-        // and a repeated line is listed once, at its last occurrence, with its count.
+        // Read without loading the whole file. Other exceptions are left out: some packages log one in every editor update.
         static void AppendLog(StringBuilder report)
         {
             string path = Application.consoleLogPath;

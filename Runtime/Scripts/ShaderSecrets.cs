@@ -10,8 +10,6 @@ namespace Shell.Protector
     // and the four ChaCha constant words. The material and the captured key parameters are then not enough to decrypt
     // a texture offline; the values have to be dug out of each shader's bytecode.
     // Protector.cginc reads them from the macros that ToDefines writes. A shader without them uses None.
-    // Each Poiyomi shader copy bakes the secrets of its main texture (EncryptedHistory), and the lilToon shaders bake the
-    // project's (LilToonShaders).
     [Serializable]
     public sealed class ShaderSecrets
     {

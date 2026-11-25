@@ -7,7 +7,6 @@ using UnityEngine;
 
 namespace Shell.Protector
 {
-    // Per material: encrypt the main texture, inject the decryption into a copy of the shader, and write the encrypted material.
     public sealed partial class Pipeline
     {
         readonly Dictionary<(int, int, bool), Texture2D> mipTextures = new Dictionary<(int, int, bool), Texture2D>();
@@ -138,9 +137,7 @@ namespace Shell.Protector
         }
 
         // A Poiyomi copy bakes the secrets of its main texture, so materials sharing a texture share one encryption of it.
-        // lilToon materials all use the project's shader (LilToonShaders).
-        // The history is asked once per texture and build. Other secrets for a later material sharing the texture would
-        // make its copy need a second encryption of the texture (EncryptForOtherSecrets).
+        // lilToon materials all use the project's secrets (LilToonShaders).
         ShaderSecrets SelectShaderSecrets(Material mat)
         {
             if (shaderManager.IsLilToon(mat.shader))
@@ -183,8 +180,7 @@ namespace Shell.Protector
 
         AuxiliaryTextures GetAuxiliaryTextures(Material mat) => AuxiliaryTextures.Of(mat);
 
-        // One reference mip texture per size, shared by the materials whose main textures have that size. BC7 decodes every
-        // level of the texture's own size, the other formats use a square of the longer side.
+        // BC7 decodes every level of the texture's own size, the other formats use a square of the longer side.
         Texture2D GetMipTexture(Texture2D mainTexture)
         {
             bool fullChain = mainTexture.format == TextureFormat.BC7;

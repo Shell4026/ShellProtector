@@ -13,9 +13,7 @@ namespace Shell.Protector
 {
     public class AnimatorManager : ScriptableObject
     {
-        // Copies each AnimatorController, with its own copy of every blend tree it uses. Override controllers aren't
-        // edited by the build, so their entries stay null. Returns null if a controller can't be copied: the build
-        // would then edit the original.
+        // Returns null if a controller can't be copied, because the build would then edit the original.
         public static AnimatorController[] DuplicateAnimators(RuntimeAnimatorController[] animators, OutputPaths paths, AssetWriter writer)
         {
             var targetPaths = new Dictionary<string, string>();
@@ -62,7 +60,7 @@ namespace Shell.Protector
             return duplicatedAnimators;
         }
 
-        // CopyAsset keeps the file's local IDs, so a controller stored inside another asset is found in the copy by its ID.
+        // CopyAsset keeps local IDs, so a controller stored inside another asset is found in the copy by its ID.
         static AnimatorController LoadCopy(AnimatorController source, string targetPath)
         {
             if (!AssetDatabase.TryGetGUIDAndLocalFileIdentifier(source, out string _, out long sourceId))
@@ -72,9 +70,8 @@ namespace Shell.Protector
                 AssetDatabase.TryGetGUIDAndLocalFileIdentifier(c, out string _, out long id) && id == sourceId);
         }
 
-        // Blend trees saved in their own asset (locomotion trees, CGE's generated trees) aren't copied with the controller
-        // file, so the copy would still share them with the original and the build would change the original's animations.
-        // The copy gets its own, stored in the copied controller.
+        // Blend trees saved in their own asset (locomotion trees, CGE's trees) aren't copied with the controller file,
+        // so the build would change the original's animations.
         static void CopyExternalBlendTrees(AnimatorController controller)
         {
             string path = AssetDatabase.GetAssetPath(controller);
@@ -102,7 +99,6 @@ namespace Shell.Protector
                 CopyExternalBlendTrees(child.stateMachine, path, copies);
         }
 
-        // A tree inside the controller stays as it is, but its children may still be external trees.
         static BlendTree CopyExternalBlendTree(BlendTree tree, string path, Dictionary<BlendTree, BlendTree> copies)
         {
             if (copies.TryGetValue(tree, out BlendTree copy))
@@ -315,8 +311,8 @@ namespace Shell.Protector
 
         static readonly string[] keyLayerNames = { "ShellProtector", "ShellProtectorMux", "ShellProtectorDemux" };
 
-        // Removes key layers left in the controller by an earlier build, for example when they were copied into the
-        // original FX. They would drive the parameters of another salt or key size, so they are always built again.
+        // Key layers from an earlier build (for example copied into the original FX) drive the parameters of another salt
+        // or key size, so they are always built again.
         private static void RemoveKeyLayers(AnimatorController anim)
         {
             for (int i = anim.layers.Length - 1; i >= 0; --i)
@@ -374,9 +370,8 @@ namespace Shell.Protector
             transition.AddCondition(AnimatorConditionMode.If, 0, ParameterManager.GetIsLocalName());
         }
 
-        // Each step: lock on, wait `interval` (`delay` for the first step), change the synced keys, wait `settleTime`,
-        // lock off, wait `unlockedTime`, next step. VRChat sends synced parameters at most 10 times a second, so the
-        // waits have to be long enough for remote players to see every lock state.
+        // VRChat sends synced parameters at most 10 times a second, so each wait must be long enough for remote players
+        // to see every lock state.
         private static void AddMuxLayer(AnimatorController anim, int keyLength, int syncSize, float settleTime, float unlockedTime, float interval, float delay, UserKey key)
         {
             // With a sync speed of 1 the OSC app multiplexes the key itself.
@@ -407,12 +402,10 @@ namespace Shell.Protector
                 var syncState = layer.stateMachine.AddState("mux" + step + "_sync", new Vector3(x * 2, y * step));
                 var unlockState = layer.stateMachine.AddState("mux" + step + "_unlock", new Vector3(x * 3, y * step));
 
-                // A parameter driver runs when its state is entered, which is the start of the transition into it, and
-                // the next transition can't start until that one finishes. So each wait is the duration of the
-                // transition into the state whose driver acts before it:
-                // - lock -> sync: the lock stays on after the synced keys change. Remote players interpolate synced
-                //   floats, and the demux layer must not copy them before they settle.
-                // - sync -> unlock: the lock stays off before the next step turns it on again.
+                // A parameter driver runs when the transition into its state starts, and the next transition waits for that one
+                // to finish, so each wait is the duration of the transition into the state whose driver acts before it.
+                // The lock stays on after the synced keys change: remote players interpolate synced floats, and the demux
+                // layer must not copy them before they settle.
                 var lockToSync = lockState.AddTransition(syncState);
                 lockToSync.hasExitTime = false;
                 lockToSync.duration = settleTime;
@@ -423,7 +416,7 @@ namespace Shell.Protector
                 syncToUnlock.duration = unlockedTime;
                 AddSyncEnabledCondition(syncToUnlock);
 
-                if (step == 0) // first step
+                if (step == 0)
                 {
                     var transition = idle.AddTransition(lockState);
                     transition.hasExitTime = false;
@@ -439,8 +432,7 @@ namespace Shell.Protector
                     AddSyncEnabledCondition(transition);
                 }
 
-                // Exit goes back to Idle, so the mux keeps cycling and picks up new saved keys. This also covers a
-                // single step (sync speed equal to the key length).
+                // Exit goes back to Idle, so the mux keeps cycling and picks up new saved keys.
                 if (step == steps - 1)
                 {
                     var exit = unlockState.AddExitTransition();
@@ -460,7 +452,6 @@ namespace Shell.Protector
                     value = 1
                 });
 
-                // The demux layer copies the synced keys into the key parameters, here and on remote players.
                 for (var i = 0; i < syncSize; i++)
                 {
                     syncDriver.parameters.Add(new VRC_AvatarParameterDriver.Parameter
@@ -553,9 +544,8 @@ namespace Shell.Protector
             return (binding.type == typeof(MeshRenderer) || binding.type == typeof(SkinnedMeshRenderer)) && binding.propertyName.StartsWith("m_Materials");
         }
 
-        // Points the material swaps of the controllers at resolve(material) in one walk over their states and blend trees,
-        // so each clip is read once however many states use it and however many materials the build replaces. A clip
-        // that changes is replaced by getWritable(clip), which is the clip itself when the build owns it.
+        // One walk over all states and blend trees, so each clip is read once. getWritable(clip) is the clip itself when
+        // the build owns it.
         public static void ReplaceMaterials(IEnumerable<AnimatorController> controllers, System.Func<Material, Material> resolve,
             System.Func<AnimationClip, AnimationClip> getWritable)
         {
@@ -575,7 +565,6 @@ namespace Shell.Protector
         {
             readonly System.Func<Material, Material> resolve;
             readonly System.Func<AnimationClip, AnimationClip> getWritable;
-            // Each clip seen and the clip that replaces it, which is the clip itself when nothing in it changes.
             readonly Dictionary<AnimationClip, AnimationClip> clips = new Dictionary<AnimationClip, AnimationClip>();
             readonly HashSet<AnimatorStateMachine> stateMachines = new HashSet<AnimatorStateMachine>();
             readonly HashSet<BlendTree> blendTrees = new HashSet<BlendTree>();

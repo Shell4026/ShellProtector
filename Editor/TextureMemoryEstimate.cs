@@ -8,9 +8,8 @@ using UnityEngine.Experimental.Rendering;
 
 namespace Shell.Protector
 {
-    // The change in the avatar's texture memory (VRAM) that the next build makes. It mirrors what the pipeline creates:
-    // the encrypted textures (Formats), the reference mip textures, the fallbacks and the encrypted emission maps, and
-    // counts an original texture as removed once no material on the avatar references it anymore.
+    // The change in texture memory (VRAM) that the next build makes. It mirrors what the pipeline creates, so keep it
+    // in sync with the methods named below.
     internal sealed class TextureMemoryEstimate
     {
         public long Added { get; private set; }

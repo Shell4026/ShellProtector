@@ -93,7 +93,6 @@ namespace Shell.Protector
 
         public void SetKeywords(Material material, bool hasLimTexture = false)
         {
-            // Clear keywords prefixed with _SHELL_PROTECTOR_
             var keywords = material.shaderKeywords;
             foreach (string keyword in keywords)
             {
@@ -102,10 +101,8 @@ namespace Shell.Protector
                 }
             }
 
-            // Set format keywords
             TextureEncryptManager.SetFormatKeywords(material);
 
-            // Set rimlight keyword
             if (hasLimTexture)
                 material.EnableKeyword(ShaderProperties.RimLightKeyword);
 
@@ -113,7 +110,6 @@ namespace Shell.Protector
             if (Filter == (int)ShellProtectorTextureFilter.Point)
                 material.EnableKeyword(ShaderProperties.PointKeyword);
 
-            // Set encryptor keyword
             material.EnableKeyword(Encryptor.Keyword);
         }
 

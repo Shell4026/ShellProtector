@@ -7,10 +7,7 @@ using UnityEngine;
 
 namespace Shell.Protector
 {
-    // Emission uses independent blocks, dimensions and key domains. Main-map
-    // format keywords and ChaCha nonce remain unchanged. The encrypted words use
-    // the main RGBA32 layout (ChaCha: one keystream block per 4x4 texels, XXTEA:
-    // pairs of texels), on the endpoint texture for DXT. Emission.cginc decrypts it.
+    // Must stay in sync with Emission.cginc.
     public static class EmissionEncryption
     {
         public static readonly string[] PoiyomiMaps = { "_EmissionMap", "_EmissionMap1", "_EmissionMap2", "_EmissionMap3" };
@@ -40,9 +37,7 @@ namespace Shell.Protector
             return material.HasProperty(SettingsProperty(0)) && Array.IndexOf(maps, property) >= 0;
         }
 
-        // Whether the slot samples the main texture at the main UV, so Emission.cginc can take the main texture's decrypted
-        // color instead of decrypting a copy. Only the material's values are compared: an animation that changes the UV of
-        // one side alone isn't detected.
+        // Only the material's values are compared: an animation that changes the UV of one side alone isn't detected.
         public static bool ReusesMainTexture(Material material, int slot)
         {
             bool poiyomi = AssetManager.GetInstance().IsPoiyomi(material.shader);
@@ -70,7 +65,6 @@ namespace Shell.Protector
                 && GetFloat(material, "_UseParallax") == 0;
         }
 
-        // The maps Apply encrypts for this mask: the selected slots' textures, except a slot that reuses the main texture.
         public static IEnumerable<Texture2D> EncryptedMaps(Material source, int emissionMask)
         {
             if (emissionMask == 0) yield break;
@@ -113,8 +107,6 @@ namespace Shell.Protector
 
             if (TextureEncryptManager.IsDXTFormat(source.format))
             {
-                // Reuse the main texture's DXT1/DXT5 encoder: compressed selectors
-                // and alpha stay in Texture1, encrypted RGB565 endpoints in Texture2.
                 EncryptResult compressed = TextureEncryptManager.EncryptTexture(source, SlotKey(key, slot, domain), cipher);
                 compressed.Texture1.Apply(false, false);
                 compressed.Texture2.Apply(false, false);
@@ -221,8 +213,7 @@ namespace Shell.Protector
                     target.SetTexture(TextureProperty(slot), encrypted.Texture1);
                     if (encrypted.Texture2 != null)
                         writer.CreateAssetInFolder(encrypted.Texture2, folderGuid, source.name + map + "_blocks.asset");
-                    // Emission.cginc reads the encrypted words from the Blocks slot: the endpoint texture for DXT, the
-                    // texture itself for RGBA, so the shader fetches from one texture instead of choosing per fetch.
+                    // One data texture for both formats, so the shader doesn't choose per fetch.
                     target.SetTexture(BlocksProperty(slot), encrypted.Texture2 != null ? encrypted.Texture2 : encrypted.Texture1);
                     // Poiyomi shares the main texture's sampler with emission;
                     // lilToon uses the emission map's own sampler.

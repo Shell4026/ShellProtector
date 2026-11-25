@@ -7,7 +7,6 @@ using UnityEngine.Networking;
 
 namespace Shell.Protector
 {
-    // Downloads the latest ShellProtectorOSC release zip from GitHub.
     public static class OscDownloader
     {
         public const string ReleasesUrl = "https://github.com/Shell4026/ShellProtectorOSC/releases";

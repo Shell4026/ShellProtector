@@ -7,8 +7,6 @@ using UnityEngine;
 
 namespace Shell.Protector
 {
-    // Per-material options, in the same style as the inspector: titles and spacing instead of boxes, descriptions in
-    // tooltips and hints, and problems as help boxes.
     public class MaterialAdvancedSettings : EditorWindow
     {
         ShellProtector protector;
@@ -161,7 +159,6 @@ namespace Shell.Protector
                 EditorGUILayout.HelpBox(Lang(MaterialIssues.Message(issue)), MessageType.Error);
         }
 
-        // One toggle per emission slot of the shader. A slot without a texture can't be selected.
         int DrawEmission(Material material, int mask)
         {
             bool poiyomi = assetManager.IsPoiyomi(material.shader);
