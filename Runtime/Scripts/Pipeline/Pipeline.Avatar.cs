@@ -82,74 +82,63 @@ namespace Shell.Protector
             }
         }
 
-        // Protected textures must not stay readable elsewhere on the avatar: the encrypted materials' other slots take the
-        // encrypted texture or a fallback, and every other material gets a copy that uses the largest fallback.
+        // Protected textures and encrypted emission maps must not stay readable elsewhere on the avatar. The encrypted
+        // materials' slots are changed in place, not on a copy, because material swaps in animations point at them
+        // (GetEncryptedMaterialSlot). Every other material gets a copy with the fallbacks (GetFallbackMaterial).
         public void ReplaceProtectedTextures()
         {
             EnsureOutputs();
-            Dictionary<Texture2D, ProcessedTexture> processedTextures = Result.processedTextures;
 
-            foreach (var mat in Result.encryptedMaterials.Values)
+            foreach (KeyValuePair<Material, Material> pair in Result.encryptedMaterials)
             {
-                AuxiliaryTextures otherTex = GetAuxiliaryTextures(mat);
-                bool poiyomi = shaderManager.IsPoiyomi(mat.shader);
-                bool lilToon = shaderManager.IsLilToon(mat.shader);
-
-                foreach (var name in mat.GetTexturePropertyNames())
+                Material mat = pair.Value;
+                bool changed = false;
+                foreach (string name in mat.GetTexturePropertyNames())
                 {
-                    if (!(mat.GetTexture(name) is Texture2D mainTexture) || !processedTextures.TryGetValue(mainTexture, out ProcessedTexture processed))
+                    if (!(mat.GetTexture(name) is Texture2D texture))
                         continue;
-
-                    Texture2D encrypted0 = processed.Encrypted.Texture1;
-                    Texture2D bigFallbackTexture = GetLargestFallback(processed);
-
-                    // A selected emission slot already holds black (EmissionEncryption.Apply). An unselected one keeps its map
-                    // unless the map is protected. This changes the encrypted material itself, not a copy: material swaps
-                    // in animations point at it.
-                    if (EmissionEncryption.IsEmissionMap(mat, name))
-                    {
-                        mat.SetTexture(name, bigFallbackTexture);
-                        EditorUtility.SetDirty(mat);
+                    Texture replacement = GetEncryptedMaterialSlot(mat, name, texture, pair.Key.mainTexture);
+                    if (replacement == null)
                         continue;
-                    }
-
-                    if (otherTex.LimTexture != null)
-                    {
-                        string texName = poiyomi ? "_RimTex" : lilToon ? "_RimColorTex" : "";
-                        if (mainTexture == otherTex.LimTexture)
-                            mat.SetTexture(texName, encrypted0);
-                        else if (processedTextures.ContainsKey(otherTex.LimTexture))
-                            mat.SetTexture(texName, null);
-                    }
-                    if (otherTex.LimTexture2 != null) // Poiyomi only
-                    {
-                        string texName = poiyomi ? "_Rim2Tex" : "";
-                        if (mainTexture == otherTex.LimTexture2)
-                            mat.SetTexture(texName, encrypted0);
-                        else if (processedTextures.ContainsKey(otherTex.LimTexture2))
-                            mat.SetTexture(texName, null);
-                    }
-                    if (otherTex.OutlineTexture != null)
-                    {
-                        string texName = poiyomi ? "_OutlineTexture" : lilToon ? "_OutlineTex" : "";
-                        if (mainTexture == otherTex.OutlineTexture)
-                            mat.SetTexture(texName, bigFallbackTexture);
-                        else if (processedTextures.TryGetValue(otherTex.OutlineTexture, out ProcessedTexture outline))
-                            mat.SetTexture(texName, outline.Fallbacks[0]);
-                    }
-                    if (otherTex.LimShadeTexture != null) // lilToon only
-                    {
-                        const string texName = "_RimShadeMask";
-                        if (mainTexture == otherTex.LimShadeTexture)
-                            mat.SetTexture(texName, bigFallbackTexture);
-                        else if (processedTextures.ContainsKey(otherTex.LimShadeTexture))
-                            mat.SetTexture(texName, null);
-                    }
+                    mat.SetTexture(name, replacement);
+                    changed = true;
                 }
+                if (changed)
+                    EditorUtility.SetDirty(mat);
             }
 
             ReplaceProcessedTexturesWithFallbacks(Avatar.GetComponentsInChildren<MeshRenderer>(true));
             ReplaceProcessedTexturesWithFallbacks(Avatar.GetComponentsInChildren<SkinnedMeshRenderer>(true));
+        }
+
+        // What a slot of an encrypted material holding a protected texture or an encrypted emission map gets instead, or
+        // null to leave it. mainTexture is the original material's main texture.
+        Texture GetEncryptedMaterialSlot(Material mat, string name, Texture2D texture, Texture mainTexture)
+        {
+            if (!Result.processedTextures.TryGetValue(texture, out ProcessedTexture processed))
+            {
+                // Nothing reuses an emission map's decrypted color, so every slot that still holds one loses it. The
+                // selected slot itself already holds black (EmissionEncryption.Apply).
+                return Result.encryptedEmissionMaps.Contains(texture) ? EncryptionFallback : null;
+            }
+
+            // An unselected emission slot whose map is protected. A selected one already holds black.
+            if (EmissionEncryption.IsEmissionMap(mat, name))
+                return GetLargestFallback(processed);
+
+            bool poiyomi = shaderManager.IsPoiyomi(mat.shader);
+            bool lilToon = shaderManager.IsLilToon(mat.shader);
+            bool isMain = texture == mainTexture;
+            // The injected shader draws the rim with the decrypted main color, so a rim slot holding the main texture takes
+            // the material's encrypted texture. Any other protected texture there gets the encryption fallback.
+            if (poiyomi && (name == "_RimTex" || name == "_Rim2Tex") || lilToon && name == "_RimColorTex")
+                return isMain ? mat.GetTexture(ShaderProperties.EncryptTexture0) : EncryptionFallback;
+            if (lilToon && name == "_RimShadeMask")
+                return isMain ? GetLargestFallback(processed) : EncryptionFallback;
+            if (poiyomi && name == "_OutlineTexture" || lilToon && name == "_OutlineTex")
+                return GetLargestFallback(processed);
+            // Other slots: the renderers and swaps get a copy of the encrypted material with fallbacks (GetFallbackMaterial).
+            return null;
         }
 
         void ReplaceProcessedTexturesWithFallbacks<T>(IEnumerable<T> renderers) where T : Renderer
@@ -175,8 +164,9 @@ namespace Shell.Protector
             }
         }
 
-        // The copy of a material with the largest fallback in place of each protected texture, or null if it uses none.
-        // Renderers and material swaps share the copies (BuildResult.fallbackMaterials).
+        // The copy of a material with the largest fallback in place of each protected texture and the encryption fallback in
+        // place of each encrypted emission map, or null if it uses none. Renderers and material swaps share the copies
+        // (BuildResult.fallbackMaterials).
         Material GetFallbackMaterial(Material source)
         {
             if (Result.fallbackMaterials.TryGetValue(source, out Material copy))
@@ -184,7 +174,14 @@ namespace Shell.Protector
 
             foreach (string name in source.GetTexturePropertyNames())
             {
-                if (!(source.GetTexture(name) is Texture2D texture) || !Result.processedTextures.TryGetValue(texture, out ProcessedTexture processedTexture))
+                if (!(source.GetTexture(name) is Texture2D texture))
+                    continue;
+                Texture2D fallback;
+                if (Result.processedTextures.TryGetValue(texture, out ProcessedTexture processedTexture))
+                    fallback = GetLargestFallback(processedTexture);
+                else if (Result.encryptedEmissionMaps.Contains(texture))
+                    fallback = EncryptionFallback;
+                else
                     continue;
 
                 if (copy == null)
@@ -194,7 +191,7 @@ namespace Shell.Protector
                     copy = Object.Instantiate(source);
                     writer.CreateAssetInFolder(copy, paths.Folders.MatGuid, paths.DuplicatedMaterialName(source));
                 }
-                copy.SetTexture(name, GetLargestFallback(processedTexture));
+                copy.SetTexture(name, fallback);
             }
 
             if (copy != null)

@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using System;
+using System.Collections.Generic;
 using System.Security.Cryptography;
 using UnityEditor;
 using UnityEngine;
@@ -67,6 +68,19 @@ namespace Shell.Protector
                 && GetVector(material, "_MainTex_ScrollRotate") == Vector4.zero
                 && GetFloat(material, "_ShiftBackfaceUV") == 0
                 && GetFloat(material, "_UseParallax") == 0;
+        }
+
+        // The maps Apply encrypts for this mask: the selected slots' textures, except a slot that reuses the main texture.
+        public static IEnumerable<Texture2D> EncryptedMaps(Material source, int emissionMask)
+        {
+            if (emissionMask == 0) yield break;
+            string[] maps = AssetManager.GetInstance().IsPoiyomi(source.shader) ? PoiyomiMaps : LilToonMaps;
+            for (int slot = 0; slot < maps.Length; slot++)
+            {
+                if ((emissionMask & (1 << slot)) == 0 || !source.HasProperty(maps[slot])) continue;
+                if (source.GetTexture(maps[slot]) is Texture2D texture && !ReusesMainTexture(source, slot))
+                    yield return texture;
+            }
         }
 
         static float GetFloat(Material material, string name) => material.HasProperty(name) ? material.GetFloat(name) : 0;

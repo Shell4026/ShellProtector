@@ -26,6 +26,7 @@ namespace Shell.Protector
         IEncryptor encryptor;
         Texture2D fallbackWhite;
         Texture2D fallbackBlack;
+        Texture2D encryptionFallback;
 
         // A deferred pass continues the result of the build it belongs to.
         public Pipeline(BuildRequest request, BuildSettings settings, BuildResult result = null)
@@ -39,6 +40,24 @@ namespace Shell.Protector
 
         // The avatar being rewritten: the copy when cloning, otherwise the requested avatar.
         public GameObject Avatar { get; private set; }
+
+        // Runtime/encryption_fallback.png: what a slot gets in place of a protected texture when it has no generated
+        // fallback of its own, such as an encrypted emission map, or a rim slot whose texture isn't the material's main
+        // texture. Loaded on first use, since the avatar steps and the deferred pass also run without Prepare.
+        Texture2D EncryptionFallback
+        {
+            get
+            {
+                if (encryptionFallback == null)
+                {
+                    string path = OutputPaths.Combine(settings.RuntimeDir, "encryption_fallback.png");
+                    encryptionFallback = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+                    if (encryptionFallback == null)
+                        Debug.LogError("[ShellProtector] Can't load " + path);
+                }
+                return encryptionFallback;
+            }
+        }
 
         public BuildResult Run()
         {

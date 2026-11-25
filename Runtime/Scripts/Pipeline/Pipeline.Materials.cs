@@ -332,6 +332,7 @@ namespace Shell.Protector
 
             if (!Result.encryptedMaterials.ContainsKey(mat))
                 Result.encryptedMaterials.Add(mat, newMat);
+            Result.encryptedEmissionMaps.UnionWith(EmissionEncryption.EncryptedMaps(mat, emissionMask));
         }
     }
 }

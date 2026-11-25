@@ -230,6 +230,70 @@ namespace Shell.Protector.Tests.Integration
                 SupportedShaderRenderingTests.AssertRenderedRgbClose(reference, locked, "Unselected emission");
         }
 
+        // An encrypted emission map, and a protected texture in a slot that can't reuse the decrypted main color, take
+        // Runtime/encryption_fallback.png wherever else they appear: in place on the encrypted materials, on a copy elsewhere.
+        [Test]
+        public void ProtectedTexturesWithoutOwnFallback_TakeEncryptionFallback()
+        {
+            Shader shader = Shader.Find("lilToon");
+            Assert.That(shader, Is.Not.Null, "Install lilToon to run this integration test.");
+            Texture2D main = Pattern(128, 128, false);
+            Texture2D emission = Pattern(64, 64, true);
+            var other = new Texture2D(64, 64, TextureFormat.RGBA32, false);
+            AssetDatabase.CreateAsset(other, root + "/other.asset");
+
+            var source = new Material(shader) { mainTexture = main };
+            objects.Add(source);
+            source.SetTexture("_EmissionMap", emission);
+            Assert.That(EmissionEncryption.EncryptedMaps(source, 1), Is.EquivalentTo(new[] { emission }));
+            Assert.That(EmissionEncryption.EncryptedMaps(source, 0), Is.Empty);
+            source.SetTexture("_EmissionMap", main);
+            Assert.That(EmissionEncryption.EncryptedMaps(source, 1), Is.Empty, "A slot that reuses the main texture isn't encrypted.");
+
+            // The encrypted material keeps another material's encrypted emission map and another protected texture.
+            var encrypted = new Material(source);
+            objects.Add(encrypted);
+            encrypted.SetTexture("_Emission2ndMap", emission);
+            encrypted.SetTexture("_RimColorTex", other);
+            encrypted.SetTexture("_RimShadeMask", other);
+            var unencrypted = new Material(shader);
+            objects.Add(unencrypted);
+            unencrypted.SetTexture("_EmissionMap", emission);
+
+            var avatar = new GameObject("Encryption fallback");
+            objects.Add(avatar);
+            avatar.AddComponent<MeshRenderer>().sharedMaterial = encrypted;
+            var child = new GameObject("Other");
+            child.transform.SetParent(avatar.transform, false);
+            var otherRenderer = child.AddComponent<MeshRenderer>();
+            otherRenderer.sharedMaterial = unencrypted;
+            var protector = avatar.AddComponent<ShellProtector>();
+            protector.AssetDir = root + "/Pipeline";
+            BuildSettings settings = protector.CreateSettings();
+            var fallback = AssetDatabase.LoadAssetAtPath<Texture2D>(OutputPaths.Combine(settings.RuntimeDir, "encryption_fallback.png"));
+            Assert.That(fallback, Is.Not.Null);
+
+            var pipeline = new Pipeline(new BuildRequest(avatar, false), settings);
+            pipeline.Result.encryptedMaterials[source] = encrypted;
+            pipeline.Result.processedTextures[other] = new ProcessedTexture
+            {
+                Encrypted = new EncryptResult(),
+                Fallbacks = new List<Texture2D> { Texture2D.blackTexture },
+                FallbackOptions = new List<int> { 0 }
+            };
+            pipeline.Result.encryptedEmissionMaps.Add(emission);
+            pipeline.ReplaceProtectedTextures();
+
+            Assert.That(avatar.GetComponent<MeshRenderer>().sharedMaterial, Is.SameAs(encrypted), "Material swaps point at the encrypted material.");
+            Assert.That(encrypted.GetTexture("_Emission2ndMap"), Is.EqualTo(fallback));
+            Assert.That(encrypted.GetTexture("_RimColorTex"), Is.EqualTo(fallback), "A rim slot that doesn't hold the main texture can't reuse its decrypted color.");
+            Assert.That(encrypted.GetTexture("_RimShadeMask"), Is.EqualTo(fallback));
+            Material copy = otherRenderer.sharedMaterial;
+            Assert.That(copy, Is.Not.SameAs(unencrypted));
+            Assert.That(copy.GetTexture("_EmissionMap"), Is.EqualTo(fallback));
+            Assert.That(unencrypted.GetTexture("_EmissionMap"), Is.EqualTo(emission));
+        }
+
         Texture2D Pattern(int width, int height, bool emission, TextureFormat format = TextureFormat.RGBA32)
         {
             var texture = new Texture2D(width, height, format == TextureFormat.DXT1 ? TextureFormat.RGB24 : TextureFormat.RGBA32, true, false);
