@@ -108,10 +108,23 @@ namespace Shell.Protector.Tests.Integration
             Material encryptedMaterial = GetBodyMaterial(encryptedAvatar);
             AssertEncryptedMaterial(encryptedMaterial);
             AssertPoiyomiShaderWasInjected(encryptedMaterial.shader);
+            AssertMaterialWasObfuscated(encryptedMaterial, lightingMode >= 0);
 
+            // The material obfuscation (on by default) reset the values the locked shader baked in, so this also checks
+            // that the shader reads none of them.
             ApplyUserKey(encryptedMaterial, fixture.Protector);
             Color32[] actual = RenderMaterial(encryptedMaterial);
             AssertRenderedRgbClose(reference, actual, "Poiyomi");
+        }
+
+        // _LightingMode is baked into the locked shader, so the obfuscation resets it to the shader's default.
+        private static void AssertMaterialWasObfuscated(Material material, bool lightingModeChanged)
+        {
+            Assert.That(material.GetTag("OriginalShader", false, ""), Is.Not.Empty, "Thry and ShellProtector tell a locked material by this tag.");
+            Assert.That(material.GetTag("OriginalKeywords", false, ""), Is.Empty);
+            int index = material.shader.FindPropertyIndex("_LightingMode");
+            if (lightingModeChanged && index >= 0)
+                Assert.That(material.GetFloat("_LightingMode"), Is.EqualTo(material.shader.GetPropertyDefaultFloatValue(index)));
         }
 
         // A rim texture that is the main texture holds the encrypted texture on the encrypted material, so the injected

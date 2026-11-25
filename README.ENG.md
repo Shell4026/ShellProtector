@@ -118,6 +118,10 @@ Viewers whose Safety settings disable shaders see a small fallback texture inste
 
 ![fallback](https://github.com/user-attachments/assets/d3ca69b0-ff08-4793-a4e4-73269bc8efd3)
 
+### Material obfuscation (experimental)
+
+Works only with Poiyomi and is on by default. A locked Poiyomi shader bakes the values of the properties that aren't animated into its code, so the material's copies are never used, but a ripped material still shows every setting. With **Material obfuscation (experimental)** in the advanced options, the encrypted materials get those values reset to the shader defaults, and lose the values the shader doesn't have and Thry's tag that lists the enabled features. Values the shader still reads, such as the render settings and the properties marked as animated, are kept.
+
 ### Emission encryption
 
 Off by default. Only the checked slots are encrypted; unchecked maps stay as they are. An unchecked slot that holds an encrypted main texture gets the fallback texture instead, so the original isn't exposed.

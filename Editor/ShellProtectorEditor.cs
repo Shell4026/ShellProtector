@@ -42,6 +42,7 @@ namespace Shell.Protector
         SerializedProperty bUseSmallMipTexture;
         SerializedProperty bPreserveMMD;
         SerializedProperty turnOnAllSafetyFallback;
+        SerializedProperty obfuscateMaterials;
         ShellProtectorEditorViewModel viewModel;
         bool forceProgress = false;
         string memoryEstimate = "";
@@ -94,6 +95,7 @@ namespace Shell.Protector
             bUseSmallMipTexture = serializedObject.FindProperty("useSmallMipTexture");
             bPreserveMMD = serializedObject.FindProperty("preserveMmd");
             turnOnAllSafetyFallback = serializedObject.FindProperty("turnOnAllSafetyFallback");
+            obfuscateMaterials = serializedObject.FindProperty("obfuscateMaterials");
             #endregion
             viewModel = new ShellProtectorEditorViewModel(root, syncSize, gameobjectList, materialList);
 
@@ -461,6 +463,11 @@ namespace Shell.Protector
             turnOnAllSafetyFallback.boolValue = EditorGUILayout.Toggle(unlitLabel, turnOnAllSafetyFallback.boolValue);
             fallback.intValue = EditorGUILayout.Popup(new GUIContent(Lang("Default fallback texture")), fallback.intValue, ToContents(ShellProtector.FallbackStrings));
 
+            EditorGUILayout.Space(10);
+            GUILayout.Label(Lang("Material"), EditorStyles.boldLabel);
+            var obfuscateLabel = new GUIContent(Lang("Material obfuscation (experimental)"), Lang("Resets the material values that the locked shader doesn't read, so a ripped material doesn't show the settings."));
+            obfuscateMaterials.boolValue = EditorGUILayout.Toggle(obfuscateLabel, obfuscateMaterials.boolValue);
+            Hint(Lang("Works only with Poiyomi."));
 
             EditorGUILayout.Space(10);
             GUILayout.Label(Lang("Output"), EditorStyles.boldLabel);

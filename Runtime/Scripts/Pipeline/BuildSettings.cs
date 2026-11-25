@@ -22,6 +22,8 @@ namespace Shell.Protector
         public bool UseSmallMipTexture { get; set; }
         public bool PreserveMMD { get; set; }
         public bool TurnOnAllSafetyFallback { get; set; }
+        // Poiyomi only: reset the encrypted materials' values that the locked shader doesn't read.
+        public bool ObfuscateMaterials { get; set; }
         public List<Material> Materials { get; set; } = new List<Material>();
         public Dictionary<Material, ShellProtector.MatOption> MaterialOptions { get; set; } = new Dictionary<Material, ShellProtector.MatOption>();
         public List<SkinnedMeshRenderer> ObfuscationRenderers { get; set; } = new List<SkinnedMeshRenderer>();

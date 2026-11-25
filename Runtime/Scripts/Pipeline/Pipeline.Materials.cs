@@ -13,6 +13,8 @@ namespace Shell.Protector
         readonly Dictionary<(int, int, bool), Texture2D> mipTextures = new Dictionary<(int, int, bool), Texture2D>();
         // The secrets each Poiyomi main texture got first in this build (SelectShaderSecrets).
         readonly Dictionary<Texture2D, ShaderSecrets> textureSecrets = new Dictionary<Texture2D, ShaderSecrets>();
+        // Caches what each encrypted shader reads, for the build.
+        readonly MaterialObfuscator materialObfuscator = new MaterialObfuscator();
 
         void EncryptMaterials()
         {
@@ -323,7 +325,9 @@ namespace Shell.Protector
         {
             MaterialEncryptor materialEncryptor = new MaterialEncryptor(writer, settings.TurnOnAllSafetyFallback, settings.Algorithm, settings.Rounds);
             int emissionMask = settings.MaterialOptions.TryGetValue(mat, out var option) && option != null ? option.EmissionMask : 0;
-            Material newMat = materialEncryptor.CreateEncryptedMaterial(paths.Folders.MatGuid, paths.EncryptedMaterialName(mat), mat, encryptedShader, fallback, mip, auxiliary, processedTexture, Result.keyBytes, 16 - settings.KeySize, encryptor, injector, secrets, emissionMask);
+            // Only a locked Poiyomi shader bakes the values into its code; lilToon reads them all from the material.
+            MaterialObfuscator obfuscator = settings.ObfuscateMaterials && shaderManager.IsPoiyomi(mat.shader) && shaderManager.IsLockPoiyomi(mat) ? materialObfuscator : null;
+            Material newMat = materialEncryptor.CreateEncryptedMaterial(paths.Folders.MatGuid, paths.EncryptedMaterialName(mat), mat, encryptedShader, fallback, mip, auxiliary, processedTexture, Result.keyBytes, 16 - settings.KeySize, encryptor, injector, secrets, emissionMask, obfuscator);
             Debug.LogFormat("{0} : create encrypted material : {1}", mat.name, AssetDatabase.GetAssetPath(newMat));
 
             if (!Result.encryptedMaterials.ContainsKey(mat))

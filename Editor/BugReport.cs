@@ -319,6 +319,7 @@ namespace Shell.Protector
             report.AppendLine("Sync speed: " + settings.SyncSize);
             report.AppendLine("Small mip texture: " + settings.UseSmallMipTexture);
             report.AppendLine("Unlit safety fallback: " + settings.TurnOnAllSafetyFallback);
+            report.AppendLine("Material obfuscation: " + settings.ObfuscateMaterials);
             report.AppendLine("Preserve MMD blendshapes: " + settings.PreserveMMD);
             report.AppendLine("Clean the output folder: " + settings.DeleteFolders);
             report.AppendLine("Output folder: " + settings.AssetDir + " (" + protector.GetEncryptedFoldersCount() + " generated folders)");

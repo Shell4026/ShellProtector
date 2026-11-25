@@ -115,6 +115,9 @@ namespace Shell.Protector
         [FormerlySerializedAs("_turnOnAllSafetyFallback")]
         [SerializeField] bool turnOnAllSafetyFallback = true;
 
+        // Resets the values that a locked Poiyomi shader doesn't read on the encrypted materials (MaterialObfuscator).
+        [SerializeField] bool obfuscateMaterials = true;
+
         public static readonly string[] FilterStrings = new string[2] { "Point", "Bilinear" };
         public static readonly string[] FallbackStrings = new string[8] { "white", "black", "4x4", "8x8", "16x16", "32x32", "64x64", "128x128" };
 
@@ -279,6 +282,7 @@ namespace Shell.Protector
                 UseSmallMipTexture = useSmallMipTexture,
                 PreserveMMD = preserveMmd,
                 TurnOnAllSafetyFallback = turnOnAllSafetyFallback,
+                ObfuscateMaterials = obfuscateMaterials,
                 Materials = GetMaterials(),
                 MaterialOptions = new Dictionary<Material, MatOption>(materialOptions),
                 ObfuscationRenderers = new List<SkinnedMeshRenderer>(obfuscationRenderers)

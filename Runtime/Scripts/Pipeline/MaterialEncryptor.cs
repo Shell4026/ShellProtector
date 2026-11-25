@@ -18,7 +18,8 @@ namespace Shell.Protector
             this.rounds = rounds;
         }
 
-        public Material CreateEncryptedMaterial(string folderGuid, string fileName, Material source, Shader shader, Texture2D fallback, Texture2D mip, AuxiliaryTextures auxiliary, ProcessedTexture texture, byte[] keyBytes, int fixedKeySize, IEncryptor encryptor, Injector injector, ShaderSecrets secrets, int emissionMask = 0)
+        // obfuscator is null unless the material is obfuscated (locked Poiyomi with the option on).
+        public Material CreateEncryptedMaterial(string folderGuid, string fileName, Material source, Shader shader, Texture2D fallback, Texture2D mip, AuxiliaryTextures auxiliary, ProcessedTexture texture, byte[] keyBytes, int fixedKeySize, IEncryptor encryptor, Injector injector, ShaderSecrets secrets, int emissionMask = 0, MaterialObfuscator obfuscator = null)
         {
             Material result = new Material(source.shader);
             result.CopyPropertiesFromMaterial(source);
@@ -68,6 +69,12 @@ namespace Shell.Protector
             if (texture.Encrypted.Layout != null)
                 BC7Format.SetLayoutProperties(result, texture.Encrypted.Layout);
             EmissionEncryption.Apply(source, result, keyBytes, encryptor, secrets, writer, folderGuid, emissionMask);
+            if (obfuscator != null)
+            {
+                int reset = obfuscator.Apply(result, source);
+                if (reset >= 0)
+                    Debug.LogFormat("{0} : material obfuscation reset {1} values", source.name, reset);
+            }
             writer.CreateAssetInFolder(result, folderGuid, fileName);
             return result;
         }
