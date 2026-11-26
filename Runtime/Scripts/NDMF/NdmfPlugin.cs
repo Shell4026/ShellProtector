@@ -17,12 +17,13 @@ public class NdmfPlugin : Plugin<NdmfPlugin>
     {
         InPhase(BuildPhase.Transforming).
             AfterPlugin("nadena.dev.modular-avatar").
+            AfterPlugin("io.github.azukimochi.light-limit-changer").
             Run("Encrypting2", ctx =>
             {
                 Debug.Log("After encrypting Shell Protector");
                 var shellProtector = ctx.AvatarRootObject.GetComponentInChildren<ShellProtector>(true);
                 if (shellProtector)
-                    ctx.GetState<BuildState>().Deferred = shellProtector.EncryptWithoutObfuscation();
+                    ctx.GetState<BuildState>().Deferred = shellProtector.EncryptWithoutObfuscation(OriginalOf);
             });
 
         InPhase(BuildPhase.Optimizing).
@@ -33,6 +34,11 @@ public class NdmfPlugin : Plugin<NdmfPlugin>
             {
                 ctx.GetState<BuildState>().Deferred?.Run(ctx.AvatarRootObject);
             });
+    }
+
+    public static Material OriginalOf(Material material)
+    {
+        return ObjectRegistry.GetReference(material)?.Object as Material;
     }
 }
 #endif

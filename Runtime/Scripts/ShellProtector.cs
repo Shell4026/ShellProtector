@@ -231,7 +231,7 @@ namespace Shell.Protector
         // isModular encrypts the avatar in place, as the NDMF pass on upload does. Otherwise a copy is encrypted and the original is disabled.
         public GameObject Encrypt(bool useSmallMip, bool isModular = true)
         {
-            GameObject avatar = Build(useSmallMip, isModular, false, out _)?.avatar;
+            GameObject avatar = Build(useSmallMip, isModular, false, null, out _)?.avatar;
             if (!isModular && avatar != null)
                 Selection.activeObject = avatar.GetComponentInChildren<ShellProtectorTester>(true);
             return avatar;
@@ -239,13 +239,14 @@ namespace Shell.Protector
 
         // The NDMF pass: encrypts the avatar in place like Encrypt(isModular: true), but leaves the blendshapes and the
         // material swaps that later tools add for a later pass. Returns what that pass runs, or null when the build stopped.
-        public DeferredPass EncryptWithoutObfuscation()
+        // originalOf leads a copy that an earlier tool made of a material back to that material (MaterialCopies).
+        public DeferredPass EncryptWithoutObfuscation(Func<Material, Material> originalOf = null)
         {
-            BuildResult result = Build(useSmallMipTexture, true, true, out BuildSettings settings);
+            BuildResult result = Build(useSmallMipTexture, true, true, originalOf, out BuildSettings settings);
             return result?.avatar != null ? new DeferredPass(settings, result) : null;
         }
 
-        BuildResult Build(bool useSmallMip, bool isModular, bool deferObfuscation, out BuildSettings settings)
+        BuildResult Build(bool useSmallMip, bool isModular, bool deferObfuscation, Func<Material, Material> originalOf, out BuildSettings settings)
         {
             settings = null;
             if (descriptor == null)
@@ -258,6 +259,8 @@ namespace Shell.Protector
                 Debug.LogWarning("[ShellProtector] The parameter salt was generated during the build, so it changes on every upload. Select the ShellProtector component once to save a salt.");
 
             settings = CreateSettings();
+            if (originalOf != null)
+                MaterialCopies.Apply(descriptor.gameObject, originalOf, settings);
             settings.UseSmallMipTexture = useSmallMip;
             return new Pipeline(new BuildRequest(descriptor.gameObject, !isModular, this, deferObfuscation), settings).Run();
         }
